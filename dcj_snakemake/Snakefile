@@ -1,0 +1,116 @@
+import pandas as pd
+from pathlib import Path
+import os
+
+configfile: "config.yaml"
+
+GENOMES = [el[0] for el in pd.read_csv(config["genome_list"], header=None).values]
+OUTPUTPATH = config["output_dir"] #output directory will contain subdirectory with unimogs from integerisation pipeline, as well as placing all new output from current pipeline in subdirectories within it
+
+def get_unimog(integerisation, genome1, genome2):
+    unimog = ""
+    if integerisation == "anno":
+        unimog = f"{OUTPUTPATH}/unimogs/anno.unimog"
+    elif integerisation == "align":
+        unimog = f"{OUTPUTPATH}/unimogs/{genome1}~{genome2}_align.unimog"
+    return unimog
+
+def get_dist_files():
+    genome_pairs=[]
+    n = len(GENOMES)
+    for i in range(n):
+        j=0
+        while j<i:
+            genome_pairs.append([GENOMES[i], GENOMES[j]])
+            j=j+1
+    files = []
+    for el in genome_pairs:
+        if len(el)>1:
+            files.append(f"{OUTPUTPATH}/dists/{el[0]}~{el[1]}.dist")
+    return files
+
+#localrules: all, unimog_to_ilp, dcj_dist, dcj_matrix, trees
+'''
+rule all:
+    input:
+        trees = OUTPUTPATH+"/trees/"+lin+".tree"'''
+
+rule all:
+    input:
+        matrix = f"{OUTPUTPATH}/dists/all_plasmids_matrix.dist"
+
+rule unimog_to_ilp:
+    input:
+        unimog=get_unimog(config["integerisation"], genome1, genome2)
+    output:
+        gurobi_lp=f"{OUTPUTPATH}/ilp/{genome1}~{genome2}_gurobi.lp"
+    params:
+        genome1 = lambda wildcards: wildcards.genome1,
+        genome2 = lambda wildcards: wildcards.genome2
+    resources:
+        mem_mb = lambda wildcards, attempt: attempt * 1000
+    shell:
+        "/dingiiofficial/dingII.py {input.unimog} -mm --writeilp {output.gurobi_lp} -p {params.genome1} {params.genome2}"
+
+rule ilp:
+    input:
+        gurobi_lp = f"{OUTPUTPATH}/ilp/{genome1}~{genome2}_gurobi.lp"
+    output:
+        solution = f"{OUTPUTPATH}/ilp/{genome1}~{genome2}.sol"
+        log = f"{OUTPUTPATH}/ilp/{genome1}~{genome2}.log"
+    resources:
+        mem_mb = lambda wildcards, attempt: {1: 300000, 2: 500000}[attempt] #what memory reqs to set??
+    threads: 1
+    shell:
+        #ilp solver: gurobi. is possible to set termination criteria based on mem use or time limit using parameters MemLimit and TimeLimit
+        "gurobi_cl ResultFile={output.solution} Threads={threads} LogFile={output.log} {input.gurobi_lp}"
+
+rule dcj_dist:
+    input:
+        solution = f"{OUTPUTPATH}/ilp/{genome1}~{genome2}.sol",
+        unimog = get_unimog(config["integerisation"], genome1, genome2)
+    output:
+        dist_file = f"{OUTPUTPATH}/dists/{genome1}~{genome2}.dist",
+        out_unimog_relabeled = f"{OUTPUTPATH}/unimogs/relabelled/{genome1}~{genome2}_relabelled.unimog"
+    resources:
+        mem_mb = lambda wildcards, attempt: attempt * 1000
+    shell:
+        "/dingiiofficial/dingII_parsesol.py {input.unimog} --solgur {input.solution} --matching {output.out_unimog_relabeled} > {output.dist_file}"
+
+rule dcj_matrix:
+    input:
+        dist_files = lambda wildcards: get_dist_files()
+    output:
+        matrix=f"{OUTPUTPATH}/dists/all_plasmids_matrix.dist"
+    params:
+        genomes= GENOMES
+    run:
+        dist=0
+        distances = pd.DataFrame(index = [len(params.genomes)] + params.genomes, columns = params.genomes)
+        for genome1 in params.genomes:
+            i=0
+            for genome2 in params.genomes:
+                if genome1 == genome2:
+                    dist = 0
+                else:
+                    file = OUTPUTPATH+"/dists/"+lin+"/"+genome1+"~"+genome2+".dist"
+                    if os.path.exists(file)==False:
+                        file = OUTPUTPATH+"/dists/"+lin+"/"+genome2+"~"+genome1+".dist"
+                    f = open(file, 'r')
+                    line = f.readline()
+                    dist = line.split(" ")[2]
+                    f.close()
+                distances.loc[genome1, genome2]=dist
+                i=i+1
+        distances.to_csv(output.matrix, sep="\t", header=False)
+'''
+rule trees:
+    input:
+        f"{OUTPUTPATH}/dists/all_plasmids_matrix.dist"
+    output:
+        OUTPUTPATH+"/trees/"+lin+".tree"
+    resources:
+        mem_mb = lambda wildcards, attempt: attempt * 1000
+    shell:
+        SOFTWAREPATH+"/rapidNJ/bin/rapidnj {input} -i pd -x {output}"
+'''

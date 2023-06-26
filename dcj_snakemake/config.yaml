@@ -1,0 +1,5 @@
+#path to list of genome IDs
+genomes_list:
+
+#path to output directory
+output_dir:

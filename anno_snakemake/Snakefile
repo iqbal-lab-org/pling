@@ -1,0 +1,216 @@
+import os
+import pymummer
+from operator import attrgetter
+from Bio import SeqIO
+from Bio.SeqRecord import SeqRecord
+from Bio.Seq import Seq
+import shutil
+import pandas as pd
+from pathlib import Path
+import geneseqclass as gs
+import matplotlib.pyplot as plt
+import numpy as np
+
+MURRAYPATH = "/nfs/research/zi/acaza/shared/Murray_plasmids/Releases/MurrayFamily_v1.0"
+
+def get_indices(lin):
+    data = pd.read_csv(MURRAYPATH+'/MurrayFamily-mastertable-v1.0.tsv', sep='\t', usecols=['Lineage', 'num_contigs', 'CDS_prokka'])
+    lin_num = int(lin.split("-")[1])
+    lin_indices = (data['Lineage']==lin_num) & (data['num_contigs']==1) & (data['CDS_prokka']>0)
+    return lin_indices
+
+def get_genomes(lin):
+    data = pd.read_csv(MURRAYPATH+'/MurrayFamily-mastertable-v1.0.tsv', sep='\t', usecols=['ID','Lineage'])
+    lin_indices = get_indices(lin)
+    genomes = data[lin_indices]['ID'].tolist()
+    return genomes
+
+def get_ref(lin):
+    data = pd.read_csv(MURRAYPATH+'/MurrayFamily-mastertable-v1.0.tsv', sep='\t', usecols=['ID','Isolation_year','Lineage'])
+    lin_indices = get_indices(lin)
+    min_year = data[lin_indices]['Isolation_year'].min()
+    ref = ""
+    if np.isnan(min_year):
+        ref = data[lin_indices]['ID'].iloc[0]
+    else:
+        ref = data[(data['Isolation_year']==min_year) & lin_indices]['ID'].iloc[0]
+    return ref
+
+def get_cluster(lin):
+    data = pd.read_csv(MURRAYPATH+'/MurrayFamily-mastertable-v1.0.tsv', sep='\t', usecols=['Cluster','Lineage'])
+    lin_num = int(lin.split("-")[1])
+    lin_indices = (data['Lineage']==lin_num)
+    cluster = str(data[lin_indices]['Cluster'].iloc[0])
+    return cluster
+
+def get_topology(lin):
+    data = pd.read_csv(MURRAYPATH+'/MurrayFamily-mastertable-v1.0.tsv', sep='\t', usecols=['topology','Lineage'])
+    lin_indices = get_indices(lin)
+    if data[lin_indices]['topology'].isin(['lin']).any():
+        return 'lin'
+    else:
+        return 'circ'
+
+OUTPUTPATH = "/nfs/research/zi/projects/anc_recon/MurrayFamily"
+LINEAGES = ["lineage-"+str(i) for i in range(config["begin"],config["end"])]
+
+rule all:
+    input:
+        names = expand(OUTPUTPATH+"/geneseq/{lineage}/{lineage}_blocks_names.txt", lineage=LINEAGES),
+        ints = expand(OUTPUTPATH+"/geneseq/{lineage}/{lineage}_blocks_ints.txt", lineage=LINEAGES),
+        map = expand(OUTPUTPATH+"/geneseq/{lineage}/{lineage}_blocks_maps.txt",lineage=LINEAGES)
+
+rule gen_MSA_input:
+    input:
+        lambda wildcards: expand(MURRAYPATH + "/sequences/FNAs/{genome}.fna", genome=get_genomes(wildcards.lineage))
+    output:
+        OUTPUTPATH+"/lineage_fasta/{lineage}.fna"
+    threads: 1
+    resources:
+        mem_mb = lambda wildcards, attempt: attempt * 1000
+    shell:
+        "cat {input} > {output}"
+
+rule nucmer:
+    input:
+        query = OUTPUTPATH+"/lineage_fasta/{lineage}.fna"
+    params:
+        ref = lambda wildcards: MURRAYPATH + "/sequences/FNAs/"+get_ref(wildcards.lineage)+".fna"
+    output:
+        nucmer = OUTPUTPATH+"/nucmer/{lineage}.nucmer"
+    run:
+        prunner = pymummer.nucmer.Runner(
+            params.ref,
+            input.query,
+            output.nucmer,
+            min_id=90.0,     # minimum percent identity of match
+            promer=False,
+            maxmatch=True,
+            breaklen=500,    # how far to look to join up matches before giving up
+            min_length=800, # minimum length of match to report
+        )
+        prunner.run()
+
+rule orient:
+    input:
+        nucmer = OUTPUTPATH+"/nucmer/{lineage}.nucmer",
+        sequences = lambda wildcards: expand(MURRAYPATH + "/sequences/FNAs/{genome}.fna", genome=get_genomes(wildcards.lineage))
+    params:
+        lineage = lambda wildcards: wildcards.lineage,
+        ref = lambda wildcards: MURRAYPATH + "/sequences/FNAs/"+get_ref(wildcards.lineage)+".fna",
+        genomes = lambda wildcards: get_genomes(wildcards.lineage),
+        murraypath = MURRAYPATH,
+        outputpath = OUTPUTPATH
+    output:
+        directory(OUTPUTPATH+"/oriented_fasta/{lineage}"),
+        #OUTPUTPATH+"/oriented_fasta/{lineage}/{genome}.fna"
+    threads: 1
+    resources:
+        mem_mb = lambda wildcards, attempt: attempt * 1000
+    script:
+        "orient.py"
+    '''
+        # Make a dictionary of query name -> list of matches
+        qry_to_hits = {}
+        for match in pymummer.coords_file.reader(input.nucmer):
+            if match.qry_name not in qry_to_hits:
+                qry_to_hits[match.qry_name] = []
+            qry_to_hits[match.qry_name].append(match)
+
+        # For each query, sort matches by longest to shortest. Use the strand of
+        # longest to decide whether or not to reverse complement
+        for qry_name, matches in qry_to_hits.items():
+            matches.sort(key=attrgetter("hit_length_qry"), reverse=True)
+            need_to_revcomp = not matches[0].on_same_strand()
+            if need_to_revcomp == True:
+                #reverse complement the current genome
+                seq_in = SeqIO.read(MURRAYPATH + "/sequences/FNAs/"+qry_name+".fna", "fasta")
+                rev = SeqRecord(seq_in.seq.reverse_complement(), qry_name, "", "")
+                with open(OUTPUTPATH+"/oriented_fasta/"+params.lineage+"/"+qry_name+".fna", "w") as output_handle:
+                    SeqIO.write(rev, output_handle, "fasta")
+            else:
+                shutil.copy(MURRAYPATH + "/sequences/FNAs/"+qry_name+".fna", OUTPUTPATH+"/oriented_fasta/"+params.lineage)
+        remaining = [el for el in params.genomes if el not in qry_to_hits.keys()]
+        for el in remaining:
+            shutil.copy(MURRAYPATH + "/sequences/FNAs/"+el+".fna", OUTPUTPATH+"/oriented_fasta/"+params.lineage)'''
+
+rule gen_minimap_input:
+    input:
+        align_dir=lambda wildcards: MURRAYPATH+"/pangenome/PANAROO-per_lineage/results/c"+get_cluster(wildcards.lineage)+"/{lineage}/aligned_gene_sequences"
+    output:
+        OUTPUTPATH+"/minimap/{lineage}/input/{genome}.fna"
+    threads: 1
+    resources:
+        mem_mb = lambda wildcards, attempt: attempt * 1000
+    params:
+        out_dir=OUTPUTPATH+"/minimap/{lineage}/input"
+    run:
+        seq_out = dict()
+        for file in os.listdir(input.align_dir):
+            file_name = str(Path(file))
+            gene = str(Path(file).with_suffix(""))
+            gene = gene.replace(".aln", "")
+            seq_in = SeqIO.parse(input.align_dir +'/'+ file_name, "fasta")
+            for record in seq_in:
+                genome, prokka_gene = record.id.split(';')
+                blah = (str(record.seq)).replace('-','')
+                seq = Seq(blah)
+                if genome not in seq_out:
+                    seq_out[genome] = [SeqRecord(seq, gene, "", "")]
+                else:
+                    (seq_out[genome]).append(SeqRecord(seq, gene, "", ""))
+        for genome in seq_out:
+            SeqIO.write(seq_out[genome], params.out_dir +"/" + genome + ".fna", "fasta")
+
+rule minimap:
+    input:
+        reads=OUTPUTPATH+"/minimap/{lineage}/input/{genome}.fna",
+        #ref=OUTPUTPATH+"/oriented_fasta/{lineage}/{genome}.fna"
+        dir_ref = OUTPUTPATH+"/oriented_fasta/{lineage}"
+    output:
+        OUTPUTPATH+"/minimap/{lineage}/output/{genome}.paf"
+    threads: 3 #minimap default
+    resources:
+        mem_mb = lambda wildcards, attempt: attempt * 1000
+    shell:
+        "minimap2 -c {input.dir_ref}/{wildcards.genome}.fna {input.reads} > {output}"
+
+rule consolidation:
+    input:
+        lambda wildcards: [OUTPUTPATH+"/minimap/{lineage}/output/"+genome+".paf" for genome in get_genomes(wildcards.lineage)],
+    output:
+        names = OUTPUTPATH+"/geneseq/{lineage}/{lineage}_names.txt",
+        ints = OUTPUTPATH+"/geneseq/{lineage}/{lineage}_ints.txt",
+        map = OUTPUTPATH+"/geneseq/{lineage}/{lineage}_map.txt"
+    threads: 1
+    resources:
+        mem_mb = lambda wildcards, attempt: attempt * 1000
+    params:
+        pafs=OUTPUTPATH+"/minimap/{lineage}/output",
+        genomes = lambda wildcards: get_genomes(wildcards.lineage),
+        cluster = lambda wildcards: get_cluster(wildcards.lineage),
+        lineage = lambda wildcards: wildcards.lineage,
+        murraypath = MURRAYPATH,
+        topology = lambda wildcards: get_topology(wildcards.lineage)
+    script:
+        "consolidation.py"
+
+rule blocks:
+    input:
+        names = OUTPUTPATH+"/geneseq/{lineage}/{lineage}_names.txt",
+        ints = OUTPUTPATH+"/geneseq/{lineage}/{lineage}_ints.txt",
+        map = OUTPUTPATH+"/geneseq/{lineage}/{lineage}_map.txt"
+    output:
+        names = OUTPUTPATH+"/geneseq/{lineage}/{lineage}_blocks_names.txt",
+        ints = OUTPUTPATH+"/geneseq/{lineage}/{lineage}_blocks_ints.txt",
+        map = OUTPUTPATH+"/geneseq/{lineage}/{lineage}_blocks_maps.txt"
+    threads: 1
+    resources:
+        mem_mb = lambda wildcards, attempt: attempt * 1000
+    params:
+        path = OUTPUTPATH+"/geneseq/{lineage}",
+        lineage = lambda wildcards: wildcards.lineage
+    run:
+        lin = gs.GeneSeq.from_cluster(params.path, params.lineage)
+        block_lin = gs.BlockSeq.from_GeneSeq(lin)
+        block_lin.to_cluster(params.path, params.lineage)
