@@ -6,11 +6,13 @@ configfile: "config.yaml"
 
 GENOMES = [el[0] for el in pd.read_csv(config["genome_list"], header=None).values]
 OUTPUTPATH = config["output_dir"] #output directory will contain subdirectory with unimogs from integerisation pipeline, as well as placing all new output from current pipeline in subdirectories within it
+PREFIX = config["prefix"]
+INTEGERISATION = config["integerisation"]
 
 def get_unimog(integerisation, genome1, genome2):
     unimog = ""
     if integerisation == "anno":
-        unimog = f"{OUTPUTPATH}/unimogs/anno.unimog"
+        unimog = f"{OUTPUTPATH}/unimogs/{PREFIX}_anno.unimog"
     elif integerisation == "align":
         unimog = f"{OUTPUTPATH}/unimogs/{genome1}~{genome2}_align.unimog"
     return unimog
@@ -37,13 +39,13 @@ rule all:
 
 rule all:
     input:
-        matrix = f"{OUTPUTPATH}/dists/all_plasmids_matrix.dist"
+        matrix = f"{OUTPUTPATH}/dists/{INTEGERISATION}/{PREFIX}_matrix.dist"
 
 rule unimog_to_ilp:
     input:
-        unimog=get_unimog(config["integerisation"], genome1, genome2)
+        unimog=get_unimog(INTEGERISATION, genome1, genome2)
     output:
-        gurobi_lp=f"{OUTPUTPATH}/ilp/{genome1}~{genome2}_gurobi.lp"
+        gurobi_lp=f"{OUTPUTPATH}/ilp/{INTEGERISATION}/{{genome1}}~{{genome2}}_gurobi.lp"
     params:
         genome1 = lambda wildcards: wildcards.genome1,
         genome2 = lambda wildcards: wildcards.genome2
@@ -54,10 +56,10 @@ rule unimog_to_ilp:
 
 rule ilp:
     input:
-        gurobi_lp = f"{OUTPUTPATH}/ilp/{genome1}~{genome2}_gurobi.lp"
+        gurobi_lp = f"{OUTPUTPATH}/ilp/{INTEGERISATION}/{{genome1}}~{{genome2}}_gurobi.lp"
     output:
-        solution = f"{OUTPUTPATH}/ilp/{genome1}~{genome2}.sol"
-        log = f"{OUTPUTPATH}/ilp/{genome1}~{genome2}.log"
+        solution = f"{OUTPUTPATH}/ilp/{INTEGERISATION}/solutions/{{genome1}}~{{genome2}}.sol"
+        log = f"{OUTPUTPATH}/ilp/{INTEGERISATION}/logs/{{genome1}}~{{genome2}}.log"
     resources:
         mem_mb = lambda wildcards, attempt: {1: 300000, 2: 500000}[attempt] #what memory reqs to set??
     threads: 1
@@ -67,11 +69,11 @@ rule ilp:
 
 rule dcj_dist:
     input:
-        solution = f"{OUTPUTPATH}/ilp/{genome1}~{genome2}.sol",
-        unimog = get_unimog(config["integerisation"], genome1, genome2)
+        solution = f"{OUTPUTPATH}/ilp/{INTEGERISATION}/solutions/{{genome1}}~{{genome2}}.sol",
+        unimog = get_unimog(INTEGERISATION, genome1, genome2)
     output:
-        dist_file = f"{OUTPUTPATH}/dists/{genome1}~{genome2}.dist",
-        out_unimog_relabeled = f"{OUTPUTPATH}/unimogs/relabelled/{genome1}~{genome2}_relabelled.unimog"
+        dist_file = f"{OUTPUTPATH}/dists/{INTEGERISATION}/{{genome1}}~{{genome2}}.dist",
+        out_unimog_relabeled = f"{OUTPUTPATH}/unimogs/relabelled/{{genome1}}~{{genome2}}_relabelled.unimog"
     resources:
         mem_mb = lambda wildcards, attempt: attempt * 1000
     shell:
@@ -81,7 +83,7 @@ rule dcj_matrix:
     input:
         dist_files = lambda wildcards: get_dist_files()
     output:
-        matrix=f"{OUTPUTPATH}/dists/all_plasmids_matrix.dist"
+        matrix=f"{OUTPUTPATH}/dists/{INTEGERISATION}/{PREFIX}_matrix.dist"
     params:
         genomes= GENOMES
     run:
@@ -106,7 +108,7 @@ rule dcj_matrix:
 '''
 rule trees:
     input:
-        f"{OUTPUTPATH}/dists/all_plasmids_matrix.dist"
+        f"{OUTPUTPATH}/dists/{INTEGERISATION}/{PREFIX}_matrix.dist"
     output:
         OUTPUTPATH+"/trees/"+lin+".tree"
     resources:
