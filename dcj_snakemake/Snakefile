@@ -8,6 +8,7 @@ GENOMES = [el[0] for el in pd.read_csv(config["genome_list"], header=None).value
 OUTPUTPATH = config["output_dir"] #output directory will contain subdirectory with unimogs from integerisation pipeline, as well as placing all new output from current pipeline in subdirectories within it
 PREFIX = config["prefix"]
 INTEGERISATION = config["integerisation"]
+JACCARD_THRESHOLD = config["jaccard_threshold"]
 
 def get_unimog(integerisation, genome1, genome2):
     unimog = ""
@@ -17,18 +18,14 @@ def get_unimog(integerisation, genome1, genome2):
         unimog = f"{OUTPUTPATH}/unimogs/{genome1}~{genome2}_align.unimog"
     return unimog
 
-def get_dist_files():
-    genome_pairs=[]
-    n = len(GENOMES)
-    for i in range(n):
-        j=0
-        while j<i:
-            genome_pairs.append([GENOMES[i], GENOMES[j]])
-            j=j+1
-    files = []
-    for el in genome_pairs:
-        if len(el)>1:
-            files.append(f"{OUTPUTPATH}/dists/{el[0]}~{el[1]}.dist")
+def get_dist_files(jaccard_tsv):
+    files=[]
+    with open(jaccard_tsv, "r") as f:
+        for line in f:
+            plasmid_1, plasmid_2, jaccard = line.strip().split("\t")
+            jaccard = float(jaccard)
+            if jaccard >= JACCARD_THRESHOLD:
+                files.append(f"{OUTPUTPATH}/tmp_files/dists_pairwise/{plasmid_1}~{plasmid_2}.dist")
     return files
 
 #localrules: all, unimog_to_ilp, dcj_dist, dcj_matrix, trees
@@ -39,13 +36,13 @@ rule all:
 
 rule all:
     input:
-        matrix = f"{OUTPUTPATH}/dists/{INTEGERISATION}/{PREFIX}_matrix.dist"
+        matrix = f"{OUTPUTPATH}/dcj_graph/{PREFIX}_matrix.dist"
 
 rule unimog_to_ilp:
     input:
-        unimog=get_unimog(INTEGERISATION, genome1, genome2)
+        unimog=lambda wildcards: get_unimog(INTEGERISATION, wildcards.genome1, wildcards.genome2)
     output:
-        gurobi_lp=f"{OUTPUTPATH}/ilp/{INTEGERISATION}/{{genome1}}~{{genome2}}_gurobi.lp"
+        gurobi_lp=f"{OUTPUTPATH}/tmp_files/ding/ilp/{{genome1}}~{{genome2}}_gurobi.lp"
     params:
         genome1 = lambda wildcards: wildcards.genome1,
         genome2 = lambda wildcards: wildcards.genome2
@@ -56,10 +53,10 @@ rule unimog_to_ilp:
 
 rule ilp:
     input:
-        gurobi_lp = f"{OUTPUTPATH}/ilp/{INTEGERISATION}/{{genome1}}~{{genome2}}_gurobi.lp"
+        gurobi_lp = f"{OUTPUTPATH}/tmp_files/ding/ilp/{{genome1}}~{{genome2}}_gurobi.lp"
     output:
-        solution = f"{OUTPUTPATH}/ilp/{INTEGERISATION}/solutions/{{genome1}}~{{genome2}}.sol"
-        log = f"{OUTPUTPATH}/ilp/{INTEGERISATION}/logs/{{genome1}}~{{genome2}}.log"
+        solution = f"{OUTPUTPATH}/tmp_files/ding/solutions/{{genome1}}~{{genome2}}.sol"
+        log = f"{OUTPUTPATH}/tmp_files/ding/logs/{{genome1}}~{{genome2}}.log"
     resources:
         mem_mb = lambda wildcards, attempt: {1: 300000, 2: 500000}[attempt] #what memory reqs to set??
     threads: 1
@@ -69,10 +66,10 @@ rule ilp:
 
 rule dcj_dist:
     input:
-        solution = f"{OUTPUTPATH}/ilp/{INTEGERISATION}/solutions/{{genome1}}~{{genome2}}.sol",
-        unimog = get_unimog(INTEGERISATION, genome1, genome2)
+        solution = f"{OUTPUTPATH}/tmp_files/ding/solutions/{{genome1}}~{{genome2}}.sol",
+        unimog = lambda wildcards: get_unimog(INTEGERISATION, wildcards.genome1, wildcards.genome2)
     output:
-        dist_file = f"{OUTPUTPATH}/dists/{INTEGERISATION}/{{genome1}}~{{genome2}}.dist",
+        dist_file = f"{OUTPUTPATH}/tmp_files/dists_pairwise/{{genome1}}~{{genome2}}.dist",
         out_unimog_relabeled = f"{OUTPUTPATH}/unimogs/relabelled/{{genome1}}~{{genome2}}_relabelled.unimog"
     resources:
         mem_mb = lambda wildcards, attempt: attempt * 1000
@@ -81,9 +78,9 @@ rule dcj_dist:
 
 rule dcj_matrix:
     input:
-        dist_files = lambda wildcards: get_dist_files()
+        dist_files = get_dist_files(f"{OUTPUTPATH}/jaccard/all_pairs_jaccard.tsv")
     output:
-        matrix=f"{OUTPUTPATH}/dists/{INTEGERISATION}/{PREFIX}_matrix.dist"
+        matrix=f"{OUTPUTPATH}/dcj_graph/{PREFIX}_matrix.dist"
     params:
         genomes= GENOMES
     run:
@@ -95,16 +92,44 @@ rule dcj_matrix:
                 if genome1 == genome2:
                     dist = 0
                 else:
-                    file = OUTPUTPATH+"/dists/"+lin+"/"+genome1+"~"+genome2+".dist"
-                    if os.path.exists(file)==False:
-                        file = OUTPUTPATH+"/dists/"+lin+"/"+genome2+"~"+genome1+".dist"
-                    f = open(file, 'r')
-                    line = f.readline()
-                    dist = line.split(" ")[2]
-                    f.close()
+                    file1 =  f"{OUTPUTPATH}/tmp_files/dists_pairwise/{genome1}~{genome2}.dist"
+                    file2 = f"{OUTPUTPATH}/tmp_files/dists_pairwise/{genome2}~{genome1}.dist"
+                    if os.path.exists(file1)==True and os.path.exists(file2)==False:
+                        file = file1
+                        f = open(file, 'r')
+                        line = f.readline()
+                        dist = line.split(" ")[2]
+                        f.close()
+                    elif os.path.exists(file2)==True and os.path.exists(file1)==False:
+                        file = file2
+                        f = open(file, 'r')
+                        line = f.readline()
+                        dist = line.split(" ")[2]
+                        f.close()
+                    else:
+                        dist = pd.NA
                 distances.loc[genome1, genome2]=dist
                 i=i+1
         distances.to_csv(output.matrix, sep="\t", header=False)
+
+rule build_DCJ_graph:
+    input:
+        matrix = f"{OUTPUTPATH}/dcj_graph/{PREFIX}_matrix.dist", #Path to file with matrix of DCJ distances
+        communities=f"{OUTPUTPATH}/jaccard/jaccard_communities.txt"
+    output:
+        dcj_graph_outdir = directory(f"{OUTPUTPATH}/dcj_graph")
+    threads: 1
+    resources:
+        mem_mb=lambda wildcards, attempt: 8000*attempt
+    params:
+        dcj_dist_threshold=config["dcj_dist_threshold"]
+        bh_connectivity = 10 #Minimum number of connections a plasmid need to be considered a blackhole plasmid
+        bh_neighbours_edge_density = 0.2 #Maximum number of edge density between blackhole plasmid neighbours to label the plasmid as blackhole
+        small_subcommunity_size_threshold = 4 #Communities with size up to this parameter will be joined to neighbouring larger subcommunities
+    script:
+        "cluster_graph.py"
+
+
 '''
 rule trees:
     input:
