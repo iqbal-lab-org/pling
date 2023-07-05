@@ -26,7 +26,7 @@ rule gen_MSA_input:
     input:
         lambda wildcards: expand(f"{FASTAPATH}/{{genome}}.fna", genome=GENOMES)
     output:
-        f"{OUTPUTPATH}/{PREFIX}.fna"
+        f"{OUTPUTPATH}/tmp_files/{PREFIX}.fna"
     threads: 1
     resources:
         mem_mb = lambda wildcards, attempt: attempt * 1000
@@ -35,10 +35,10 @@ rule gen_MSA_input:
 
 rule nucmer:
     input:
-        query = f"{OUTPUTPATH}/{PREFIX}.fna"
+        query = f"{OUTPUTPATH}/tmp_files/{PREFIX}.fna"
         ref = f"{OUTPUTHPATH}/{GENOMES[0]}.fna"
     output:
-        nucmer = f"{OUTPUTPATH}/{PREFIX}.nucmer"
+        nucmer = f"{OUTPUTPATH}/tmp_files/{PREFIX}.nucmer"
     run:
         prunner = pymummer.nucmer.Runner(
             params.ref,
@@ -54,15 +54,15 @@ rule nucmer:
 
 rule orient:
     input:
-        nucmer = f"{OUTPUTPATH}/{PREFIX}.nucmer",
-        sequences = lambda wildcards: expand(f"{FASTAPATH}/{{genome}}.fna", genome=GENOMES)
+        nucmer = f"{OUTPUTPATH}/tmp_files/{PREFIX}.nucmer",
+        sequences = expand(f"{FASTAPATH}/{{genome}}.fna", genome=GENOMES)
     params:
         ref = f"{OUTPUTHPATH}/{GENOMES[0]}.fna",
         genomes = GENOMES,
         fastapath = FASTAPATH,
         outputpath = OUTPUTPATH
     output:
-        directory(f"{OUTPUTPATH}/oriented_fasta/"),
+        directory(f"{OUTPUTPATH}/tmp_files/oriented_fasta/"),
     threads: 1
     resources:
         mem_mb = lambda wildcards, attempt: attempt * 1000
@@ -73,7 +73,7 @@ rule bakta:
     input:
         genome = f"{FASTAPATH}/{{genome}}.fna"
     output:
-        ann_dir = directory(f"{config['output_dir']}/annotated/{{genome}}_ann")
+        ann_dir = directory(f"{OUTPUTPATH}/annotation/bakta/{{genome}}")
     conda:
         "bakta"
     threads: 1
@@ -89,23 +89,23 @@ rule bakta:
 
 rule panaroo:
     input:
-        expand(f"{OUTPUTPATH}/bakta/{{genome}}/{{genome}}.gff3", genome=GENOMES)
+        expand(f"{OUTPUTPATH}/annotation/bakta/{{genome}}/{{genome}}.gff3", genome=GENOMES)
     output:
-        pangenome = directory(f"{OUTPUTPATH}/panaroo"),
-        aln = directory(f"{OUTPUTPATH}/panaroo/aligned_gene_sequences")
+        pangenome = directory(f"{OUTPUTPATH}/annotation/panaroo"),
+        aln = directory(f"{OUTPUTPATH}/annotation/panaroo/aligned_gene_sequences")
     shell:
         "panaroo -i {input} -o {output.pangenome} --clean-mode moderate -a pan "
 
 rule gen_minimap_input:
     input:
-        align_dir=directory(f"{OUTPUTPATH}/panaroo/aligned_gene_sequences")
+        align_dir=directory(f"{OUTPUTPATH}/annotation/panaroo/aligned_gene_sequences")
     output:
-        f"{OUTPUTPATH}/minimap/input/{{genome}}.fna"
+        f"{OUTPUTPATH}/tmp_files/minimap/input/{{genome}}.fna"
     threads: 1
     resources:
         mem_mb = lambda wildcards, attempt: attempt * 1000
     params:
-        out_dir=f"{OUTPUTPATH}/minimap/input"
+        out_dir=f"{OUTPUTPATH}/tmp_files/minimap/input"
     run:
         seq_out = dict()
         for file in os.listdir(input.align_dir):
@@ -126,11 +126,11 @@ rule gen_minimap_input:
 
 rule minimap:
     input:
-        reads=f"{OUTPUTPATH}/minimap/input/{{genome}}.fna",
+        reads=f"{OUTPUTPATH}/tmp_files/minimap/input/{{genome}}.fna",
         #ref=OUTPUTPATH+"/oriented_fasta/{lineage}/{genome}.fna"
-        dir_ref = f"{OUTPUTPATH}/oriented_fasta/"
+        dir_ref = f"{OUTPUTPATH}/tmp_files/oriented_fasta/"
     output:
-        f"{OUTPUTPATH}/minimap/output/{{genome}}.paf"
+        f"{OUTPUTPATH}/tmp_files/minimap/output/{{genome}}.paf"
     threads: 3 #minimap default
     resources:
         mem_mb = lambda wildcards, attempt: attempt * 1000
@@ -139,9 +139,9 @@ rule minimap:
 
 rule consolidation:
     input:
-        lambda wildcards: [OUTPUTPATH+"/minimap/{lineage}/output/"+genome+".paf" for genome in get_genomes(wildcards.lineage)],
+        lambda wildcards: [f"{OUTPUTPATH}/tmp_files/minimap/output/{genome}.paf" for genome in GENOMES],
     output:
-        unimogpath = f"{OUTPUTPATH}/{PREFIX}_anno.unimog",
+        unimogpath = f"{OUTPUTPATH}/unimogs/{PREFIX}_anno.unimog",
         map = f"{OUTPUTPATH}/{PREFIX}_map.txt"
     threads: 1
     resources:
@@ -153,6 +153,33 @@ rule consolidation:
         outputpath = OUTPUTPATH
     script:
         "consolidation.py"
+
+rule get_all_pairs_gene_jaccard:
+    input:
+        unimog = f"{OUTPUTPATH}/unimogs/{PREFIX}_anno.unimog"
+    output:
+        gene_jaccard = f"{OUTPUTPATH}/jaccard/all_pairs_jaccard.tsv"
+    threads: 1
+    resources:
+        mem_mb=lambda wildcards, attempt: 8000*attempt
+    params:
+        genomes = GENOMES
+    script:
+        "gene_jaccard.py"
+
+rule get_communities:
+    input:
+        gene_jaccard = f"{OUTPUTPATH}/jaccard/all_pairs_jaccard.tsv"
+    output:
+        communities = f"{OUTPUTPATH}/jaccard/jaccard_communities.txt",
+        communities_sizes = f"{OUTPUTPATH}/jaccard/jaccard_communities_sizes.txt"
+    threads: 1
+    resources:
+        mem_mb=lambda wildcards, attempt: 4000*attempt
+    conda: "envs/env.yaml"
+    params:
+        gene_jaccard_threshold=config["gene_jaccard_threshold"]
+    script: "scripts/get_communities.py"
 
 rule blocks:
     input:

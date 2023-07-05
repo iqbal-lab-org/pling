@@ -49,6 +49,8 @@ def integerise_plasmids(plasmid_1: Path, plasmid_2: Path, prefix: str, identity_
     len_query = -1
     ref_to_block = IntervalTree()
     query_to_block = IntervalTree()
+    coverage_ref = 0
+    coverage_query = 0
     for block, line in enumerate(show_coords_output):
         split_line = line.split(b'\t')
         block=block+1  # avoids using block 0, which can't be represented as -0 and 0
@@ -63,6 +65,8 @@ def integerise_plasmids(plasmid_1: Path, plasmid_2: Path, prefix: str, identity_
         len_query = int(split_line[8])
         strand_ref = int(split_line[11])
         strand_query = int(split_line[12])
+        coverage_ref = coverage_ref + (end_ref-start_ref)
+        coverage_query = coverage_query + (end_query-start_query)
         ref_to_block[start_ref:end_ref] = block*strand_ref
         query_to_block[start_query:end_query] = block*strand_query
 
@@ -79,4 +83,9 @@ def integerise_plasmids(plasmid_1: Path, plasmid_2: Path, prefix: str, identity_
     for extension in [".1coords", ".1delta", ".delta", ".mcoords", ".mdelta", ".qdiff", ".rdiff", ".report", ".snps"]:
         Path(prefix+extension).unlink()
 
-    return plasmid_1_unimogs, plasmid_2_unimogs
+    if len_ref>len_query:
+        jaccard = coverage_query/len_query
+    else:
+        jaccard = coverage_ref/len_ref
+
+    return plasmid_1_unimogs, plasmid_2_unimogs, jaccard

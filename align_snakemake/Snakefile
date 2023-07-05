@@ -6,14 +6,13 @@ import pandas as pd
 
 configfile: "config.yaml"
 
-SOFTWAREPATH = "/hps/software/users/iqbal/daria"
 GENOMESPATH = config["genomes_list"]
 FASTAPATH = config["fastas"]
 OUTPUTPATH = config["output_dir"]
 PREFIX = config["prefix"]
 GENOMES = pd.read_csv(GENOMESPATH, sep='\t', index_col=None, header=None).iloc[:,0].values.tolist()
 
-def get_dist_files():
+get_jaccard_files():
     genome_pairs=[]
     n = len(GENOMES)
     for i in range(n):
@@ -24,21 +23,26 @@ def get_dist_files():
     files = []
     for el in genome_pairs:
         if len(el)>1:
-            files.append(OUTPUTPATH+"/"+PREFIX+"/dists/"+el[0]+"~"+el[1]+".dist")
+            files.append(f"{OUTPUTPATH}/tmp_files/jaccard_pairwise/{el[0]}~{el[1]}_jaccard.tsv")
     return files
 
-#localrules: all, unimog_to_ilp, dcj_dist, dcj_matrix
+get_unimogs():
+    pass #fill this in!
 
 rule all:
     input:
-        trees = OUTPUTPATH+"/"+PREFIX+"/trees/"+PREFIX+".tree"
+        unimogs = get_unimogs()
+        seq_jaccard = f"{OUTPUTPATH}/jaccard/all_pairs_jaccard.tsv"
+        communities = f"{OUTPUTPATH}/jaccard/jaccard_communities.txt",
+        communities_sizes = f"{OUTPUTPATH}/jaccard/jaccard_communities_sizes.txt"
 
 rule make_unimogs:
     input:
-        genome_1_fasta=FASTAPATH+"/{genome1}.fasta",
-        genome_2_fasta=FASTAPATH+"/{genome2}.fasta"
+        genome_1_fasta=f"{FASTAPATH}/{{genome1}}.fasta",
+        genome_2_fasta=f"{FASTAPATH}/{{genome2}}.fasta"
     output:
-        unimogs=OUTPUTPATH+"/"+PREFIX+"/unimogs/{genome1}~{genome2}_unimog.txt"
+        unimogs=f"{OUTPUTPATH}/unimogs/{{genome1}}~{{genome2}}_align.unimog"
+        jaccard=f"{OUTPUTPATH}/tmp_files/jaccard_pairwise/{{genome1}}~{{genome2}}_jaccard.tsv"
     params:
         genome1 = lambda wildcards: wildcards.genome1,
         genome2 = lambda wildcards: wildcards.genome2
@@ -47,75 +51,24 @@ rule make_unimogs:
     script:
         "unimog.py"
 
-rule unimog_to_ilp:
+rule cat_jaccard:
     input:
-        unimogs=OUTPUTPATH+"/"+PREFIX+"/unimogs/{genome1}~{genome2}_unimog.txt"
+        jaccards = get_jaccard_files()
     output:
-        out_id_file=OUTPUTPATH+"/"+PREFIX+"/ilp/{genome1}~{genome2}_id.txt",
-        out_cplex_lp=OUTPUTPATH+"/"+PREFIX+"/ilp/{genome1}~{genome2}_cplex.cpo"
-    conda:
-        "envs/ding.yaml"
-    resources:
-        mem_mb = lambda wildcards, attempt: attempt * 1000
+        jaccard = f"{OUTPUTPATH}/jaccard/all_pairs_jaccard.tsv"
     shell:
-        SOFTWAREPATH+"/ding/unimog_to_ilp.py -i {input.unimogs} -u {output.out_id_file} -o {output.out_cplex_lp}"
+        "cat {input.jaccards} > {output.jaccard}"
 
-rule ilp:
+rule get_communities:
     input:
-        cplex_lp = OUTPUTPATH+"/"+PREFIX+"/ilp/{genome1}~{genome2}_cplex.cpo"
+        seq_jaccard = f"{OUTPUTPATH}/jaccard/all_pairs_jaccard.tsv"
     output:
-        solution = OUTPUTPATH+"/"+PREFIX+"/ilp/{genome1}~{genome2}.sol"
-    resources:
-        mem_mb = lambda wildcards, attempt: {1: 50000, 2: 100000, 3: 200000}[attempt]
+        communities = f"{OUTPUTPATH}/jaccard/jaccard_communities.txt",
+        communities_sizes = f"{OUTPUTPATH}/jaccard/jaccard_communities_sizes.txt"
     threads: 1
-    shell:
-        #ilp solver
-        SOFTWAREPATH+"/CPLEX_Studio129/cplex/bin/x86-64_linux/cplex -c \"set threads {threads}\" \"read {input.cplex_lp} lp\" \"mipopt\" \"write {output.solution}\""
-
-rule dcj_dist:
-    input:
-        solution = OUTPUTPATH+"/"+PREFIX+"/ilp/{genome1}~{genome2}.sol",
-        out_id_file = OUTPUTPATH+"/"+PREFIX+"/ilp/{genome1}~{genome2}_id.txt"
-    output:
-        dist_file = OUTPUTPATH+"/"+PREFIX+"/dists/{genome1}~{genome2}.dist",
-        out_unimog_relabeled = OUTPUTPATH+"/"+PREFIX+"/unimogs/relabelled/{genome1}~{genome2}_relabelled.txt"
-    conda:
-        "envs/ding.yaml"
     resources:
-        mem_mb = lambda wildcards, attempt: attempt * 1000
-    shell:
-        SOFTWAREPATH+"/ding/parse_cplex_sol.py -i {input.solution} -u {input.out_id_file} -o {output.out_unimog_relabeled} -d {output.dist_file} --noheader"
-
-rule dcj_matrix:
-    input:
-        dist_files = lambda wildcards: get_dist_files()
-    output:
-        matrix=OUTPUTPATH+"/"+PREFIX+"/dists/"+PREFIX+".dist"
+        mem_mb=lambda wildcards, attempt: 4000*attempt
+    conda: "envs/env.yaml"
     params:
-        genomes= GENOMES
-    run:
-        dist=0
-        distances = pd.DataFrame(index = [len(params.genomes)] + params.genomes, columns = params.genomes)
-        for genome1 in params.genomes:
-            i=0
-            for genome2 in params.genomes:
-                if genome1 == genome2:
-                    dist = 0
-                else:
-                    file = OUTPUTPATH+"/"+PREFIX+"/dists/"+genome1+"~"+genome2+".dist"
-                    if os.path.exists(file)==False:
-                        file = OUTPUTPATH+"/"+PREFIX+"/dists/"+genome2+"~"+genome1+".dist"
-                    dist = pd.read_csv(file, header=None, index_col=None, sep="\t").iloc[0,2]
-                distances.loc[genome1, genome2]=dist
-                i=i+1
-        distances.to_csv(output.matrix, sep="\t", header=False)
-
-rule trees:
-    input:
-        OUTPUTPATH+"/"+PREFIX+"/dists/"+PREFIX+".dist"
-    output:
-        OUTPUTPATH+"/"+PREFIX+"/trees/"+PREFIX+".tree"
-    resources:
-        mem_mb = lambda wildcards, attempt: attempt * 1000
-    shell:
-        SOFTWAREPATH+"/rapidNJ/bin/rapidnj {input} -i pd -x {output}"
+        gene_jaccard_threshold=config["seq_jaccard_threshold"]
+    script: "scripts/get_communities.py"

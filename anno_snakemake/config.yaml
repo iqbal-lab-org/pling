@@ -10,5 +10,7 @@ output_dir:
 #path to bakta database
 bakta_db:
 
+gene_jaccard_threshold:
+
 #prefix for filenames; make "all_plasmids" the default
 prefix: "all_plasmids"
