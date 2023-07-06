@@ -7,7 +7,6 @@ from Bio.Seq import Seq
 import shutil
 import pandas as pd
 from pathlib import Path
-import geneseqclass as gs
 import matplotlib.pyplot as plt
 import numpy as np
 
@@ -18,9 +17,7 @@ PREFIX = config["prefix"]
 
 rule all:
     input:
-        names = expand(OUTPUTPATH+"/geneseq/{lineage}/{lineage}_blocks_names.txt", lineage=LINEAGES),
-        ints = expand(OUTPUTPATH+"/geneseq/{lineage}/{lineage}_blocks_ints.txt", lineage=LINEAGES),
-        map = expand(OUTPUTPATH+"/geneseq/{lineage}/{lineage}_blocks_maps.txt",lineage=LINEAGES)
+        relabelled_dir = f"{OUTPUTPATH}/unimogs/relabelled/blocks"
 
 rule gen_MSA_input:
     input:
@@ -183,20 +180,13 @@ rule get_communities:
 
 rule blocks:
     input:
-        names = OUTPUTPATH+"/geneseq/{lineage}/{lineage}_names.txt",
-        ints = OUTPUTPATH+"/geneseq/{lineage}/{lineage}_ints.txt",
-        map = OUTPUTPATH+"/geneseq/{lineage}/{lineage}_map.txt"
+        map = f"{OUTPUTPATH}/{PREFIX}_map.txt"
+        communites = f"{OUTPUTPATH}/jaccard/jaccard_communities.txt"
+        unimog = f"{OUTPUTPATH}/unimogs/{PREFIX}_anno.unimog"
     output:
-        names = OUTPUTPATH+"/geneseq/{lineage}/{lineage}_blocks_names.txt",
-        ints = OUTPUTPATH+"/geneseq/{lineage}/{lineage}_blocks_ints.txt",
-        map = OUTPUTPATH+"/geneseq/{lineage}/{lineage}_blocks_maps.txt"
+        relabelled_dir = directory(f"{OUTPUTPATH}/unimogs/relabelled/blocks")
     threads: 1
     resources:
         mem_mb = lambda wildcards, attempt: attempt * 1000
-    params:
-        path = OUTPUTPATH+"/geneseq/{lineage}",
-        lineage = lambda wildcards: wildcards.lineage
-    run:
-        lin = gs.GeneSeq.from_cluster(params.path, params.lineage)
-        block_lin = gs.BlockSeq.from_GeneSeq(lin)
-        block_lin.to_cluster(params.path, params.lineage)
+    script:
+        "blocks.py"

@@ -65,4 +65,4 @@ unimogpath = snakemake.output.unimog
 output_map = snakemake.output.map
 
 make_unimog(unimogpath, ints)
-pd.Series(table).to_csv(output_map, sep="\t")
+pd.Series(table).to_csv(output_map, sep="\t", header=False)
