@@ -70,7 +70,7 @@ rule dcj_dist:
         unimog = lambda wildcards: get_unimog(INTEGERISATION, wildcards.genome1, wildcards.genome2)
     output:
         dist_file = f"{OUTPUTPATH}/tmp_files/dists_pairwise/{{genome1}}~{{genome2}}.dist",
-        out_unimog_relabeled = f"{OUTPUTPATH}/unimogs/relabelled/{{genome1}}~{{genome2}}_relabelled.unimog"
+        out_unimog_relabeled = f"{OUTPUTPATH}/unimogs/matched/{{genome1}}~{{genome2}}_matched.unimog"
     resources:
         mem_mb = lambda wildcards, attempt: attempt * 1000
     shell:
