@@ -33,6 +33,7 @@ def get_communities(communities_filepath):
         for community_index, line in enumerate(communities_fh):
             plasmids = line.strip().split()
             communities[community_index] = plasmids
+    return communities
 
 def contruct_graph(seqs, community):
     graph = nx.DiGraph()
@@ -185,4 +186,4 @@ communties = get_communities(communties_filepath)
 seqs = read_in_unimog(unimog_filepath)
 for community in communities:
     blocks, block_maps = blocks(seqs, communties[community], int_to_name)
-    output_files(seqs, community, blocks, block_maps, int_to_name, f"{output_dir}/{community}_blocks_map.txt", f"{output_dir}/{community}_blocks.unimog")
+    output_files(seqs, communities[community], blocks, block_maps, int_to_name, f"{output_dir}/{community}_blocks_map.txt", f"{output_dir}/{community}_blocks.unimog")

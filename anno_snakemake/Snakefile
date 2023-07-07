@@ -32,7 +32,7 @@ rule gen_MSA_input:
 
 rule nucmer:
     input:
-        query = f"{OUTPUTPATH}/tmp_files/{PREFIX}.fna"
+        query = f"{OUTPUTPATH}/tmp_files/{PREFIX}.fna",
         ref = f"{OUTPUTHPATH}/{GENOMES[0]}.fna"
     output:
         nucmer = f"{OUTPUTPATH}/tmp_files/{PREFIX}.nucmer"
@@ -178,10 +178,28 @@ rule get_communities:
         gene_jaccard_threshold=config["gene_jaccard_threshold"]
     script: "scripts/get_communities.py"
 
+rule deduplication:
+    input:
+        fasta = f"{OUTPUTPATH}/tmp_files/{PREFIX}.fna",
+        unimog = f"{OUTPUTPATH}/unimogs/{PREFIX}_anno.unimog",
+        communities = f"{OUTPUTPATH}/jaccard/jaccard_communities.txt",
+        map = f"{OUTPUTPATH}/{PREFIX}_map.txt"
+    output:
+        nucmer = directory(f"{OUTPUTPATH}/tmp_files/nucmer"),
+        relabelled_dir = directory(f"{OUTPUTPATH}/unimogs/relabelled/dedup")
+    threads: 1
+    resources:
+        mem_mb = lambda wildcards, attempt: attempt * 1000
+    params:
+        pafs=f"{OUTPUTPATH}/minimap/output"
+        nucmer_threshold=98.5
+    script:
+        "multipartite.py"
+
 rule blocks:
     input:
-        map = f"{OUTPUTPATH}/{PREFIX}_map.txt"
-        communites = f"{OUTPUTPATH}/jaccard/jaccard_communities.txt"
+        map = f"{OUTPUTPATH}/{PREFIX}_map.txt",
+        communites = f"{OUTPUTPATH}/jaccard/jaccard_communities.txt",
         unimog = f"{OUTPUTPATH}/unimogs/{PREFIX}_anno.unimog"
     output:
         relabelled_dir = directory(f"{OUTPUTPATH}/unimogs/relabelled/blocks")
