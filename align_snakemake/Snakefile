@@ -12,7 +12,7 @@ OUTPUTPATH = config["output_dir"]
 PREFIX = config["prefix"]
 GENOMES = pd.read_csv(GENOMESPATH, sep='\t', index_col=None, header=None).iloc[:,0].values.tolist()
 
-get_jaccard_files():
+def get_pairs():
     genome_pairs=[]
     n = len(GENOMES)
     for i in range(n):
@@ -20,40 +20,48 @@ get_jaccard_files():
         while j<i:
             genome_pairs.append([GENOMES[i], GENOMES[j]])
             j=j+1
-    files = []
-    for el in genome_pairs:
-        if len(el)>1:
-            files.append(f"{OUTPUTPATH}/tmp_files/jaccard_pairwise/{el[0]}~{el[1]}_jaccard.tsv")
-    return files
+    return genome_pairs
 
-get_unimogs():
-    pass #fill this in!
+PAIRS = get_pairs()
+
+def get_files(type):
+    files = []
+    if type == "jaccard":
+        dir = f"{OUTPUTPATH}/tmp_files/jaccard_pairwise"
+        end = "jaccard.tsv"
+    elif type == "unimog":
+        dir = f"{OUTPUTPATH}/unimogs"
+        end = "align.unimog"
+    for el in PAIRS:
+        if len(el)>1:
+            files.append(f"{dir}/{el[0]}~{el[1]}_{end}")
+    return files
 
 rule all:
     input:
-        unimogs = get_unimogs()
-        seq_jaccard = f"{OUTPUTPATH}/jaccard/all_pairs_jaccard.tsv"
+        unimogs = get_files("unimog"),
+        seq_jaccard = f"{OUTPUTPATH}/jaccard/all_pairs_jaccard.tsv",
         communities = f"{OUTPUTPATH}/jaccard/jaccard_communities.txt",
         communities_sizes = f"{OUTPUTPATH}/jaccard/jaccard_communities_sizes.txt"
 
 rule make_unimogs:
     input:
-        genome_1_fasta=f"{FASTAPATH}/{{genome1}}.fasta",
-        genome_2_fasta=f"{FASTAPATH}/{{genome2}}.fasta"
+        genome_1_fasta=f"{FASTAPATH}/{{genome1}}.fna",
+        genome_2_fasta=f"{FASTAPATH}/{{genome2}}.fna"
     output:
-        unimogs=f"{OUTPUTPATH}/unimogs/{{genome1}}~{{genome2}}_align.unimog"
-        jaccard=f"{OUTPUTPATH}/tmp_files/jaccard_pairwise/{{genome1}}~{{genome2}}_jaccard.tsv"
+        unimogs=f"{OUTPUTPATH}/unimogs/{{genome1}}~{{genome2}}_align.unimog",
+        jaccard=f"{OUTPUTPATH}/tmp_files/jaccard_pairwise/{{genome1}}~{{genome2}}_jaccard.tsv",
+        seq_blocks=f"{OUTPUTPATH}/unimogs/{{genome1}}~{{genome2}}_map.txt"
     params:
         genome1 = lambda wildcards: wildcards.genome1,
         genome2 = lambda wildcards: wildcards.genome2
-    conda:
-    	"envs/integerise.yaml"
+    conda: "envs/integerise.yaml"
     script:
         "unimog.py"
 
 rule cat_jaccard:
     input:
-        jaccards = get_jaccard_files()
+        jaccards = get_files("jaccard")
     output:
         jaccard = f"{OUTPUTPATH}/jaccard/all_pairs_jaccard.tsv"
     shell:
@@ -61,14 +69,14 @@ rule cat_jaccard:
 
 rule get_communities:
     input:
-        seq_jaccard = f"{OUTPUTPATH}/jaccard/all_pairs_jaccard.tsv"
+        jaccard = f"{OUTPUTPATH}/jaccard/all_pairs_jaccard.tsv"
     output:
         communities = f"{OUTPUTPATH}/jaccard/jaccard_communities.txt",
         communities_sizes = f"{OUTPUTPATH}/jaccard/jaccard_communities_sizes.txt"
     threads: 1
     resources:
         mem_mb=lambda wildcards, attempt: 4000*attempt
-    conda: "envs/env.yaml"
+    #conda: "envs/env.yaml"
     params:
-        gene_jaccard_threshold=config["seq_jaccard_threshold"]
-    script: "scripts/get_communities.py"
+        jaccard_threshold=config["seq_jaccard_threshold"]
+    script: "get_communities.py"

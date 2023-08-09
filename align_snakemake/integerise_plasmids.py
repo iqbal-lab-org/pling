@@ -2,7 +2,7 @@ import subprocess
 from intervaltree import IntervalTree
 from pathlib import Path
 from typing import Tuple
-
+import pandas as pd
 
 def populate_interval_tree_with_unmatched_blocks(interval_tree, total_length, block_index, length_threshold):
     pos = 1
@@ -89,8 +89,8 @@ def integerise_plasmids(plasmid_1: Path, plasmid_2: Path, prefix: str, plasmid_1
         populate_interval_tree_with_unmatched_blocks(query_to_block, len_query, len(ref_to_block)+len(query_to_block)+1, length_threshold)
         plasmid_1_unimogs = get_unimog(ref_to_block)
         plasmid_2_unimogs = get_unimog(query_to_block)
-        blocks_ref = get_blocks(ref_to_block)
-        blocks_query = get_blocks(query_to_block)
+        blocks_ref = get_blocks(plasmid_1_name, ref_to_block)
+        blocks_query = get_blocks(plasmid_2_name, query_to_block)
 
     for extension in [".1coords", ".1delta", ".delta", ".mcoords", ".mdelta", ".qdiff", ".rdiff", ".report", ".snps"]:
         Path(prefix+extension).unlink()
