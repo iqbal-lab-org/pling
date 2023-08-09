@@ -6,36 +6,30 @@ import networkx as nx
 import numpy as np
 import math
 import matplotlib.pyplot as plt
+import os
 
 def read_in_unimog(unimog_filepath):
-    seqs = {}
-    with open(unimog_filepath, "r") as unimog:
-        lines = unimog.read().split(")\n")
-        for line in lines:
-            content = line.split("\n")
-            genome_id = content[0][1:]
-            sequence = [int(el) for el in content[1].split()]
-            seqs[genome_id] = sequence
-    return seqs
+    sequences = {}
+    with open(unimog_filepath) as unimog:
+        genome = ""
+        for line in unimog:
+            if line[0]==">":
+                genome = line.strip(">\n")
+            else:
+                sequence=line.strip(")\n").split()
+                sequences[genome]=[int(el) for el in sequence]
+    return sequences
 
 def read_in_map(map_filepath):
     int_to_name = {}
-    with open(map_filepath, "r") as map:
-        for line in map:
-            name, int = line.strip().split("\t")
-            int = int(int)
-            int_to_name[int] = name
+    with open(map_filepath, "r") as int_map:
+        for line in int_map:
+            name, integer = line.strip().split("\t")
+            integer = int(integer)
+            int_to_name[integer] = name
     return int_to_name
 
-def get_communities(communities_filepath):
-    communities = {}
-    with open(communities_filepath) as communities_fh:
-        for community_index, line in enumerate(communities_fh):
-            plasmids = line.strip().split()
-            communities[community_index] = plasmids
-    return communities
-
-def contruct_graph(seqs, community):
+def construct_graph(seqs, community):
     graph = nx.DiGraph()
     for genome in community:
         for j in range(len(seqs[genome])-1):
@@ -162,28 +156,49 @@ def blocks(seqs, community, int_to_name):
             i=i+1
     return blocks, block_maps
 
-def output_files(seqs, community, blocks, block_maps, int_to_name, output_map, relabelled_unimog):
+def output_files(seqs, community, blocks, block_maps, int_to_name, output_map, relabelled_unimog, directory):
     new_seqs={}
     for genome in community:
         new_seqs[genome]=[]
-        for el in seqs[genome]:
-            new_seqs[genome].append(block_maps[int_to_name[el]][0])
+        j=0
+        while j < len(seqs[genome]):
+            n=1
+            for block in blocks:
+                if block[0]==seqs[genome][j]:
+                    new_seqs[genome].append(block[0])
+                    n = len(block)
+                elif -block[-1]==seqs[genome][j]:
+                    new_seqs[genome].append(-block[-1])
+                    n=len(block)
+            j = j+n
     maps = pd.DataFrame(data=block_maps)
     maps.T.to_csv(output_map, sep="\t", header=False)
-    with open(relabelled_unimog) as f:
+    if not os.path.exists(directory):
+        os.makedirs(directory)
+    with open(relabelled_unimog, 'w') as f:
         for genome in community:
             unimog = " ".join(str(el) for el in new_seqs[genome])
             unimog = unimog + " )"
             f.write(f">{genome}\n{unimog}\n")
 
-map_filepath = snakemake.input.map
-communties_filepath = snakemake.input.communties
-unimog_filepath = snakemake.input.unimog
-output_dir = snakemake.output.relabelled_dir
+testing = False
+
+if testing == True:
+    OUTPUTPATH = "/home/daria/Documents/projects/pling/local_tests"
+    map_filepath = f"{OUTPUTPATH}/0_map.txt"
+    unimog_filepath = f"{OUTPUTPATH}/unimogs/0_anno.unimog"
+    relabelled_unimog = f"{OUTPUTPATH}/unimogs/relabelled/blocks/0_blocks.unimog"
+    output_map = f"{OUTPUTPATH}/unimogs/relabelled/blocks/0_map_blocks.txt"
+    genomes = [el[0] for el in pd.read_csv("/home/daria/Documents/projects/Murray_Family/clusters_adrian/lists/cluster_4_ids.csv", header=None).values]
+else:
+    map_filepath = snakemake.input.map
+    unimog_filepath = snakemake.input.unimog
+    relabelled_unimog = snakemake.output.relabelled_unimog
+    relabelled_dir = snakemake.params.relabelled_dir
+    output_map = snakemake.output.blocks_map
+    genomes = snakemake.params.genomes
 
 int_to_name = read_in_map(map_filepath)
-communties = get_communities(communties_filepath)
 seqs = read_in_unimog(unimog_filepath)
-for community in communities:
-    blocks, block_maps = blocks(seqs, communties[community], int_to_name)
-    output_files(seqs, communities[community], blocks, block_maps, int_to_name, f"{output_dir}/{community}_blocks_map.txt", f"{output_dir}/{community}_blocks.unimog")
+blocks, block_maps = blocks(seqs, genomes, int_to_name)
+output_files(seqs, genomes, blocks, block_maps, int_to_name, output_map, relabelled_unimog, relabelled_dir)

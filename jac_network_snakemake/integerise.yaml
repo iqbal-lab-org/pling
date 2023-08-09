@@ -1,0 +1,7 @@
+name: integerise
+channels:
+ - bioconda
+dependencies:
+ - python =3.8
+ - intervaltree =3.0.2
+ - pandas

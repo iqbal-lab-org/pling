@@ -10,9 +10,7 @@ output_dir: "/home/daria/Documents/projects/pling/tests/test1/annotation"
 #path to bakta database
 bakta_db: "/home/daria/bakta_database/db-light"
 
-seq_jaccard_threshold: 0.4
+jaccard_threshold: 0.4
 
 #prefix for filenames; make "all_plasmids" the default
 prefix: "all_plasmids"
-
-communities: "/home/daria/Documents/projects/pling/tests/test1/annotation/jaccard/jaccard_communities.txt"

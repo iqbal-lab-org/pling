@@ -1,0 +1,72 @@
+import os
+from operator import attrgetter
+import shutil
+import pandas as pd
+from pathlib import Path
+
+configfile: "config.yaml"
+
+GENOMES = [el[0] for el in pd.read_csv(config["genomes_list"], header=None).values]
+FASTAPATH = config["fastas"]
+OUTPUTPATH = config["output_dir"]
+PREFIX = config["prefix"]
+
+def get_pairs():
+    genome_pairs=[]
+    n = len(GENOMES)
+    for i in range(n):
+        j=0
+        while j<i:
+            genome_pairs.append([GENOMES[i], GENOMES[j]])
+            j=j+1
+    return genome_pairs
+
+PAIRS = get_pairs()
+
+def get_files():
+    files = []
+    for el in PAIRS:
+        if len(el)>1:
+            files.append(f"{OUTPUTPATH}/tmp_files/jaccard_pairwise/{el[0]}~{el[1]}_jaccard.tsv")
+    return files
+
+rule all:
+    input:
+        communities = f"{OUTPUTPATH}/jaccard/jaccard_communities.txt",
+        communities_sizes = f"{OUTPUTPATH}/jaccard/jaccard_communities_sizes.txt"
+
+rule pairwise_seq_jaccard:
+    input:
+        genome_1_fasta=f"{FASTAPATH}/{{genome1}}.fna",
+        genome_2_fasta=f"{FASTAPATH}/{{genome2}}.fna"
+    output:
+        jaccard=f"{OUTPUTPATH}/tmp_files/jaccard_pairwise/{{genome1}}~{{genome2}}_jaccard.tsv"
+    threads: 1
+    conda: "integerise.yaml"
+    params:
+        genome1 = lambda wildcards: wildcards.genome1,
+        genome2 = lambda wildcards: wildcards.genome2
+    script:
+        "seq_jaccard.py"
+
+rule cat_jaccard:
+    input:
+        jaccards = get_files()
+    output:
+        jaccard = f"{OUTPUTPATH}/jaccard/all_pairs_jaccard.tsv"
+    shell:
+        "cat {input.jaccards} > {output.jaccard}"
+
+rule get_communities:
+    input:
+        jaccard = f"{OUTPUTPATH}/jaccard/all_pairs_jaccard.tsv"
+    output:
+        communities = f"{OUTPUTPATH}/jaccard/jaccard_communities.txt",
+        communities_sizes = f"{OUTPUTPATH}/jaccard/jaccard_communities_sizes.txt"
+    threads: 1
+    resources:
+        mem_mb=lambda wildcards, attempt: 4000*attempt
+    #conda: "envs/env.yaml"
+    params:
+        jaccard_threshold=config["jaccard_threshold"]
+    script: "get_communities.py"

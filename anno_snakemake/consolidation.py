@@ -14,7 +14,7 @@ import math
 def gene_locations(pafs,genomes):
     output = pd.DataFrame() #dataframe of output
     for genome in genomes:
-        with PafFile(f"{pafs}/{genome}.paf') as paf:
+        with PafFile(f"{pafs}/{genome}.paf") as paf:
             for record in paf:
                 gene = str(record.strand) + str(record.qname)
                 location = record.tstart
@@ -36,13 +36,14 @@ def to_int(sorting,data):     #read in dictionary of genomes, DataFrame of genes
     gene_set = list(dict.fromkeys(gene_set))
     for i in range(len(gene_set)):
         gene_set[i]=gene_set[i][1:]
+    gene_set = set(gene_set)
     gene_list = [f"+{gene}" for gene in gene_set]
     rev_gene_list = [f"-{gene}" for gene in gene_set]
     table = {gene:i+1 for i,gene in enumerate(gene_list)}
     table2 = {gene:-i-1 for i,gene in enumerate(rev_gene_list)}
     table.update(table2)
     int_sequences = {}
-    for genome in sorting.keys:
+    for genome in sorting.keys():
         int_sequences[genome] = [table[el] for el in sorting[genome]]
     return int_sequences, table
 

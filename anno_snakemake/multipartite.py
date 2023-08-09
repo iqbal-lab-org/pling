@@ -24,14 +24,6 @@ def read_in_unimog(inputpath_unimog):
                 sequences[genome]=[int(el) for el in sequence]
     return sequences
 
-def get_communities(communities_filepath):
-    communities = {}
-    with open(communities_filepath) as communities_fh:
-        for community_index, line in enumerate(communities_fh):
-            plasmids = line.strip().split()
-            communities[community_index] = plasmids
-    return communities
-
 def read_in_nucmer(inputpath_nucmer, genomes):
     block_matches = pd.DataFrame(data=[[[] for genome in genomes] for genome in genomes], index=genomes, columns=genomes)
     for match in pymummer.coords_file.reader(inputpath_nucmer):
@@ -109,17 +101,25 @@ def check_clique(subgraph):
         clique_bool = False
     return clique_bool
 
-def relabel_graph(G, label):
+def relabel_graph(int_to_name, G, label):
     S = [G.subgraph(c).copy() for c in nx.connected_components(G)]
     relabelled_G = G.copy()
     new_label = label+1
+    counts = {}
     for subgraph in S:
         clique_bool = check_clique(subgraph)
         if clique_bool==True:
             mapping = {}
-            print(subgraph.nodes)
             for node in subgraph.nodes:
-                mapping[node]=(node[0], node[3]*new_label, node[2])
+                mapping[node]=(node[0], new_label, node[2], node[3])
+            name = int_to_name[list(subgraph.nodes)[0][1]]
+            if name in counts.keys():
+                counts[name] = counts[name] + 1
+            else:
+                counts[name] = 1
+            dedup_name = f"{name}_dedup_{counts[name]}"
+            int_to_name[new_label] = dedup_name
+            int_to_name[-1*new_label] = dedup_name.replace('+','-')
             relabelled_G = nx.relabel_nodes(relabelled_G, mapping, copy=False)
             new_label = new_label + 1
     return relabelled_G
@@ -130,18 +130,22 @@ def relabel_sequences(relabelled_G, sequences):
         genome = node[0]
         gene = node[1]
         position = node[2]
+        strand = node[3]
         if not genome in relabelled_sequences.keys():
             relabelled_sequences[genome]=[gene for gene in sequences[genome]]
-        relabelled_sequences[genome][position]=gene
+        relabelled_sequences[genome][position]=strand*gene
     return relabelled_sequences
 
-def generate_dedup_unimog(outputpath, relabelled_sequences):
+def generate_dedup_unimog(outputpath, map_outputpath, relabelled_sequences, int_to_name):
     with open(outputpath, 'w') as new_unimog:
         for genome in relabelled_sequences.keys():
             new_unimog.write(">"+genome+"\n")
             for gene in relabelled_sequences[genome]:
                 new_unimog.write(str(gene)+" ")
             new_unimog.write(")\n")
+    with open(map_outputpath, 'w') as dedup_map:
+        for integer in int_to_name.keys():
+            dedup_map.write(int_to_name[integer]+"\t"+str(integer)+"\n")
 
 def find_duplicates(sequences):
     duplicates = set()
@@ -152,10 +156,11 @@ def find_duplicates(sequences):
                 duplicates.add(el)
     return duplicates
 
-def deduplication(inputpath_unimog, inputpath_nucmer, inputpath_paf, inputpath_map, genomes, outputpath):
-    name_and_int = pd.read_csv(inputpath_map,index_col=None, sep='\t')
+def deduplication(inputpath_unimog, inputpath_nucmer, inputpath_paf, inputpath_map, genomes, outputpath, map_outputpath):
+    name_and_int = pd.read_csv(inputpath_map,index_col=None, sep='\t', header=None)
     name_and_int = name_and_int.values.tolist()
     name_to_int = {el[0]:el[1] for el in name_and_int}
+    int_to_name = {el[1]:el[0] for el in name_and_int}
     sequences = read_in_unimog(unimog)
     block_matches = read_in_nucmer(nucmer, genomes)
     gene_matches = read_in_pafs(pafs, genomes)
@@ -163,21 +168,35 @@ def deduplication(inputpath_unimog, inputpath_nucmer, inputpath_paf, inputpath_m
     label = max([max([abs(el) for el in sequences[genome]]) for genome in genomes])
     if duplicates:
         multipartite = build_multipartite(name_to_int, block_matches, gene_matches, duplicates, genomes)
-        relabelled_multipartite = relabel_graph(multipartite, label)
+        relabelled_multipartite = relabel_graph(int_to_name, multipartite, label)
         relabelled_sequences = relabel_sequences(relabelled_multipartite,sequences)
-        generate_dedup_unimog(outputpath, relabelled_sequences)
+        generate_dedup_unimog(outputpath, map_outputpath, relabelled_sequences, int_to_name)
     else:
-        generate_dedup_unimog(outputpath, sequences)
+        generate_dedup_unimog(outputpath, map_outputpath, sequences, int_to_name)
 
+testing = False
 
-fasta = snakemake.input.fasta
-nucmer = snakemake.output.nucmer
-nucmer_threshold = snakemake.params.nucmer_threshold
-unimog = snakemake.input.unimog
-communties = get_communities(snakemake.input.communities)
-inputpath_map = snakemake.input.map
-pafs = snakemake.params.pafs
-output_dir = snakemake.output.relabelled_unimog
+if testing == True:
+    OUTPUTPATH =  "/home/daria/Documents/projects/pling/tests/test1/annotation"
+    fasta = f"{OUTPUTPATH}/tmp_files/community_fastas/0.fna"
+    nucmer = f"{OUTPUTPATH}/tmp_files/nucmer/0.nucmer"
+    nucmer_threshold = 98.5
+    unimog = f"{OUTPUTPATH}/unimogs/0_anno.unimog"
+    inputpath_map = f"{OUTPUTPATH}/0_map.txt"
+    pafs = f"{OUTPUTPATH}/tmp_files/minimap/0/output"
+    genomes = [el[0] for el in pd.read_csv("/home/daria/Documents/projects/pling/tests/test1/fastas/list.txt", header=None).values]
+    outputpath = f"{OUTPUTPATH}/unimogs/relabelled/dedup/0_dedup.unimog"
+    map_outputpath = f"{OUTPUTPATH}/unimogs/relabelled/dedup/0_map_dedup.txt"
+else:
+    fasta = snakemake.input.fasta
+    nucmer = snakemake.output.nucmer
+    nucmer_threshold = snakemake.params.nucmer_threshold
+    unimog = snakemake.input.unimog
+    inputpath_map = snakemake.input.map
+    pafs = snakemake.params.pafs
+    genomes = snakemake.params.genomes
+    outputpath = snakemake.output.relabelled_unimog
+    map_outputpath = snakemake.output.dedup_map
 
 runner = pymummer.nucmer.Runner(
                     fasta,
@@ -189,6 +208,4 @@ runner = pymummer.nucmer.Runner(
                 )
 runner.run()
 
-for community in communities:
-    outputpath = f"{output_dir}/{communities}_dedup.unimog"
-    deduplication(inputpath_unimog, inputpath_nucmer, inputpath_paf, inputpath_map, communities[community], outputpath)
+deduplication(unimog, nucmer, pafs, inputpath_map, genomes, outputpath, map_outputpath)
