@@ -1,0 +1,23 @@
+#path to list of genome IDs
+genomes_list: "/home/daria/Documents/projects/pling/tests/test2/fastas/list.txt"
+
+#path to directory with fasta files
+fastas: "/home/daria/Documents/projects/pling/tests/test2/fastas"
+
+#path to output directory
+output_dir: "/home/daria/Documents/projects/pling/tests/test2/alignment"
+
+#integerisation method: "anno" for annotation and "align" for alignment
+integerisation: "align"
+
+#path to bakta database
+bakta_db: "/home/daria/bakta_database/db-light"
+
+seq_jaccard_threshold: 0.8
+
+dcj_dist_threshold: 4
+
+#prefix for filenames; make "all_plasmids" the default
+prefix: "all_plasmids"
+
+communities: "/home/daria/Documents/projects/pling/tests/test2/annotation/jaccard/jaccard_communities.txt"

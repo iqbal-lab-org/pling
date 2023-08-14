@@ -10,7 +10,7 @@ from pathlib import Path
 import matplotlib.pyplot as plt
 import numpy as np
 
-configfile: "config.yaml"
+configfile: "../config.yaml"
 
 GENOMES = [el[0] for el in pd.read_csv(config["genomes_list"], header=None).values]
 FASTAPATH = config["fastas"]
@@ -44,7 +44,7 @@ PAIRS = get_pairs()
 
 rule all:
     input:
-        #dedup_unimog = expand(f"{OUTPUTPATH}/unimogs/relabelled/dedup/{{community}}_dedup.unimog", community=COMMUNITIES),
+        dedup_unimog = expand(f"{OUTPUTPATH}/unimogs/relabelled/dedup/{{community}}_dedup.unimog", community=COMMUNITIES),
         blocks_unimog = expand(f"{OUTPUTPATH}/unimogs/relabelled/blocks/{{community}}_blocks.unimog", community=COMMUNITIES),
         blocks_map = expand(f"{OUTPUTPATH}/unimogs/relabelled/blocks/{{community}}_map_blocks.txt", community=COMMUNITIES)
 
@@ -120,7 +120,7 @@ rule consolidation:
         lambda wildcards: expand(f"{OUTPUTPATH}/tmp_files/minimap/{wildcards.community}/output/{{genome}}.paf", genome=COMMUNITY_TO_PLASMID[wildcards.community]),
     output:
         unimog = f"{OUTPUTPATH}/unimogs/{{community}}_anno.unimog",
-        map = f"{OUTPUTPATH}/{{community}}_map.txt"
+        map = f"{OUTPUTPATH}/unimogs/{{community}}_map.txt"
     threads: 1
     resources:
         mem_mb = lambda wildcards, attempt: attempt * 1000
@@ -147,7 +147,7 @@ rule deduplication:
     input:
         fasta = f"{OUTPUTPATH}/tmp_files/community_fastas/{{community}}.fna",
         unimog = f"{OUTPUTPATH}/unimogs/{{community}}_anno.unimog",
-        map = f"{OUTPUTPATH}/{{community}}_map.txt"
+        map = f"{OUTPUTPATH}/unimogs/{{community}}_map.txt"
     output:
         nucmer = f"{OUTPUTPATH}/tmp_files/nucmer/{{community}}.nucmer",
         relabelled_unimog = f"{OUTPUTPATH}/unimogs/relabelled/dedup/{{community}}_dedup.unimog",

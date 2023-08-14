@@ -4,7 +4,7 @@ import os
 import subprocess
 import pandas as pd
 
-configfile: "config.yaml"
+configfile: "../config.yaml"
 
 GENOMESPATH = config["genomes_list"]
 FASTAPATH = config["fastas"]

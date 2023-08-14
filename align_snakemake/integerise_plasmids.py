@@ -47,6 +47,13 @@ def get_coordinates(split_line, index):
     end+=1
     return start, end
 
+def get_coverage(tree):
+    merge_tree = IntervalTree(list(tree))
+    merge_tree.merge_overlaps()
+    coverage = 0
+    for interval in merge_tree:
+        coverage = coverage + (interval.end - interval.begin)
+    return coverage
 
 def integerise_plasmids(plasmid_1: Path, plasmid_2: Path, prefix: str, plasmid_1_name, plasmid_2_name, identity_threshold=80, length_threshold=200) -> Tuple[str, str]:
     subprocess.check_call(f"perl -w $(which dnadiff) {plasmid_1} {plasmid_2} -p {prefix} 2>/dev/null", shell=True)
@@ -59,8 +66,6 @@ def integerise_plasmids(plasmid_1: Path, plasmid_2: Path, prefix: str, plasmid_1
     ref_to_block = IntervalTree()
     query_to_block = IntervalTree()
     data = {"Plasmids":[], "Block_ID":[], "Start":[], "Stop":[]}
-    coverage_ref = 0
-    coverage_query = 0
     for block, line in enumerate(show_coords_output):
         split_line = line.split(b'\t')
         block=block+1  # avoids using block 0, which can't be represented as -0 and 0
@@ -75,16 +80,19 @@ def integerise_plasmids(plasmid_1: Path, plasmid_2: Path, prefix: str, plasmid_1
         len_query = int(split_line[8])
         strand_ref = int(split_line[11])
         strand_query = int(split_line[12])
-        coverage_ref = coverage_ref + (end_ref-start_ref)
-        coverage_query = coverage_query + (end_query-start_query)
         ref_to_block[start_ref:end_ref] = block*strand_ref
         query_to_block[start_query:end_query] = block*strand_query
 
+
+    coverage_ref = 0
+    coverage_query = 0
     no_matches_available = len_ref==-1
     if no_matches_available:
         plasmid_1_unimogs = "1 )"
         plasmid_2_unimogs = "2 )"
     else:
+        coverage_ref = get_coverage(ref_to_block)
+        coverage_query = get_coverage(query_to_block)
         populate_interval_tree_with_unmatched_blocks(ref_to_block, len_ref, len(ref_to_block)+len(query_to_block)+1, length_threshold)
         populate_interval_tree_with_unmatched_blocks(query_to_block, len_query, len(ref_to_block)+len(query_to_block)+1, length_threshold)
         plasmid_1_unimogs = get_unimog(ref_to_block)

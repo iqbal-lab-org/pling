@@ -1,4 +1,4 @@
-from pipelines.visualisations.commons.commons import produce_full_visualization
+from commons import produce_full_visualization
 from networkx.algorithms.community import *
 import itertools
 import shutil
@@ -18,13 +18,13 @@ logging.getLogger('matplotlib.font_manager').disabled = True
 
 def get_dcj_dists(dcj_dist_matrix): #replace this by reading in dcj dist matrix
     dcj_dists_df = pd.read_csv(dcj_dist_matrix, sep="\t", header=None, index_col=0, skiprows=[0])
-    dcj_dists_df = dcj_dists_df.rename({i:genome for i, genome in enumerate(list(dcj_dists_df.index))})
+    dcj_dists_df = dcj_dists_df.rename(columns={i+1:genome for i, genome in enumerate(list(dcj_dists_df.index))})
     dcj_bool = dcj_dists_df.notna()
     dcj_dists = {}
     for plasmid_1 in dcj_dists_df.index:
         for plasmid_2 in dcj_dists_df.columns:
             if dcj_bool.loc[plasmid_1, plasmid_2]==True:
-                    dcj_dists[(plasmid_1, plasmid_2)] = dcj_dists_df.loc[plasmid_1, plasmid_2]
+                    dcj_dists[(plasmid_1, plasmid_2)] = int(dcj_dists_df.loc[plasmid_1, plasmid_2])
     return dcj_dists
 
 
@@ -180,7 +180,7 @@ small_subcommunity_size_threshold = snakemake.params.small_subcommunity_size_thr
 
 visualisation_outdir, misc_outdir = create_outdirs(outdir)
 
-dcj_dists = get_dcj_dists(dcj_dists)
+dcj_dists = get_dcj_dists(dcj_dists_matrix)
 
 communities, plasmid_to_community = get_communities(jaccard)
 

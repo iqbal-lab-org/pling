@@ -4,7 +4,7 @@ import shutil
 import pandas as pd
 from pathlib import Path
 
-configfile: "config.yaml"
+configfile: "../config.yaml"
 
 GENOMES = [el[0] for el in pd.read_csv(config["genomes_list"], header=None).values]
 FASTAPATH = config["fastas"]
@@ -68,5 +68,5 @@ rule get_communities:
         mem_mb=lambda wildcards, attempt: 4000*attempt
     #conda: "envs/env.yaml"
     params:
-        jaccard_threshold=config["jaccard_threshold"]
+        jaccard_threshold=config["seq_jaccard_threshold"]
     script: "get_communities.py"
