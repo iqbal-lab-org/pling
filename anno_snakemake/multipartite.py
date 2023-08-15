@@ -30,6 +30,7 @@ def read_in_nucmer(inputpath_nucmer, genomes):
         block_matches.loc[match.ref_name, match.qry_name].append(match)
     return block_matches
 
+'''
 def read_in_pafs(inputpath_paf, genomes):
     output = {}
     for genome in genomes:
@@ -43,7 +44,43 @@ def read_in_pafs(inputpath_paf, genomes):
                 genes = pd.concat([genes, info], ignore_index=True)
         genes = genes.sort_values(by='Start', ignore_index=True)
         output[genome] = genes
+    return output'''
+
+def gene_locations(pafs,genomes):
+    output = pd.DataFrame() #dataframe of output
+    for genome in genomes:
+        with PafFile(f"{pafs}/{genome}.paf") as paf:
+            for record in paf:
+                gene = str(record.qname)
+                info = pd.DataFrame.from_dict({"Genome": [genome], "Gene": [gene], "Start": [record.tstart], "Stop":[record.tend], "Strand":[record.strand], "BLAST":[record.blast_identity()]})
+                output = pd.concat([output, info], ignore_index=True) #store info in output
     return output
+
+def remove_redundancies(genes_df):
+    genes = genes_df['Gene'].unique()
+    output = pd.DataFrame()
+    for gene in genes:
+        gene_df = genes_df[genes_df['Gene']==gene]
+        stop = -1
+        while not gene_df[gene_df['Start']>stop].empty:
+            max_quality = gene_df[gene_df['Start']>stop]['BLAST'].max()
+            strand = gene_df[(gene_df['Start']>stop) & (gene_df['BLAST']==max_quality)]['Strand'].iloc[0]
+            start = gene_df[(gene_df['Start']>stop) & (gene_df['BLAST']==max_quality)]['Start'].iloc[0]
+            stop = gene_df[(gene_df['Start']>stop) & (gene_df['BLAST']==max_quality)]['Stop'].iloc[0]
+            gene_name = str(strand) + str(gene)
+            info = pd.DataFrame.from_dict({"Gene": [gene_name], "Start": [start], "Stop": [stop]})
+            output = pd.concat([output, info], ignore_index=True) #store info in output
+    return output
+
+def get_gene_matches(inputpath_paf, genomes):
+    data = gene_locations(inputpath_paf, genomes)
+    gene_matches = {}
+    for genome in genomes:
+        per_genome_data = data[data["Genome"]==genome]
+        genes = remove_redundancies(per_genome_data)
+        genes = genes.sort_values(by='Start', ignore_index=True)
+        gene_matches[genome] = genes
+    return gene_matches
 
 def construct_gene_blocks(block_match, gene_matches_of_genome, genome, ref_bool, name_to_int):
     gene_block = []
@@ -163,7 +200,7 @@ def deduplication(inputpath_unimog, inputpath_nucmer, inputpath_paf, inputpath_m
     int_to_name = {el[1]:el[0] for el in name_and_int}
     sequences = read_in_unimog(unimog)
     block_matches = read_in_nucmer(nucmer, genomes)
-    gene_matches = read_in_pafs(pafs, genomes)
+    gene_matches = get_gene_matches(pafs, genomes)
     duplicates = find_duplicates(sequences)
     label = max([max([abs(el) for el in sequences[genome]]) for genome in genomes])
     if duplicates:
