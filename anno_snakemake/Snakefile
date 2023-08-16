@@ -73,7 +73,7 @@ rule panaroo:
     params:
         files = lambda wildcards: [f"{OUTPUTPATH}/annotation/{wildcards.community}/bakta/{genome}/{genome}.gff3" for genome in COMMUNITY_TO_PLASMID[wildcards.community]]
     shell:
-        "singularity run /usr/bin/Panaroo.img -i {params.files} -o {output.pangenome} --clean-mode moderate -a pan "
+        "singularity run /usr/bin/Panaroo.img -i {params.files} -o {output.pangenome} --clean-mode moderate -a pan --merge_paralogs"
 
 rule gen_minimap_input:
     input:
