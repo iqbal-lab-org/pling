@@ -6,11 +6,12 @@ import pandas as pd
 
 configfile: "../config.yaml"
 
-GENOMESPATH = config["genomes_list"]
 FASTAPATH = config["fastas"]
 OUTPUTPATH = config["output_dir"]
 PREFIX = config["prefix"]
-GENOMES = pd.read_csv(GENOMESPATH, sep='\t', index_col=None, header=None).iloc[:,0].values.tolist()
+FASTAFILES = [el[0] for el in pd.read_csv(config["genomes_list"], header=None).values]
+FASTAEXT = {os.path.splitext(el)[0]:os.path.splitext(el)[1] for el in FASTAFILES}
+GENOMES = list(FASTAEXT.keys())
 
 def get_pairs():
     genome_pairs=[]
@@ -46,8 +47,8 @@ rule all:
 
 rule make_unimogs:
     input:
-        genome_1_fasta=f"{FASTAPATH}/{{genome1}}.fna",
-        genome_2_fasta=f"{FASTAPATH}/{{genome2}}.fna"
+        genome_1_fasta=lambda wildcards: f"{FASTAPATH}/{wildcards.genome1}{FASTAEXT[wildcards.genome1]}",
+        genome_2_fasta=lambda wildcards: f"{FASTAPATH}/{wildcards.genome2}{FASTAEXT[wildcards.genome2]}"
     output:
         unimogs=f"{OUTPUTPATH}/unimogs/{{genome1}}~{{genome2}}_align.unimog",
         jaccard=f"{OUTPUTPATH}/tmp_files/jaccard_pairwise/{{genome1}}~{{genome2}}_jaccard.tsv",

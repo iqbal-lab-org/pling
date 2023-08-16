@@ -6,7 +6,9 @@ from pathlib import Path
 
 configfile: "../config.yaml"
 
-GENOMES = [el[0] for el in pd.read_csv(config["genomes_list"], header=None).values]
+FASTAFILES = [el[0] for el in pd.read_csv(config["genomes_list"], header=None).values]
+FASTAEXT = {os.path.splitext(el)[0]:os.path.splitext(el)[1] for el in FASTAFILES}
+GENOMES = list(FASTAEXT.keys())
 FASTAPATH = config["fastas"]
 OUTPUTPATH = config["output_dir"]
 PREFIX = config["prefix"]
@@ -37,8 +39,8 @@ rule all:
 
 rule pairwise_seq_jaccard:
     input:
-        genome_1_fasta=f"{FASTAPATH}/{{genome1}}.fna",
-        genome_2_fasta=f"{FASTAPATH}/{{genome2}}.fna"
+        genome_1_fasta=lambda wildcards: f"{FASTAPATH}/{wildcards.genome1}{FASTAEXT[wildcards.genome1]}",
+        genome_2_fasta=lambda wildcards: f"{FASTAPATH}/{wildcards.genome2}{FASTAEXT[wildcards.genome2]}"
     output:
         jaccard=f"{OUTPUTPATH}/tmp_files/jaccard_pairwise/{{genome1}}~{{genome2}}_jaccard.tsv"
     threads: 1

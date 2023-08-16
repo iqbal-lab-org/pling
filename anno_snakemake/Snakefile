@@ -12,7 +12,9 @@ import numpy as np
 
 configfile: "../config.yaml"
 
-GENOMES = [el[0] for el in pd.read_csv(config["genomes_list"], header=None).values]
+FASTAFILES = [el[0] for el in pd.read_csv(config["genomes_list"], header=None).values]
+FASTAEXT = {os.path.splitext(el)[0]:os.path.splitext(el)[1] for el in FASTAFILES}
+GENOMES = list(FASTAEXT.keys())
 FASTAPATH = config["fastas"]
 OUTPUTPATH = config["output_dir"]
 COMMUNITIESPATH = config["communities"]
@@ -30,18 +32,6 @@ def get_community_to_plasmid():
 
 COMMUNITY_TO_PLASMID, COMMUNITIES = get_community_to_plasmid()
 
-def get_pairs():
-    genome_pairs=[]
-    n = len(GENOMES)
-    for i in range(n):
-        j=0
-        while j<i:
-            genome_pairs.append([GENOMES[i], GENOMES[j]])
-            j=j+1
-    return genome_pairs
-
-PAIRS = get_pairs()
-
 rule all:
     input:
         dedup_unimog = expand(f"{OUTPUTPATH}/unimogs/relabelled/dedup/{{community}}_dedup.unimog", community=COMMUNITIES),
@@ -50,7 +40,7 @@ rule all:
 
 rule bakta:
     input:
-        genome = f"{FASTAPATH}/{{genome}}.fna"
+        genome = lambda wildcards: f"{FASTAPATH}/{wildcards.genome}{FASTAEXT[wildcards.genome]}"
     output:
         ann_dir = directory(f"{OUTPUTPATH}/annotation/{{community}}/bakta/{{genome}}")
     conda:
@@ -127,14 +117,13 @@ rule consolidation:
     params:
         pafs=f"{OUTPUTPATH}/tmp_files/minimap/{{community}}/output",
         genomes = lambda wildcards: COMMUNITY_TO_PLASMID[wildcards.community],
-        fastapath = FASTAPATH,
         outputpath = OUTPUTPATH
     script:
         "consolidation.py"
 
 rule gen_dedup_input:
     input:
-        lambda wildcards: expand(f"{FASTAPATH}/{{genome}}.fna", genome=COMMUNITY_TO_PLASMID[wildcards.community])
+        lambda wildcards: expand(f"{FASTAPATH}/{{genome}}FASTAEXT[{genome}]", genome=COMMUNITY_TO_PLASMID[wildcards.community])
     output:
         f"{OUTPUTPATH}/tmp_files/community_fastas/{{community}}.fna"
     threads: 1

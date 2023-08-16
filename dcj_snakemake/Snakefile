@@ -4,7 +4,7 @@ import os
 
 configfile: "../config.yaml"
 
-GENOMES = [el[0] for el in pd.read_csv(config["genomes_list"], header=None).values]
+GENOMES = [os.path.splitext(el[0])[0] for el in pd.read_csv(config["genomes_list"], header=None).values]
 OUTPUTPATH = config["output_dir"] #output directory will contain subdirectory with unimogs from integerisation pipeline, as well as placing all new output from current pipeline in subdirectories within it
 PREFIX = config["prefix"]
 INTEGERISATION = config["integerisation"]
