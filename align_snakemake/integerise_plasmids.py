@@ -90,6 +90,8 @@ def integerise_plasmids(plasmid_1: Path, plasmid_2: Path, prefix: str, plasmid_1
     if no_matches_available:
         plasmid_1_unimogs = "1 )"
         plasmid_2_unimogs = "2 )"
+        blocks_ref = {"Plasmid":[], "Block_ID":[], "Start":[], "End":[]}
+        blocks_query = {"Plasmid":[], "Block_ID":[], "Start":[], "End":[]}
     else:
         coverage_ref = get_coverage(ref_to_block)
         coverage_query = get_coverage(query_to_block)
