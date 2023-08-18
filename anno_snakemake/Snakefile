@@ -12,7 +12,7 @@ import numpy as np
 
 configfile: "../config.yaml"
 
-FASTAFILES = [el[0] for el in pd.read_csv(config["genomes_list"], header=None).values]
+FASTAFILES = [os.path.basename(el[0]) for el in pd.read_csv(config["genomes_list"], header=None).values]
 FASTAEXT = {os.path.splitext(el)[0]:os.path.splitext(el)[1] for el in FASTAFILES}
 GENOMES = list(FASTAEXT.keys())
 FASTAPATH = config["fastas"]
@@ -38,72 +38,16 @@ rule all:
         blocks_unimog = expand(f"{OUTPUTPATH}/unimogs/relabelled/blocks/{{community}}_blocks.unimog", community=COMMUNITIES),
         blocks_map = expand(f"{OUTPUTPATH}/unimogs/relabelled/blocks/{{community}}_map_blocks.txt", community=COMMUNITIES)
 
-rule bakta:
+rule ggcaller:
     input:
-        genome = lambda wildcards: f"{FASTAPATH}/{wildcards.genome}{FASTAEXT[wildcards.genome]}"
+        fasta_list = config["genomes_list"]
     output:
-        ann_dir = directory(f"{OUTPUTPATH}/annotation/{{community}}/bakta/{{genome}}")
+        ann_dir = directory(f"{OUTPUTPATH}/annotation/{{community}}")
     conda:
-        "bakta"
-    threads: 1
-    resources:
-        mem_mb=lambda wildcards, attempt: attempt * 15000
-    params:
-        DB = directory(f"{config['bakta_db']}")
-    log: f"{OUTPUTPATH}/logs/bakta/{{community}}/{{genome}}.log"
+        "ggc_env"
+    threads: 1 #default
     shell:
-        "bakta {input.genome} --skip-plot --db {params.DB} --prefix {wildcards.genome} --translation-table 11 --threads {threads} --output {output.ann_dir} >{log} 2>&1"
-
-rule panaroo:
-    input:
-        directories = lambda wildcards: expand(f"{OUTPUTPATH}/annotation/{wildcards.community}/bakta/{{genome}}", genome=COMMUNITY_TO_PLASMID[wildcards.community])
-    output:
-        pangenome = directory(f"{OUTPUTPATH}/annotation/{{community}}/panaroo"),
-        aln = directory(f"{OUTPUTPATH}/annotation/{{community}}/panaroo/aligned_gene_sequences")
-    params:
-        files = lambda wildcards: [f"{OUTPUTPATH}/annotation/{wildcards.community}/bakta/{genome}/{genome}.gff3" for genome in COMMUNITY_TO_PLASMID[wildcards.community]]
-    shell:
-        "singularity run /usr/bin/Panaroo.img -i {params.files} -o {output.pangenome} --clean-mode moderate -a pan --merge_paralogs"
-
-rule gen_minimap_input:
-    input:
-        align_dir=f"{OUTPUTPATH}/annotation/{{community}}/panaroo/aligned_gene_sequences"
-    output:
-        f"{OUTPUTPATH}/tmp_files/minimap/{{community}}/input/{{genome}}.fna"
-    threads: 1
-    resources:
-        mem_mb = lambda wildcards, attempt: attempt * 1000
-    params:
-        out_dir=f"{OUTPUTPATH}/tmp_files/minimap/{{community}}/input"
-    run:
-        seq_out = dict()
-        for file in os.listdir(input.align_dir):
-            file_name = str(Path(file))
-            gene = str(Path(file).with_suffix(""))
-            gene = gene.replace(".aln", "")
-            seq_in = SeqIO.parse(f"{input.align_dir}/{file_name}", "fasta")
-            for record in seq_in:
-                genome, prokka_gene = record.id.split(';')
-                blah = (str(record.seq)).replace('-','')
-                seq = Seq(blah)
-                if genome not in seq_out:
-                    seq_out[genome] = [SeqRecord(seq, gene, "", "")]
-                else:
-                    (seq_out[genome]).append(SeqRecord(seq, gene, "", ""))
-        for genome in seq_out:
-            SeqIO.write(seq_out[genome], f"{params.out_dir}/{genome}.fna", "fasta")
-
-rule minimap:
-    input:
-        reads=f"{OUTPUTPATH}/tmp_files/minimap/{{community}}/input/{{genome}}.fna",
-        dir_ref = FASTAPATH
-    output:
-        f"{OUTPUTPATH}/tmp_files/minimap/{{community}}/output/{{genome}}.paf"
-    threads: 3 #minimap default
-    resources:
-        mem_mb = lambda wildcards, attempt: attempt * 1000
-    shell:
-        "~/Downloads/minimap2-2.24_x64-linux/minimap2 -c {input.dir_ref}/{wildcards.genome}.fna {input.reads} > {output}"
+        "ggcaller --reads {input.fasta_list} --out {output.ann_dir}"
 
 rule consolidation:
     input:
@@ -121,6 +65,7 @@ rule consolidation:
     script:
         "consolidation.py"
 
+'''
 rule gen_dedup_input:
     input:
         lambda wildcards: expand(f"{FASTAPATH}/{{genome}}FASTAEXT[{genome}]", genome=COMMUNITY_TO_PLASMID[wildcards.community])
@@ -150,6 +95,7 @@ rule deduplication:
         genomes = lambda wildcards: COMMUNITY_TO_PLASMID[wildcards.community]
     script:
         "multipartite.py"
+'''
 
 rule blocks:
     input:
