@@ -146,7 +146,7 @@ rule deduplication:
         mem_mb = lambda wildcards, attempt: attempt * 1000
     params:
         pafs=f"{OUTPUTPATH}/tmp_files/minimap/{{community}}/output",
-        nucmer_threshold=98.5,
+        nucmer_threshold=config["dedup_threshold"],
         genomes = lambda wildcards: COMMUNITY_TO_PLASMID[wildcards.community]
     script:
         "multipartite.py"

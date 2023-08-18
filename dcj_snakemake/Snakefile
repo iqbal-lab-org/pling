@@ -41,6 +41,12 @@ def get_dist_files(jaccard_tsv):
                 files.append(f"{OUTPUTPATH}/tmp_files/dists_pairwise/{plasmid_1}~{plasmid_2}.dist")
     return files
 
+def get_timelimit():
+    if config["timelimit"]=="None":
+        return ""
+    else:
+        return f"TimeLimit={config["timelimit"]}"
+
 #localrules: all, unimog_to_ilp, dcj_dist, dcj_matrix, trees
 '''
 rule all:
@@ -71,12 +77,14 @@ rule ilp:
     output:
         solution = f"{OUTPUTPATH}/tmp_files/ding/solutions/{{genome1}}~{{genome2}}.sol",
         log = f"{OUTPUTPATH}/tmp_files/ding/logs/{{genome1}}~{{genome2}}.log"
+    params:
+        timelimit=get_timelimit()
     resources:
         mem_mb = lambda wildcards, attempt: {1: 300000, 2: 500000}[attempt] #what memory reqs to set??
     threads: 1
     shell:
         #ilp solver: gurobi. is possible to set termination criteria based on mem use or time limit using parameters MemLimit and TimeLimit
-        "gurobi_cl ResultFile={output.solution} Threads={threads} LogFile={output.log} {input.gurobi_lp}"
+        "gurobi_cl ResultFile={output.solution} Threads={threads} LogFile={output.log} {timelimit} {input.gurobi_lp}"
 
 rule dcj_dist:
     input:

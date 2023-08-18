@@ -60,7 +60,8 @@ def seq_jaccard(plasmid_1: Path, plasmid_2: Path, prefix: str, plasmid_1_name, p
 
 plasmid_1 = snakemake.params.genome1
 plasmid_2 = snakemake.params.genome2
+identity_threshold = snakemake.params.identity_threshold
 jaccardpath = snakemake.output.jaccard
-jaccard = seq_jaccard(snakemake.input.genome_1_fasta, snakemake.input.genome_2_fasta,f"{plasmid_1}~{plasmid_2}", plasmid_1, plasmid_2)
+jaccard = seq_jaccard(snakemake.input.genome_1_fasta, snakemake.input.genome_2_fasta,f"{plasmid_1}~{plasmid_2}", plasmid_1, plasmid_2, identity_threshold)
 with open(jaccardpath, 'w+') as f:
     f.write(f"{plasmid_1}\t{plasmid_2}\t{jaccard}\n")

@@ -47,7 +47,8 @@ rule pairwise_seq_jaccard:
     conda: "integerise.yaml"
     params:
         genome1 = lambda wildcards: wildcards.genome1,
-        genome2 = lambda wildcards: wildcards.genome2
+        genome2 = lambda wildcards: wildcards.genome2,
+        identity_threshold = contig["identity_threshold"]
     script:
         "seq_jaccard.py"
 
