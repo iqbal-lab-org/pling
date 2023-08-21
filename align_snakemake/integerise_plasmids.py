@@ -90,8 +90,8 @@ def integerise_plasmids(plasmid_1: Path, plasmid_2: Path, prefix: str, plasmid_1
     if no_matches_available:
         plasmid_1_unimogs = "1 )"
         plasmid_2_unimogs = "2 )"
-        blocks_ref = {"Plasmid":[], "Block_ID":[], "Start":[], "End":[]}
-        blocks_query = {"Plasmid":[], "Block_ID":[], "Start":[], "End":[]}
+        blocks_ref = pd.DataFrame({"Plasmid":[], "Block_ID":[], "Start":[], "End":[]})
+        blocks_query = pd.DataFrame({"Plasmid":[], "Block_ID":[], "Start":[], "End":[]})
     else:
         coverage_ref = get_coverage(ref_to_block)
         coverage_query = get_coverage(query_to_block)
@@ -102,8 +102,11 @@ def integerise_plasmids(plasmid_1: Path, plasmid_2: Path, prefix: str, plasmid_1
         blocks_ref = get_blocks(plasmid_1_name, ref_to_block)
         blocks_query = get_blocks(plasmid_2_name, query_to_block)
 
-    for extension in [".1coords", ".1delta", ".delta", ".mcoords", ".mdelta", ".qdiff", ".rdiff", ".report", ".snps"]:
-        Path(prefix+extension).unlink()
+    for extension in [".1coords", ".1delta", ".delta", ".mcoords", ".mdelta", ".qdiff", ".rdiff", ".report", ".snps", ".unqry", ".unref"]:
+        try:
+            Path(prefix+extension).unlink()
+        except:
+            pass
 
     if len_ref>len_query:
         jaccard = coverage_query/len_query

@@ -13,9 +13,9 @@ import numpy as np
 configfile: "../config.yaml"
 
 FASTAFILES = [el[0] for el in pd.read_csv(config["genomes_list"], header=None).values]
-FASTAEXT = {os.path.splitext(el)[0]:os.path.splitext(el)[1] for el in FASTAFILES}
+FASTAEXT = {os.path.splitext(os.path.basename(el))[0]:os.path.splitext(os.path.basename(el))[1] for el in FASTAFILES}
 GENOMES = list(FASTAEXT.keys())
-FASTAPATH = config["fastas"]
+FASTAPATH = os.path.dirname(FASTAFILES[0])
 OUTPUTPATH = config["output_dir"]
 COMMUNITIESPATH = config["communities"]
 PREFIX = config["prefix"]
@@ -123,7 +123,7 @@ rule consolidation:
 
 rule gen_dedup_input:
     input:
-        lambda wildcards: expand(f"{FASTAPATH}/{{genome}}FASTAEXT[{genome}]", genome=COMMUNITY_TO_PLASMID[wildcards.community])
+        lambda wildcards: [f"{FASTAPATH}/{genome}{FASTAEXT[genome]}" for genome in COMMUNITY_TO_PLASMID[wildcards.community]]
     output:
         f"{OUTPUTPATH}/tmp_files/community_fastas/{{community}}.fna"
     threads: 1

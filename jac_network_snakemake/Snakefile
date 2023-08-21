@@ -7,9 +7,9 @@ from pathlib import Path
 configfile: "../config.yaml"
 
 FASTAFILES = [el[0] for el in pd.read_csv(config["genomes_list"], header=None).values]
-FASTAEXT = {os.path.splitext(el)[0]:os.path.splitext(el)[1] for el in FASTAFILES}
+FASTAEXT = {os.path.splitext(os.path.basename(el))[0]:os.path.splitext(os.path.basename(el))[1] for el in FASTAFILES}
 GENOMES = list(FASTAEXT.keys())
-FASTAPATH = config["fastas"]
+FASTAPATH = os.path.dirname(FASTAFILES[0])
 OUTPUTPATH = config["output_dir"]
 PREFIX = config["prefix"]
 
@@ -48,7 +48,8 @@ rule pairwise_seq_jaccard:
     params:
         genome1 = lambda wildcards: wildcards.genome1,
         genome2 = lambda wildcards: wildcards.genome2,
-        identity_threshold = contig["identity_threshold"]
+        identity_threshold = config["identity_threshold"],
+        length_threshold = config["length_threshold"]
     script:
         "seq_jaccard.py"
 
@@ -65,11 +66,13 @@ rule get_communities:
         jaccard = f"{OUTPUTPATH}/jaccard/all_pairs_jaccard.tsv"
     output:
         communities = f"{OUTPUTPATH}/jaccard/jaccard_communities.txt",
-        communities_sizes = f"{OUTPUTPATH}/jaccard/jaccard_communities_sizes.txt"
+        communities_sizes = f"{OUTPUTPATH}/jaccard/jaccard_communities_sizes.txt",
+        isolates = f"{OUTPUTPATH}/jaccard/jaccard_isolates.txt"
     threads: 1
     resources:
         mem_mb=lambda wildcards, attempt: 4000*attempt
     #conda: "envs/env.yaml"
     params:
-        jaccard_threshold=config["seq_jaccard_threshold"]
+        jaccard_threshold=config["seq_jaccard_threshold"],
+        genomes = GENOMES
     script: "get_communities.py"

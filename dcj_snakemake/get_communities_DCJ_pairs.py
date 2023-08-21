@@ -43,6 +43,6 @@ dcj_input_dir = Path(dcj_input_dir)
 dcj_input_dir.mkdir(parents=True)
 for community_id, pairs in community_id_to_pairs.items():
     with open(dcj_input_dir / f"DCJ_pairs_community_{community_id}.txt", "w") as dcj_pairs_fh:
-        print("plasmid1 plasmid2 gene_jaccard", file=dcj_pairs_fh)
+        print("plasmid1 plasmid2 jaccard", file=dcj_pairs_fh)
         for pair in pairs:
             print(" ".join(pair), file=dcj_pairs_fh)

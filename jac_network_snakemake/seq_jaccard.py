@@ -45,8 +45,11 @@ def seq_jaccard(plasmid_1: Path, plasmid_2: Path, prefix: str, plasmid_1_name, p
         ref_to_block[start_ref:end_ref] = block
         query_to_block[start_query:end_query] = block
 
-    for extension in [".1coords", ".1delta", ".delta", ".mcoords", ".mdelta", ".qdiff", ".rdiff", ".report", ".snps"]:
-        Path(prefix+extension).unlink()
+    for extension in [".1coords", ".1delta", ".delta", ".mcoords", ".mdelta", ".qdiff", ".rdiff", ".report", ".snps", ".unqry", ".unref"]:
+        try:
+            Path(prefix+extension).unlink()
+        except:
+            pass
 
     coverage_ref = get_coverage(ref_to_block)
     coverage_query = get_coverage(query_to_block)
