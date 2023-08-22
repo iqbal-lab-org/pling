@@ -49,10 +49,10 @@ else:
 profile = ""
 if args.profile!=None:
     profile = f"--profile {args.profile}"
-    if args.resources!=None:
-        resources = pd.read_csv(args.resources, sep="\t")
-    else:
-        resources = pd.read_csv(f"{plingpath}/resources.tsv", sep="\t")
+if args.resources!=None:
+    resources = pd.read_csv(args.resources, sep="\t")
+else:
+    resources = pd.read_csv(f"{plingpath}/resources.tsv", sep="\t")
 
 if not os.path.isdir(f"{args.output_dir}/tmp_files"):
     os.mkdir(f"{args.output_dir}/tmp_files")
@@ -74,13 +74,12 @@ with open(configfile, "w") as config:
     config.write(f"bh_neighbours_edge_density: {args.bh_neighbours_edge_density}\n\n")
     config.write(f"small_subcommunity_size_threshold: {args.small_subcommunity_size_threshold}\n\n")
     config.write(f"timelimit: {timelimit}\n\n")
-    if args.profile!=None:
-        for row in resources.index:
-            rule = resources.loc[row, "Rule"]
-            threads = resources.loc[row, "Threads"]
-            mem =  resources.loc[row, "Mem"]
-            config.write(f"{rule}_threads: {threads}\n\n")
-            config.write(f"{rule}_mem: {mem}\n\n")
+    for row in resources.index:
+        rule = resources.loc[row, "Rule"]
+        threads = resources.loc[row, "Threads"]
+        mem =  resources.loc[row, "Mem"]
+        config.write(f"{rule}_threads: {threads}\n\n")
+        config.write(f"{rule}_mem: {mem}\n\n")
 
 #integerisation
 if args.integerisation == "anno":

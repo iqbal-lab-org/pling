@@ -60,7 +60,7 @@ rule make_unimogs:
         genome1 = lambda wildcards: wildcards.genome1,
         genome2 = lambda wildcards: wildcards.genome2,
         identity_threshold = config["identity_threshold"]
-    conda: "envs/integerise.yaml"
+    conda: "../envs/integerise.yaml"
     script:
         "unimog.py"
 
@@ -85,7 +85,7 @@ rule get_communities:
     threads: 1
     resources:
         mem_mb=lambda wildcards, attempt: config["get_communities_mem"]*attempt
-    #conda: "envs/env.yaml"
+    conda: "../envs/env.yaml"
     params:
         jaccard_threshold=config["seq_jaccard_threshold"],
         genomes=GENOMES

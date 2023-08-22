@@ -1,6 +1,6 @@
-import pandas as pd
 from pathlib import Path
 import os
+import pandas as pd
 
 configfile: "../config.yaml"
 
@@ -103,38 +103,15 @@ rule dcj_matrix:
         dist_files = get_dist_files(f"{OUTPUTPATH}/jaccard/all_pairs_jaccard.tsv")
     output:
         matrix=f"{OUTPUTPATH}/{PREFIX}_matrix.dist"
+    conda:
+        "../envs/blocks.yaml"
     params:
-        genomes= GENOMES
+        genomes= GENOMES,
+        outputpath = OUTPUTPATH
     resources:
         mem_mb = lambda wildcards, attempt: attempt * config["dcj_matrix_mem"]
-    run:
-        dist=0
-        distances = pd.DataFrame(index = [len(params.genomes)] + params.genomes, columns = params.genomes)
-        for genome1 in params.genomes:
-            i=0
-            for genome2 in params.genomes:
-                if genome1 == genome2:
-                    dist = 0
-                else:
-                    file1 =  f"{OUTPUTPATH}/tmp_files/dists_pairwise/{genome1}~{genome2}.dist"
-                    file2 = f"{OUTPUTPATH}/tmp_files/dists_pairwise/{genome2}~{genome1}.dist"
-                    if os.path.exists(file1)==True and os.path.exists(file2)==False:
-                        file = file1
-                        f = open(file, 'r')
-                        line = f.readline()
-                        dist = int(line.strip().split(" ")[2])
-                        f.close()
-                    elif os.path.exists(file2)==True and os.path.exists(file1)==False:
-                        file = file2
-                        f = open(file, 'r')
-                        line = f.readline()
-                        dist = int(line.strip().split(" ")[2])
-                        f.close()
-                    else:
-                        dist = pd.NA
-                distances.loc[genome1, genome2]=dist
-                i=i+1
-        distances.to_csv(output.matrix, sep="\t", header=False)
+    script:
+        "dcj_matrix.py"
 
 rule build_DCJ_graph:
     input:
@@ -142,6 +119,8 @@ rule build_DCJ_graph:
         communities=f"{OUTPUTPATH}/jaccard/jaccard_communities.txt"
     output:
         dcj_graph_outdir = directory(f"{OUTPUTPATH}/dcj_graph")
+    conda:
+        "../envs/blocks.yaml"
     threads: 1
     resources:
         mem_mb=lambda wildcards, attempt: config["build_DCJ_graph_mem"]*attempt

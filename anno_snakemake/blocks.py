@@ -4,8 +4,6 @@
 import pandas as pd
 import networkx as nx
 import numpy as np
-import math
-import matplotlib.pyplot as plt
 import os
 
 def read_in_unimog(unimog_filepath):

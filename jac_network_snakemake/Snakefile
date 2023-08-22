@@ -46,7 +46,7 @@ rule pairwise_seq_jaccard:
     threads: config["pairwise_seq_jaccard_threads"]
     resources:
         mem_mb=lambda wildcards, attempt: config["pairwise_seq_jaccard_mem"]*attempt
-    conda: "integerise.yaml"
+    conda: "../envs/integerise.yaml"
     params:
         genome1 = lambda wildcards: wildcards.genome1,
         genome2 = lambda wildcards: wildcards.genome2,
@@ -76,7 +76,7 @@ rule get_communities:
     threads: 1
     resources:
         mem_mb=lambda wildcards, attempt: config["get_communities_mem"]*attempt
-    #conda: "envs/env.yaml"
+    conda: "../envs/env.yaml"
     params:
         jaccard_threshold=config["seq_jaccard_threshold"],
         genomes = GENOMES
