@@ -4,7 +4,9 @@ import os
 
 configfile: "../config.yaml"
 
-GENOMES = [os.path.splitext(el[0])[0] for el in pd.read_csv(config["genomes_list"], header=None).values]
+FASTAFILES = [el[0] for el in pd.read_csv(config["genomes_list"], header=None).values]
+FASTAEXT = {os.path.splitext(os.path.basename(el))[0]:os.path.splitext(os.path.basename(el))[1] for el in FASTAFILES}
+GENOMES = list(FASTAEXT.keys())
 OUTPUTPATH = config["output_dir"] #output directory will contain subdirectory with unimogs from integerisation pipeline, as well as placing all new output from current pipeline in subdirectories within it
 PREFIX = config["prefix"]
 INTEGERISATION = config["integerisation"]
@@ -45,13 +47,8 @@ def get_timelimit():
     if config["timelimit"]=="None":
         return ""
     else:
-        return f"TimeLimit={config["timelimit"]}"
-
-#localrules: all, unimog_to_ilp, dcj_dist, dcj_matrix, trees
-'''
-rule all:
-    input:
-        trees = OUTPUTPATH+"/trees/"+lin+".tree"'''
+        limit = config["timelimit"]
+        return f"TimeLimit={limit}"
 
 rule all:
     input:
@@ -67,7 +64,7 @@ rule unimog_to_ilp:
         genome1 = lambda wildcards: wildcards.genome1,
         genome2 = lambda wildcards: wildcards.genome2
     resources:
-        mem_mb = lambda wildcards, attempt: attempt * 1000
+        mem_mb = lambda wildcards, attempt: attempt * config["unimog_to_ilp_mem"]
     shell:
         "/home/daria/Documents/projects/Murray_Family/ding/dingiiofficial/dingII.py {input.unimog} -mm --writeilp {output.gurobi_lp} -p {params.genome1} {params.genome2}"
 
@@ -80,11 +77,11 @@ rule ilp:
     params:
         timelimit=get_timelimit()
     resources:
-        mem_mb = lambda wildcards, attempt: {1: 300000, 2: 500000}[attempt] #what memory reqs to set??
+        mem_mb = lambda wildcards, attempt: attempt * config["ilp_mem"]
     threads: 1
     shell:
         #ilp solver: gurobi. is possible to set termination criteria based on mem use or time limit using parameters MemLimit and TimeLimit
-        "gurobi_cl ResultFile={output.solution} Threads={threads} LogFile={output.log} {timelimit} {input.gurobi_lp}"
+        "gurobi_cl ResultFile={output.solution} Threads={threads} LogFile={output.log} {params.timelimit} {input.gurobi_lp}"
 
 rule dcj_dist:
     input:
@@ -97,7 +94,7 @@ rule dcj_dist:
         genome1 = lambda wildcards: wildcards.genome1,
         genome2 = lambda wildcards: wildcards.genome2
     resources:
-        mem_mb = lambda wildcards, attempt: attempt * 1000
+        mem_mb = lambda wildcards, attempt: attempt * config["dcj_dist_mem"]
     shell:
         "/home/daria/Documents/projects/Murray_Family/ding/dingiiofficial/dingII_parsesol.py {input.unimog} --solgur {input.solution} --matching {output.out_unimog_relabeled} -p {params.genome1} {params.genome2} > {output.dist_file}"
 
@@ -108,6 +105,8 @@ rule dcj_matrix:
         matrix=f"{OUTPUTPATH}/{PREFIX}_matrix.dist"
     params:
         genomes= GENOMES
+    resources:
+        mem_mb = lambda wildcards, attempt: attempt * config["dcj_matrix_mem"]
     run:
         dist=0
         distances = pd.DataFrame(index = [len(params.genomes)] + params.genomes, columns = params.genomes)
@@ -123,17 +122,17 @@ rule dcj_matrix:
                         file = file1
                         f = open(file, 'r')
                         line = f.readline()
-                        dist = line.strip().split(" ")[2]
+                        dist = int(line.strip().split(" ")[2])
                         f.close()
                     elif os.path.exists(file2)==True and os.path.exists(file1)==False:
                         file = file2
                         f = open(file, 'r')
                         line = f.readline()
-                        dist = line.strip().split(" ")[2]
+                        dist = int(line.strip().split(" ")[2])
                         f.close()
                     else:
                         dist = pd.NA
-                distances.loc[genome1, genome2]=int(dist)
+                distances.loc[genome1, genome2]=dist
                 i=i+1
         distances.to_csv(output.matrix, sep="\t", header=False)
 
@@ -145,24 +144,11 @@ rule build_DCJ_graph:
         dcj_graph_outdir = directory(f"{OUTPUTPATH}/dcj_graph")
     threads: 1
     resources:
-        mem_mb=lambda wildcards, attempt: 8000*attempt
+        mem_mb=lambda wildcards, attempt: config["build_DCJ_graph_mem"]*attempt
     params:
         dcj_dist_threshold=config["dcj_dist_threshold"],
-        bh_connectivity = 10, #Minimum number of connections a plasmid need to be considered a blackhole plasmid
-        bh_neighbours_edge_density = 0.2, #Maximum number of edge density between blackhole plasmid neighbours to label the plasmid as blackhole
-        small_subcommunity_size_threshold = 4 #Communities with size up to this parameter will be joined to neighbouring larger subcommunities
+        bh_connectivity = config["bh_connectivity"], #Minimum number of connections a plasmid need to be considered a blackhole plasmid
+        bh_neighbours_edge_density = config["bh_neighbours_edge_density"], #Maximum number of edge density between blackhole plasmid neighbours to label the plasmid as blackhole
+        small_subcommunity_size_threshold = config["small_subcommunity_size_threshold"] #Communities with size up to this parameter will be joined to neighbouring larger subcommunities
     script:
         "cluster_graph.py"
-
-
-'''
-rule trees:
-    input:
-        f"{OUTPUTPATH}/dists/{INTEGERISATION}/{PREFIX}_matrix.dist"
-    output:
-        OUTPUTPATH+"/trees/"+lin+".tree"
-    resources:
-        mem_mb = lambda wildcards, attempt: attempt * 1000
-    shell:
-        SOFTWAREPATH+"/rapidNJ/bin/rapidnj {input} -i pd -x {output}"
-'''

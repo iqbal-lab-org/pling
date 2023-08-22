@@ -10,6 +10,7 @@ import subprocess
 import argparse
 import shutil
 import os
+import pandas as pd
 
 parser = argparse.ArgumentParser()
 parser.add_argument("genomes_list", help="path to list of fasta file paths")
@@ -24,11 +25,12 @@ parser.add_argument("--min_indel_size", default=200, help="minimum size for an i
 parser.add_argument("--bh_connectivity", default=10, help="minimum number of connections a plasmid need to be considered a blackhole plasmid")
 parser.add_argument("--bh_neighbours_edge_density", default=0.2, help="maximum number of edge density between blackhole plasmid neighbours to label the plasmid as blackhole")
 parser.add_argument("--small_subcommunity_size_threshold", default=4, help="communities with size up to this parameter will be joined to neighbouring larger subcommunities")
-parser.add_argument("--cores", default=1, help="number of cores/threads")
+parser.add_argument("--cores", default=1, help="total number of cores/threads")
 parser.add_argument("--storetmp", action="store_true", help="don't delete intermediate temporary files")
 parser.add_argument("--forceall", action="store_true", help="force snakemake to rerun everything")
 parser.add_argument("--timelimit", help="time limit on gurobi")
-#parser.add_argument("--resources", help="tsv stating number of threads and memory to use for each rule")
+parser.add_argument("--resources", help="tsv stating number of threads and memory to use for each rule")
+parser.add_argument("--profile", help="to run on cluster with corresponding snakemake profile")
 
 args = parser.parse_args()
 
@@ -43,6 +45,14 @@ if args.timelimit==None:
     timelimit = "None"
 else:
     timelimit= args.timelimit
+
+profile = ""
+if args.profile!=None:
+    profile = f"--profile {args.profile}"
+    if args.resources!=None:
+        resources = pd.read_csv(args.resources, sep="\t")
+    else:
+        resources = pd.read_csv(f"{plingpath}/resources.tsv", sep="\t")
 
 if not os.path.isdir(f"{args.output_dir}/tmp_files"):
     os.mkdir(f"{args.output_dir}/tmp_files")
@@ -63,13 +73,20 @@ with open(configfile, "w") as config:
     config.write(f"bh_connectivity: {args.bh_connectivity}\n\n")
     config.write(f"bh_neighbours_edge_density: {args.bh_neighbours_edge_density}\n\n")
     config.write(f"small_subcommunity_size_threshold: {args.small_subcommunity_size_threshold}\n\n")
-    config.write(f"timelimit: {timelimit}\n")
+    config.write(f"timelimit: {timelimit}\n\n")
+    if args.profile!=None:
+        for row in resources.index:
+            rule = resources.loc[row, "Rule"]
+            threads = resources.loc[row, "Threads"]
+            mem =  resources.loc[row, "Mem"]
+            config.write(f"{rule}_threads: {threads}\n\n")
+            config.write(f"{rule}_mem: {mem}\n\n")
 
 #integerisation
 if args.integerisation == "anno":
     try:
         print("Building jaccard network...\n")
-        subprocess.run(f"snakemake --snakefile {plingpath}/jac_network_snakemake/Snakefile --configfile {configfile} --cores {args.cores} --use-conda {forceall}", shell=True, check=True, capture_output=True)
+        subprocess.run(f"snakemake --snakefile {plingpath}/jac_network_snakemake/Snakefile --configfile {configfile} --cores {args.cores} --use-conda {profile} {forceall}", shell=True, check=True, capture_output=True)
         print("Completed jaccard network.\n")
     except subprocess.CalledProcessError as e:
         print(e.stderr.decode())
@@ -77,7 +94,7 @@ if args.integerisation == "anno":
         raise e
     try:
         print("Annotating and integerising...\n")
-        subprocess.run(f"snakemake --snakefile {plingpath}/anno_snakemake/Snakefile --configfile {configfile} --cores {args.cores} --use-conda {forceall}", shell=True, check=True, capture_output=True)
+        subprocess.run(f"snakemake --snakefile {plingpath}/anno_snakemake/Snakefile --configfile {configfile} --cores {args.cores} --use-conda {profile} {forceall}", shell=True, check=True, capture_output=True)
         print("Completed integerisation.\n")
     except subprocess.CalledProcessError as e:
         print(e.stderr.decode())
@@ -86,7 +103,7 @@ if args.integerisation == "anno":
 elif args.integerisation == "align":
     try:
         print("Aligning, intgerising, and building jaccard network...\n")
-        subprocess.run(f"snakemake --snakefile {plingpath}/align_snakemake/Snakefile --configfile {configfile} --cores {args.cores} --use-conda {forceall}", shell=True, check=True, capture_output=True)
+        subprocess.run(f"snakemake --snakefile {plingpath}/align_snakemake/Snakefile --configfile {configfile} --cores {args.cores} --use-conda {profile} {forceall}", shell=True, check=True, capture_output=True)
         print("Completed integerisation and jaccard network.\n")
     except subprocess.CalledProcessError as e:
         print(e.stderr.decode())
@@ -98,7 +115,7 @@ else:
 #ding and clustering
 try:
     print("Calculating DCJ-Indel distance and clustering...\n")
-    subprocess.run(f"snakemake --snakefile {plingpath}/dcj_snakemake/Snakefile --configfile {configfile} --cores {args.cores} --use-conda {forceall}", shell=True, check=True, capture_output=True)
+    subprocess.run(f"snakemake --snakefile {plingpath}/dcj_snakemake/Snakefile --configfile {configfile} --cores {args.cores} --use-conda {profile} {forceall}", shell=True, check=True, capture_output=True)
     print("Completed distance calculations and clustering.\n")
 except subprocess.CalledProcessError as e:
     print(e.stderr.decode())

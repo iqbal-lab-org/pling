@@ -45,9 +45,9 @@ rule bakta:
         ann_dir = directory(f"{OUTPUTPATH}/annotation/{{community}}/bakta/{{genome}}")
     conda:
         "bakta"
-    threads: 1
+    threads: config["bakta_threads"]
     resources:
-        mem_mb=lambda wildcards, attempt: attempt * 15000
+        mem_mb=lambda wildcards, attempt: attempt * config["bakta_mem"]
     params:
         DB = directory(f"{config['bakta_db']}")
     log: f"{OUTPUTPATH}/logs/bakta/{{community}}/{{genome}}.log"
@@ -60,10 +60,13 @@ rule panaroo:
     output:
         pangenome = directory(f"{OUTPUTPATH}/annotation/{{community}}/panaroo"),
         aln = directory(f"{OUTPUTPATH}/annotation/{{community}}/panaroo/aligned_gene_sequences")
+    threads: config["panaroo_threads"]
+    resources:
+        mem_mb=lambda wildcards, attempt: attempt * config["panaroo_mem"]
     params:
         files = lambda wildcards: [f"{OUTPUTPATH}/annotation/{wildcards.community}/bakta/{genome}/{genome}.gff3" for genome in COMMUNITY_TO_PLASMID[wildcards.community]]
     shell:
-        "singularity run /usr/bin/Panaroo.img -i {params.files} -o {output.pangenome} --clean-mode moderate -a pan --merge_paralogs"
+        "singularity run /usr/bin/Panaroo.img -i {params.files} -o {output.pangenome} --clean-mode moderate -a pan --merge_paralogs -t {threads}"
 
 rule gen_minimap_input:
     input:
@@ -72,7 +75,7 @@ rule gen_minimap_input:
         f"{OUTPUTPATH}/tmp_files/minimap/{{community}}/input/{{genome}}.fna"
     threads: 1
     resources:
-        mem_mb = lambda wildcards, attempt: attempt * 1000
+        mem_mb = lambda wildcards, attempt: attempt * 4000
     params:
         out_dir=f"{OUTPUTPATH}/tmp_files/minimap/{{community}}/input"
     run:
@@ -99,11 +102,11 @@ rule minimap:
         dir_ref = FASTAPATH
     output:
         f"{OUTPUTPATH}/tmp_files/minimap/{{community}}/output/{{genome}}.paf"
-    threads: 3 #minimap default
+    threads: config["minimap_threads"]
     resources:
-        mem_mb = lambda wildcards, attempt: attempt * 1000
+        mem_mb = lambda wildcards, attempt: attempt * config["minimap_mem"]
     shell:
-        "~/Downloads/minimap2-2.24_x64-linux/minimap2 -c {input.dir_ref}/{wildcards.genome}.fna {input.reads} > {output}"
+        "~/Downloads/minimap2-2.24_x64-linux/minimap2 -t {threads} -c {input.dir_ref}/{wildcards.genome}.fna {input.reads} > {output}"
 
 rule consolidation:
     input:
@@ -113,7 +116,7 @@ rule consolidation:
         map = f"{OUTPUTPATH}/unimogs/{{community}}_map.txt"
     threads: 1
     resources:
-        mem_mb = lambda wildcards, attempt: attempt * 1000
+        mem_mb = lambda wildcards, attempt: attempt * config["consolidation_mem"]
     params:
         pafs=f"{OUTPUTPATH}/tmp_files/minimap/{{community}}/output",
         genomes = lambda wildcards: COMMUNITY_TO_PLASMID[wildcards.community],
@@ -128,7 +131,7 @@ rule gen_dedup_input:
         f"{OUTPUTPATH}/tmp_files/community_fastas/{{community}}.fna"
     threads: 1
     resources:
-        mem_mb = lambda wildcards, attempt: attempt * 1000
+        mem_mb = lambda wildcards, attempt: attempt * 4000
     shell:
         "cat {input} > {output}"
 
@@ -141,9 +144,9 @@ rule deduplication:
         nucmer = f"{OUTPUTPATH}/tmp_files/nucmer/{{community}}.nucmer",
         relabelled_unimog = f"{OUTPUTPATH}/unimogs/relabelled/dedup/{{community}}_dedup.unimog",
         dedup_map = f"{OUTPUTPATH}/unimogs/relabelled/dedup/{{community}}_map_dedup.txt"
-    threads: 1
+    threads: config["deduplication_threads"]
     resources:
-        mem_mb = lambda wildcards, attempt: attempt * 1000
+        mem_mb = lambda wildcards, attempt: attempt * config["deduplication_mem"]
     params:
         pafs=f"{OUTPUTPATH}/tmp_files/minimap/{{community}}/output",
         nucmer_threshold=config["dedup_threshold"],
@@ -160,7 +163,7 @@ rule blocks:
         blocks_map = f"{OUTPUTPATH}/unimogs/relabelled/blocks/{{community}}_map_blocks.txt"
     threads: 1
     resources:
-        mem_mb = lambda wildcards, attempt: attempt * 1000
+        mem_mb = lambda wildcards, attempt: attempt * config["blocks_mem"]
     params:
         genomes = lambda wildcards: COMMUNITY_TO_PLASMID[wildcards.community],
         relabelled_dir = f"{OUTPUTPATH}/unimogs/relabelled/blocks"

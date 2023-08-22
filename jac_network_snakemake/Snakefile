@@ -43,7 +43,9 @@ rule pairwise_seq_jaccard:
         genome_2_fasta=lambda wildcards: f"{FASTAPATH}/{wildcards.genome2}{FASTAEXT[wildcards.genome2]}"
     output:
         jaccard=f"{OUTPUTPATH}/tmp_files/jaccard_pairwise/{{genome1}}~{{genome2}}_jaccard.tsv"
-    threads: 1
+    threads: config["pairwise_seq_jaccard_threads"]
+    resources:
+        mem_mb=lambda wildcards, attempt: config["pairwise_seq_jaccard_mem"]*attempt
     conda: "integerise.yaml"
     params:
         genome1 = lambda wildcards: wildcards.genome1,
@@ -58,6 +60,9 @@ rule cat_jaccard:
         jaccards = get_files()
     output:
         jaccard = f"{OUTPUTPATH}/jaccard/all_pairs_jaccard.tsv"
+    threads: 1
+    resources:
+        mem_mb=lambda wildcards, attempt: 4000*attempt
     shell:
         "cat {input.jaccards} > {output.jaccard}"
 
@@ -70,7 +75,7 @@ rule get_communities:
         isolates = f"{OUTPUTPATH}/jaccard/jaccard_isolates.txt"
     threads: 1
     resources:
-        mem_mb=lambda wildcards, attempt: 4000*attempt
+        mem_mb=lambda wildcards, attempt: config["get_communities_mem"]*attempt
     #conda: "envs/env.yaml"
     params:
         jaccard_threshold=config["seq_jaccard_threshold"],

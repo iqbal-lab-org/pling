@@ -53,6 +53,9 @@ rule make_unimogs:
         unimogs=f"{OUTPUTPATH}/unimogs/{{genome1}}~{{genome2}}_align.unimog",
         jaccard=f"{OUTPUTPATH}/tmp_files/jaccard_pairwise/{{genome1}}~{{genome2}}_jaccard.tsv",
         seq_blocks=f"{OUTPUTPATH}/unimogs/{{genome1}}~{{genome2}}_map.txt"
+    threads: config["make_unimogs_threads"]
+    resources:
+        mem_mb=lambda wildcards, attempt: config["make_unimogs_mem"]*attempt
     params:
         genome1 = lambda wildcards: wildcards.genome1,
         genome2 = lambda wildcards: wildcards.genome2,
@@ -66,6 +69,9 @@ rule cat_jaccard:
         jaccards = get_files("jaccard")
     output:
         jaccard = f"{OUTPUTPATH}/jaccard/all_pairs_jaccard.tsv"
+    threads: 1
+    resources:
+        mem_mb=lambda wildcards, attempt: 4000*attempt
     shell:
         "cat {input.jaccards} > {output.jaccard}"
 
@@ -78,7 +84,7 @@ rule get_communities:
         isolates = f"{OUTPUTPATH}/jaccard/jaccard_isolates.txt"
     threads: 1
     resources:
-        mem_mb=lambda wildcards, attempt: 4000*attempt
+        mem_mb=lambda wildcards, attempt: config["get_communities_mem"]*attempt
     #conda: "envs/env.yaml"
     params:
         jaccard_threshold=config["seq_jaccard_threshold"],
