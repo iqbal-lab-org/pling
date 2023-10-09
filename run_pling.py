@@ -28,7 +28,10 @@ parser.add_argument("--small_subcommunity_size_threshold", default=4, help="comm
 parser.add_argument("--cores", default=1, help="total number of cores/threads")
 parser.add_argument("--storetmp", action="store_true", help="don't delete intermediate temporary files")
 parser.add_argument("--forceall", action="store_true", help="force snakemake to rerun everything")
-parser.add_argument("--timelimit", help="time limit on gurobi")
+parser.add_argument("--ilp_solver", choices=["GLPK", "gurobi"], default="GLPK",
+                    help="ILP solver to use. Default is GLPK, which is slower but is bundled with pling and is free. "
+                         "If using gurobi, make sure you have a valid license and gurobi_cl is in your PATH.")
+parser.add_argument("--timelimit", help="time limit in seconds for ILP solver")
 parser.add_argument("--resources", help="tsv stating number of threads and memory to use for each rule")
 parser.add_argument("--profile", help="to run on cluster with corresponding snakemake profile")
 
@@ -73,6 +76,7 @@ with open(configfile, "w") as config:
     config.write(f"bh_connectivity: {args.bh_connectivity}\n\n")
     config.write(f"bh_neighbours_edge_density: {args.bh_neighbours_edge_density}\n\n")
     config.write(f"small_subcommunity_size_threshold: {args.small_subcommunity_size_threshold}\n\n")
+    config.write(f"ilp_solver: {args.ilp_solver}\n\n")
     config.write(f"timelimit: {timelimit}\n\n")
     for row in resources.index:
         rule = resources.loc[row, "Rule"]
