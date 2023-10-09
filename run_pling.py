@@ -20,7 +20,7 @@ parser.add_argument("-b","--bakta_db", help="path to bakta database, planned def
 parser.add_argument("-j", "--jaccard", default=0.4, help="threshold for initial jaccard network")
 parser.add_argument("-d", "--dcj", default=4, help="threshold for final DCJ-indel network")
 parser.add_argument("--dedup", default=98.5, help="threshold for separating paralogs in deduplication step (for integerisation from annotation)")
-parser.add_argument("--identity", default=80, help="threshold for % of shared sequence between blocks (for integerisation from alignment and for jaccard calculation)")
+parser.add_argument("--identity", default=80, help="threshold for percentage of shared sequence between blocks (for integerisation from alignment and for jaccard calculation)")
 parser.add_argument("--min_indel_size", default=200, help="minimum size for an indel to be treated as a block (for integerisation from alignment)")
 parser.add_argument("--bh_connectivity", default=10, help="minimum number of connections a plasmid need to be considered a blackhole plasmid")
 parser.add_argument("--bh_neighbours_edge_density", default=0.2, help="maximum number of edge density between blackhole plasmid neighbours to label the plasmid as blackhole")
