@@ -1,0 +1,6 @@
+channels:
+ - conda-forge
+ - defaults
+dependencies:
+ - python =3.11
+ - glpk =5.0
