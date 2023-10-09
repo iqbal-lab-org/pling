@@ -1,4 +1,3 @@
-from pathlib import Path
 import os
 import pandas as pd
 
@@ -43,12 +42,15 @@ def get_dist_files(jaccard_tsv):
                 files.append(f"{OUTPUTPATH}/tmp_files/dists_pairwise/{plasmid_1}~{plasmid_2}.dist")
     return files
 
-def get_timelimit():
+def get_timelimit(solver):
     if config["timelimit"]=="None":
         return ""
     else:
-        limit = config["timelimit"]
-        return f"TimeLimit={limit}"
+        solver_to_timelimit = {
+            "GLPK": f"--tmlim {config['timelimit']}",
+            "gurobi": f"TimeLimit={config['timelimit']}",
+        }
+        return solver_to_timelimit[solver]
 
 rule all:
     input:
@@ -59,29 +61,70 @@ rule unimog_to_ilp:
     input:
         unimog=lambda wildcards: get_unimog(INTEGERISATION, wildcards.genome1, wildcards.genome2)
     output:
-        gurobi_lp=f"{OUTPUTPATH}/tmp_files/ding/ilp/{{genome1}}~{{genome2}}_gurobi.lp"
+        lp=f"{OUTPUTPATH}/tmp_files/ding/ilp/{{genome1}}~{{genome2}}.lp"
     params:
         genome1 = lambda wildcards: wildcards.genome1,
         genome2 = lambda wildcards: wildcards.genome2
     resources:
         mem_mb = lambda wildcards, attempt: attempt * config["unimog_to_ilp_mem"]
+    conda: "../envs/ding.yaml"
     shell:
-        "/home/daria/Documents/projects/Murray_Family/ding/dingiiofficial/dingII.py {input.unimog} -mm --writeilp {output.gurobi_lp} -p {params.genome1} {params.genome2}"
+        """
+        python /home/leandro/git/dingiiofficial/dingII.py {input.unimog} -mm --writeilp {output.lp} -p {params.genome1} {params.genome2}
+        """
 
-rule ilp:
+if config["ilp_solver"] == "GLPK":
+    ruleorder: ilp_GLPK > ilp_gurobi
+elif config["ilp_solver"] == "gurobi":
+    ruleorder: ilp_gurobi > ilp_GLPK
+else:
+    raise RuntimeError(f"Unknown ILP solver: {config['ilp_solver']}")
+
+rule ilp_gurobi:
     input:
-        gurobi_lp = f"{OUTPUTPATH}/tmp_files/ding/ilp/{{genome1}}~{{genome2}}_gurobi.lp"
+        lp = f"{OUTPUTPATH}/tmp_files/ding/ilp/{{genome1}}~{{genome2}}.lp"
     output:
         solution = f"{OUTPUTPATH}/tmp_files/ding/solutions/{{genome1}}~{{genome2}}.sol",
-        log = f"{OUTPUTPATH}/tmp_files/ding/logs/{{genome1}}~{{genome2}}.log"
     params:
-        timelimit=get_timelimit()
+        timelimit=get_timelimit(config["ilp_solver"]),
     resources:
         mem_mb = lambda wildcards, attempt: attempt * config["ilp_mem"]
     threads: 1
+    log: "logs/ilp/gurobi/{genome1}~{genome2}.log"
     shell:
-        #ilp solver: gurobi. is possible to set termination criteria based on mem use or time limit using parameters MemLimit and TimeLimit
-        "gurobi_cl ResultFile={output.solution} Threads={threads} LogFile={output.log} {params.timelimit} {input.gurobi_lp}"
+        """
+        gurobi_cl \
+          ResultFile={output.solution}.tmp.sol \
+          Threads={threads} \
+          LogFile={log} \
+          {params.timelimit} \
+          {input.lp}
+        """
+
+
+rule ilp_GLPK:
+    input:
+        lp = f"{OUTPUTPATH}/tmp_files/ding/ilp/{{genome1}}~{{genome2}}.lp"
+    output:
+        solution = f"{OUTPUTPATH}/tmp_files/ding/solutions/{{genome1}}~{{genome2}}.sol",
+    params:
+        timelimit=get_timelimit(config["ilp_solver"]),
+    resources:
+        mem_mb = lambda wildcards, attempt: attempt * config["ilp_mem"]
+    threads: 1
+    log: "logs/ilp/GLPK/{genome1}~{genome2}.log"
+    conda: "../envs/glpk.yaml"
+    shell:
+        """
+        glpsol \
+          --lp {input.lp} \
+          -o {output.solution}.tmp \
+          {params.timelimit} \
+          2>&1 > {log}
+        python dcj_snakemake/glpk_sol_to_gurobi_sol.py <{output.solution}.tmp >{output.solution}
+        # rm {output.solution}.tmp
+        """
+
 
 rule dcj_dist:
     input:
@@ -95,8 +138,9 @@ rule dcj_dist:
         genome2 = lambda wildcards: wildcards.genome2
     resources:
         mem_mb = lambda wildcards, attempt: attempt * config["dcj_dist_mem"]
+    conda: "../envs/ding.yaml"
     shell:
-        "/home/daria/Documents/projects/Murray_Family/ding/dingiiofficial/dingII_parsesol.py {input.unimog} --solgur {input.solution} --matching {output.out_unimog_relabeled} -p {params.genome1} {params.genome2} > {output.dist_file}"
+        "python /home/leandro/git/dingiiofficial/dingII_parsesol.py {input.unimog} --solgur {input.solution} --matching {output.out_unimog_relabeled} -p {params.genome1} {params.genome2} > {output.dist_file}"
 
 rule dcj_matrix:
     input:
