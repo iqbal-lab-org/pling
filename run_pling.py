@@ -11,6 +11,7 @@ import argparse
 import shutil
 import os
 import pandas as pd
+from pathlib import Path
 
 parser = argparse.ArgumentParser()
 parser.add_argument("genomes_list", help="path to list of fasta file paths")
@@ -57,8 +58,11 @@ if args.resources!=None:
 else:
     resources = pd.read_csv(f"{plingpath}/resources.tsv", sep="\t")
 
-if not os.path.isdir(f"{args.output_dir}/tmp_files"):
-    os.mkdir(f"{args.output_dir}/tmp_files")
+output_dir = Path(args.output_dir)
+output_dir.mkdir(parents=True, exist_ok=True)
+
+tmp_dir = output_dir/"tmp_files"
+tmp_dir.mkdir(parents=True, exist_ok=True)
 
 configfile = f"{args.output_dir}/tmp_files/config.yaml"
 with open(configfile, "w") as config:
@@ -127,5 +131,5 @@ except subprocess.CalledProcessError as e:
 
 
 #delete intermediary files
-if args.storetmp == False:
-    shutil.rmtree(f"{args.output_dir}/tmp_files")
+if not args.storetmp:
+    shutil.rmtree(tmp_dir)
