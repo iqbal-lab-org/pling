@@ -1,0 +1,8 @@
+channel:
+ - bioconda
+dependencies:
+ - pymummer =0.11.0
+ - pyfastaq =3.17.0
+ - pandas =1.4.3
+ - networkx =2.8.4
+ - numpy =1.22.3

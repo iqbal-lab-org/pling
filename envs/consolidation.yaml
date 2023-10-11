@@ -1,0 +1,5 @@
+channels:
+ - bioconda
+dependencies:
+ - pafpy =0.2.0
+ - pandas =1.4.3

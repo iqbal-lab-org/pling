@@ -1,0 +1,15 @@
+Rule	Threads	Mem
+make_unimogs	1	10000
+get_communities	NA	4000
+bakta	1	15000
+panaroo	1	15000
+minimap	1	4000
+consolidation	NA	4000
+deduplication	1	10000
+blocks	NA	4000
+unimog_to_ilp	NA	4000
+ilp	NA	100000
+dcj_dist	NA	4000
+dcj_matrix	NA	4000
+build_DCJ_graph	NA	8000
+pairwise_seq_jaccard	1	10000

@@ -1,0 +1,161 @@
+import os
+from operator import attrgetter
+import shutil
+import pandas as pd
+from pathlib import Path
+
+configfile: "../config.yaml"
+
+FASTAFILES = [el[0] for el in pd.read_csv(config["genomes_list"], header=None).values]
+FASTAEXT = {os.path.splitext(os.path.basename(el))[0]:os.path.splitext(os.path.basename(el))[1] for el in FASTAFILES}
+GENOMES = list(FASTAEXT.keys())
+FASTAPATH = os.path.dirname(FASTAFILES[0])
+OUTPUTPATH = config["output_dir"]
+COMMUNITIESPATH = config["communities"]
+PREFIX = config["prefix"]
+
+def get_community_to_plasmid():
+    community_to_plasmid = {}
+    communities = []
+    with open(COMMUNITIESPATH) as communities_fh:
+        for community_index, line in enumerate(communities_fh):
+            plasmids = line.strip().split()
+            community_to_plasmid[str(community_index)] = plasmids
+            if len(plasmids)>1:
+                communities.append(community_index)
+    return community_to_plasmid, communities
+
+COMMUNITY_TO_PLASMID, COMMUNITIES = get_community_to_plasmid()
+
+rule all:
+    input:
+        dedup_unimog = expand(f"{OUTPUTPATH}/unimogs/relabelled/dedup/{{community}}_dedup.unimog", community=COMMUNITIES),
+        blocks_unimog = expand(f"{OUTPUTPATH}/unimogs/relabelled/blocks/{{community}}_blocks.unimog", community=COMMUNITIES),
+        blocks_map = expand(f"{OUTPUTPATH}/unimogs/relabelled/blocks/{{community}}_map_blocks.txt", community=COMMUNITIES)
+
+rule bakta:
+    input:
+        genome = lambda wildcards: f"{FASTAPATH}/{wildcards.genome}{FASTAEXT[wildcards.genome]}"
+    output:
+        ann_dir = directory(f"{OUTPUTPATH}/annotation/{{community}}/bakta/{{genome}}")
+    conda:
+        "bakta"
+    threads: config["bakta_threads"]
+    resources:
+        mem_mb=lambda wildcards, attempt: attempt * config["bakta_mem"]
+    params:
+        DB = directory(f"{config['bakta_db']}")
+    log: f"{OUTPUTPATH}/logs/bakta/{{community}}/{{genome}}.log"
+    shell:
+        "bakta {input.genome} --skip-plot --db {params.DB} --prefix {wildcards.genome} --translation-table 11 --threads {threads} --output {output.ann_dir} >{log} 2>&1"
+
+rule panaroo:
+    input:
+        directories = lambda wildcards: expand(f"{OUTPUTPATH}/annotation/{wildcards.community}/bakta/{{genome}}", genome=COMMUNITY_TO_PLASMID[wildcards.community])
+    output:
+        pangenome = directory(f"{OUTPUTPATH}/annotation/{{community}}/panaroo"),
+        aln = directory(f"{OUTPUTPATH}/annotation/{{community}}/panaroo/aligned_gene_sequences")
+    conda:
+        "panaroo"
+    threads: config["panaroo_threads"]
+    resources:
+        mem_mb=lambda wildcards, attempt: attempt * config["panaroo_mem"]
+    params:
+        files = lambda wildcards: [f"{OUTPUTPATH}/annotation/{wildcards.community}/bakta/{genome}/{genome}.gff3" for genome in COMMUNITY_TO_PLASMID[wildcards.community]]
+    shell:
+        "panaroo -i {params.files} -o {output.pangenome} --clean-mode moderate -a pan --merge_paralogs -t {threads}"
+
+rule gen_minimap_input:
+    input:
+        align_dir=f"{OUTPUTPATH}/annotation/{{community}}/panaroo/aligned_gene_sequences"
+    output:
+        f"{OUTPUTPATH}/tmp_files/minimap/{{community}}/input/{{genome}}.fna"
+    conda:
+        "../envs/minimap_input.yaml"
+    threads: 1
+    resources:
+        mem_mb = lambda wildcards, attempt: attempt * 4000
+    params:
+        out_dir=f"{OUTPUTPATH}/tmp_files/minimap/{{community}}/input"
+    script:
+        "gen_minimap_input.py"
+
+rule minimap:
+    input:
+        reads=f"{OUTPUTPATH}/tmp_files/minimap/{{community}}/input/{{genome}}.fna",
+        dir_ref = FASTAPATH
+    output:
+        f"{OUTPUTPATH}/tmp_files/minimap/{{community}}/output/{{genome}}.paf"
+    threads: config["minimap_threads"]
+    resources:
+        mem_mb = lambda wildcards, attempt: attempt * config["minimap_mem"]
+    shell:
+        "minimap2 -t {threads} -c {input.dir_ref}/{wildcards.genome}.fna {input.reads} > {output}"
+
+rule consolidation:
+    input:
+        lambda wildcards: expand(f"{OUTPUTPATH}/tmp_files/minimap/{wildcards.community}/output/{{genome}}.paf", genome=COMMUNITY_TO_PLASMID[wildcards.community]),
+    output:
+        unimog = f"{OUTPUTPATH}/unimogs/{{community}}_anno.unimog",
+        map = f"{OUTPUTPATH}/unimogs/{{community}}_map.txt"
+    conda:
+        "../envs/consolidation.yaml"
+    threads: 1
+    resources:
+        mem_mb = lambda wildcards, attempt: attempt * config["consolidation_mem"]
+    params:
+        pafs=f"{OUTPUTPATH}/tmp_files/minimap/{{community}}/output",
+        genomes = lambda wildcards: COMMUNITY_TO_PLASMID[wildcards.community],
+        outputpath = OUTPUTPATH
+    script:
+        "consolidation.py"
+
+rule gen_dedup_input:
+    input:
+        lambda wildcards: [f"{FASTAPATH}/{genome}{FASTAEXT[genome]}" for genome in COMMUNITY_TO_PLASMID[wildcards.community]]
+    output:
+        f"{OUTPUTPATH}/tmp_files/community_fastas/{{community}}.fna"
+    threads: 1
+    resources:
+        mem_mb = lambda wildcards, attempt: attempt * 4000
+    shell:
+        "cat {input} > {output}"
+
+rule deduplication:
+    input:
+        fasta = f"{OUTPUTPATH}/tmp_files/community_fastas/{{community}}.fna",
+        unimog = f"{OUTPUTPATH}/unimogs/{{community}}_anno.unimog",
+        map = f"{OUTPUTPATH}/unimogs/{{community}}_map.txt"
+    output:
+        nucmer = f"{OUTPUTPATH}/tmp_files/nucmer/{{community}}.nucmer",
+        relabelled_unimog = f"{OUTPUTPATH}/unimogs/relabelled/dedup/{{community}}_dedup.unimog",
+        dedup_map = f"{OUTPUTPATH}/unimogs/relabelled/dedup/{{community}}_map_dedup.txt"
+    conda:
+        "../envs/dedup.yaml"
+    threads: config["deduplication_threads"]
+    resources:
+        mem_mb = lambda wildcards, attempt: attempt * config["deduplication_mem"]
+    params:
+        pafs=f"{OUTPUTPATH}/tmp_files/minimap/{{community}}/output",
+        nucmer_threshold=config["dedup_threshold"],
+        genomes = lambda wildcards: COMMUNITY_TO_PLASMID[wildcards.community]
+    script:
+        "multipartite.py"
+
+rule blocks:
+    input:
+        map = f"{OUTPUTPATH}/unimogs/relabelled/dedup/{{community}}_map_dedup.txt",
+        unimog = f"{OUTPUTPATH}/unimogs/relabelled/dedup/{{community}}_dedup.unimog"
+    output:
+        relabelled_unimog = f"{OUTPUTPATH}/unimogs/relabelled/blocks/{{community}}_blocks.unimog",
+        blocks_map = f"{OUTPUTPATH}/unimogs/relabelled/blocks/{{community}}_map_blocks.txt"
+    conda:
+        "../envs/blocks.yaml"
+    threads: 1
+    resources:
+        mem_mb = lambda wildcards, attempt: attempt * config["blocks_mem"]
+    params:
+        genomes = lambda wildcards: COMMUNITY_TO_PLASMID[wildcards.community],
+        relabelled_dir = f"{OUTPUTPATH}/unimogs/relabelled/blocks"
+    script:
+        "blocks.py"

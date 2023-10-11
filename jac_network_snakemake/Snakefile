@@ -1,0 +1,83 @@
+import os
+from operator import attrgetter
+import shutil
+import pandas as pd
+from pathlib import Path
+
+configfile: "../config.yaml"
+
+FASTAFILES = [el[0] for el in pd.read_csv(config["genomes_list"], header=None).values]
+FASTAEXT = {os.path.splitext(os.path.basename(el))[0]:os.path.splitext(os.path.basename(el))[1] for el in FASTAFILES}
+GENOMES = list(FASTAEXT.keys())
+FASTAPATH = os.path.dirname(FASTAFILES[0])
+OUTPUTPATH = config["output_dir"]
+PREFIX = config["prefix"]
+
+def get_pairs():
+    genome_pairs=[]
+    n = len(GENOMES)
+    for i in range(n):
+        j=0
+        while j<i:
+            genome_pairs.append([GENOMES[i], GENOMES[j]])
+            j=j+1
+    return genome_pairs
+
+PAIRS = get_pairs()
+
+def get_files():
+    files = []
+    for el in PAIRS:
+        if len(el)>1:
+            files.append(f"{OUTPUTPATH}/tmp_files/jaccard_pairwise/{el[0]}~{el[1]}_jaccard.tsv")
+    return files
+
+rule all:
+    input:
+        communities = f"{OUTPUTPATH}/jaccard/jaccard_communities.txt",
+        communities_sizes = f"{OUTPUTPATH}/jaccard/jaccard_communities_sizes.txt"
+
+rule pairwise_seq_jaccard:
+    input:
+        genome_1_fasta=lambda wildcards: f"{FASTAPATH}/{wildcards.genome1}{FASTAEXT[wildcards.genome1]}",
+        genome_2_fasta=lambda wildcards: f"{FASTAPATH}/{wildcards.genome2}{FASTAEXT[wildcards.genome2]}"
+    output:
+        jaccard=f"{OUTPUTPATH}/tmp_files/jaccard_pairwise/{{genome1}}~{{genome2}}_jaccard.tsv"
+    threads: config["pairwise_seq_jaccard_threads"]
+    resources:
+        mem_mb=lambda wildcards, attempt: config["pairwise_seq_jaccard_mem"]*attempt
+    conda: "../envs/integerise.yaml"
+    params:
+        genome1 = lambda wildcards: wildcards.genome1,
+        genome2 = lambda wildcards: wildcards.genome2,
+        identity_threshold = config["identity_threshold"],
+        length_threshold = config["length_threshold"]
+    script:
+        "seq_jaccard.py"
+
+rule cat_jaccard:
+    input:
+        jaccards = get_files()
+    output:
+        jaccard = f"{OUTPUTPATH}/jaccard/all_pairs_jaccard.tsv"
+    threads: 1
+    resources:
+        mem_mb=lambda wildcards, attempt: 4000*attempt
+    shell:
+        "cat {input.jaccards} > {output.jaccard}"
+
+rule get_communities:
+    input:
+        jaccard = f"{OUTPUTPATH}/jaccard/all_pairs_jaccard.tsv"
+    output:
+        communities = f"{OUTPUTPATH}/jaccard/jaccard_communities.txt",
+        communities_sizes = f"{OUTPUTPATH}/jaccard/jaccard_communities_sizes.txt",
+        isolates = f"{OUTPUTPATH}/jaccard/jaccard_isolates.txt"
+    threads: 1
+    resources:
+        mem_mb=lambda wildcards, attempt: config["get_communities_mem"]*attempt
+    conda: "../envs/env.yaml"
+    params:
+        jaccard_threshold=config["seq_jaccard_threshold"],
+        genomes = GENOMES
+    script: "get_communities.py"

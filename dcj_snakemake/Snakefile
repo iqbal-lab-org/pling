@@ -1,0 +1,133 @@
+from pathlib import Path
+import os
+import pandas as pd
+
+configfile: "../config.yaml"
+
+FASTAFILES = [el[0] for el in pd.read_csv(config["genomes_list"], header=None).values]
+FASTAEXT = {os.path.splitext(os.path.basename(el))[0]:os.path.splitext(os.path.basename(el))[1] for el in FASTAFILES}
+GENOMES = list(FASTAEXT.keys())
+OUTPUTPATH = config["output_dir"] #output directory will contain subdirectory with unimogs from integerisation pipeline, as well as placing all new output from current pipeline in subdirectories within it
+PREFIX = config["prefix"]
+INTEGERISATION = config["integerisation"]
+JACCARD_THRESHOLD = config["seq_jaccard_threshold"]
+COMMUNITIES = config["communities"]
+
+def get_plasmid_to_community():
+    plasmid_to_community = {}
+    with open(COMMUNITIES) as communities_fh:
+        for community_index, line in enumerate(communities_fh):
+            plasmids = line.strip().split()
+            for plasmid in plasmids:
+                plasmid_to_community[plasmid] = community_index
+    return plasmid_to_community
+
+plasmid_to_community = get_plasmid_to_community()
+
+def get_unimog(integerisation, genome1, genome2):
+    unimog = ""
+    if integerisation == "anno":
+        community = plasmid_to_community[genome1]
+        unimog = f"{OUTPUTPATH}/unimogs/relabelled/blocks/{community}_blocks.unimog"
+    elif integerisation == "align":
+        unimog = f"{OUTPUTPATH}/unimogs/{genome1}~{genome2}_align.unimog"
+    return unimog
+
+def get_dist_files(jaccard_tsv):
+    files=[]
+    with open(jaccard_tsv, "r") as f:
+        for line in f:
+            plasmid_1, plasmid_2, jaccard = line.strip().split("\t")
+            jaccard = float(jaccard)
+            if jaccard >= JACCARD_THRESHOLD:
+                files.append(f"{OUTPUTPATH}/tmp_files/dists_pairwise/{plasmid_1}~{plasmid_2}.dist")
+    return files
+
+def get_timelimit():
+    if config["timelimit"]=="None":
+        return ""
+    else:
+        limit = config["timelimit"]
+        return f"TimeLimit={limit}"
+
+rule all:
+    input:
+        matrix = f"{OUTPUTPATH}/{PREFIX}_matrix.dist",
+        dcj_graph_outdir = f"{OUTPUTPATH}/dcj_graph"
+
+rule unimog_to_ilp:
+    input:
+        unimog=lambda wildcards: get_unimog(INTEGERISATION, wildcards.genome1, wildcards.genome2)
+    output:
+        gurobi_lp=f"{OUTPUTPATH}/tmp_files/ding/ilp/{{genome1}}~{{genome2}}_gurobi.lp"
+    params:
+        genome1 = lambda wildcards: wildcards.genome1,
+        genome2 = lambda wildcards: wildcards.genome2
+    resources:
+        mem_mb = lambda wildcards, attempt: attempt * config["unimog_to_ilp_mem"]
+    shell:
+        "/home/daria/Documents/projects/Murray_Family/ding/dingiiofficial/dingII.py {input.unimog} -mm --writeilp {output.gurobi_lp} -p {params.genome1} {params.genome2}"
+
+rule ilp:
+    input:
+        gurobi_lp = f"{OUTPUTPATH}/tmp_files/ding/ilp/{{genome1}}~{{genome2}}_gurobi.lp"
+    output:
+        solution = f"{OUTPUTPATH}/tmp_files/ding/solutions/{{genome1}}~{{genome2}}.sol",
+        log = f"{OUTPUTPATH}/tmp_files/ding/logs/{{genome1}}~{{genome2}}.log"
+    params:
+        timelimit=get_timelimit()
+    resources:
+        mem_mb = lambda wildcards, attempt: attempt * config["ilp_mem"]
+    threads: 1
+    shell:
+        #ilp solver: gurobi. is possible to set termination criteria based on mem use or time limit using parameters MemLimit and TimeLimit
+        "gurobi_cl ResultFile={output.solution} Threads={threads} LogFile={output.log} {params.timelimit} {input.gurobi_lp}"
+
+rule dcj_dist:
+    input:
+        solution = f"{OUTPUTPATH}/tmp_files/ding/solutions/{{genome1}}~{{genome2}}.sol",
+        unimog = lambda wildcards: get_unimog(INTEGERISATION, wildcards.genome1, wildcards.genome2)
+    output:
+        dist_file = f"{OUTPUTPATH}/tmp_files/dists_pairwise/{{genome1}}~{{genome2}}.dist",
+        out_unimog_relabeled = f"{OUTPUTPATH}/unimogs/matched/{{genome1}}~{{genome2}}_matched.unimog"
+    params:
+        genome1 = lambda wildcards: wildcards.genome1,
+        genome2 = lambda wildcards: wildcards.genome2
+    resources:
+        mem_mb = lambda wildcards, attempt: attempt * config["dcj_dist_mem"]
+    shell:
+        "/home/daria/Documents/projects/Murray_Family/ding/dingiiofficial/dingII_parsesol.py {input.unimog} --solgur {input.solution} --matching {output.out_unimog_relabeled} -p {params.genome1} {params.genome2} > {output.dist_file}"
+
+rule dcj_matrix:
+    input:
+        dist_files = get_dist_files(f"{OUTPUTPATH}/jaccard/all_pairs_jaccard.tsv")
+    output:
+        matrix=f"{OUTPUTPATH}/{PREFIX}_matrix.dist"
+    conda:
+        "../envs/blocks.yaml"
+    params:
+        genomes= GENOMES,
+        outputpath = OUTPUTPATH
+    resources:
+        mem_mb = lambda wildcards, attempt: attempt * config["dcj_matrix_mem"]
+    script:
+        "dcj_matrix.py"
+
+rule build_DCJ_graph:
+    input:
+        matrix = f"{OUTPUTPATH}/{PREFIX}_matrix.dist", #Path to file with matrix of DCJ distances
+        communities=f"{OUTPUTPATH}/jaccard/jaccard_communities.txt"
+    output:
+        dcj_graph_outdir = directory(f"{OUTPUTPATH}/dcj_graph")
+    conda:
+        "../envs/blocks.yaml"
+    threads: 1
+    resources:
+        mem_mb=lambda wildcards, attempt: config["build_DCJ_graph_mem"]*attempt
+    params:
+        dcj_dist_threshold=config["dcj_dist_threshold"],
+        bh_connectivity = config["bh_connectivity"], #Minimum number of connections a plasmid need to be considered a blackhole plasmid
+        bh_neighbours_edge_density = config["bh_neighbours_edge_density"], #Maximum number of edge density between blackhole plasmid neighbours to label the plasmid as blackhole
+        small_subcommunity_size_threshold = config["small_subcommunity_size_threshold"] #Communities with size up to this parameter will be joined to neighbouring larger subcommunities
+    script:
+        "cluster_graph.py"
