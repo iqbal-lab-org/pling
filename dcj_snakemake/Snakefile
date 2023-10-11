@@ -70,7 +70,7 @@ rule unimog_to_ilp:
     conda: "../envs/ding.yaml"
     shell:
         """
-        python /home/leandro/git/dingiiofficial/dingII.py {input.unimog} -mm --writeilp {output.lp} -p {params.genome1} {params.genome2}
+        dingII generate {input.unimog} -mm --writeilp {output.lp} -p {params.genome1} {params.genome2}
         """
 
 if config["ilp_solver"] == "GLPK":
@@ -140,7 +140,7 @@ rule dcj_dist:
         mem_mb = lambda wildcards, attempt: attempt * config["dcj_dist_mem"]
     conda: "../envs/ding.yaml"
     shell:
-        "python /home/leandro/git/dingiiofficial/dingII_parsesol.py {input.unimog} --solgur {input.solution} --matching {output.out_unimog_relabeled} -p {params.genome1} {params.genome2} > {output.dist_file}"
+        "dingII parsesol {input.unimog} --solgur {input.solution} --matching {output.out_unimog_relabeled} -p {params.genome1} {params.genome2} > {output.dist_file}"
 
 rule dcj_matrix:
     input:

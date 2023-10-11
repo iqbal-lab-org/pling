@@ -1,9 +1,8 @@
 channels:
  - conda-forge
- - bioconda
  - defaults
 dependencies:
  - python =3.8
- - pandas =1.4.3
- - networkx =2.8.4
- - numpy =1.22.3
+ - pip
+ - pip:
+   - git+https://github.com/leoisl/dingiiofficial_wrapper
