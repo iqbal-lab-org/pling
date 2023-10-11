@@ -124,7 +124,7 @@ rule ilp_GLPK:
           {params.timelimit} \
           2>&1 > {log}
         python dcj_snakemake/glpk_sol_to_gurobi_sol.py <{output.solution}.tmp >{output.solution}
-        # rm {output.solution}.tmp
+        rm {output.solution}.tmp
         """
 
 
