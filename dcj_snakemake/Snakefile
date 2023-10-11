@@ -68,9 +68,10 @@ rule unimog_to_ilp:
     resources:
         mem_mb = lambda wildcards, attempt: attempt * config["unimog_to_ilp_mem"]
     conda: "../envs/ding.yaml"
+    log: "logs/unimog_to_ilp/{genome1}~{genome2}.log"
     shell:
         """
-        dingII generate {input.unimog} -mm --writeilp {output.lp} -p {params.genome1} {params.genome2}
+        dingII generate {input.unimog} -mm --writeilp {output.lp} -p {params.genome1} {params.genome2} 2>{log}
         """
 
 if config["ilp_solver"] == "GLPK":
@@ -94,11 +95,12 @@ rule ilp_gurobi:
     shell:
         """
         gurobi_cl \
-          ResultFile={output.solution}.tmp.sol \
+          ResultFile={output.solution} \
           Threads={threads} \
           LogFile={log} \
           {params.timelimit} \
-          {input.lp}
+          {input.lp} \
+          >/dev/null
         """
 
 
@@ -139,8 +141,9 @@ rule dcj_dist:
     resources:
         mem_mb = lambda wildcards, attempt: attempt * config["dcj_dist_mem"]
     conda: "../envs/ding.yaml"
+    log: "logs/dcj_dist/{genome1}~{genome2}.log"
     shell:
-        "dingII parsesol {input.unimog} --solgur {input.solution} --matching {output.out_unimog_relabeled} -p {params.genome1} {params.genome2} > {output.dist_file}"
+        "dingII parsesol {input.unimog} --solgur {input.solution} --matching {output.out_unimog_relabeled} -p {params.genome1} {params.genome2} > {output.dist_file} 2>{log}"
 
 rule dcj_matrix:
     input:
