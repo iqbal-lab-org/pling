@@ -11,6 +11,7 @@ import argparse
 import shutil
 import os
 import pandas as pd
+from pathlib import Path
 
 parser = argparse.ArgumentParser()
 parser.add_argument("genomes_list", help="path to list of fasta file paths")
@@ -20,7 +21,7 @@ parser.add_argument("-b","--bakta_db", help="path to bakta database, planned def
 parser.add_argument("-j", "--jaccard", default=0.4, help="threshold for initial jaccard network")
 parser.add_argument("-d", "--dcj", default=4, help="threshold for final DCJ-indel network")
 parser.add_argument("--dedup", default=98.5, help="threshold for separating paralogs in deduplication step (for integerisation from annotation)")
-parser.add_argument("--identity", default=80, help="threshold for % of shared sequence between blocks (for integerisation from alignment and for jaccard calculation)")
+parser.add_argument("--identity", default=80, help="threshold for percentage of shared sequence between blocks (for integerisation from alignment and for jaccard calculation)")
 parser.add_argument("--min_indel_size", default=200, help="minimum size for an indel to be treated as a block (for integerisation from alignment)")
 parser.add_argument("--bh_connectivity", default=10, help="minimum number of connections a plasmid need to be considered a blackhole plasmid")
 parser.add_argument("--bh_neighbours_edge_density", default=0.2, help="maximum number of edge density between blackhole plasmid neighbours to label the plasmid as blackhole")
@@ -28,7 +29,10 @@ parser.add_argument("--small_subcommunity_size_threshold", default=4, help="comm
 parser.add_argument("--cores", default=1, help="total number of cores/threads")
 parser.add_argument("--storetmp", action="store_true", help="don't delete intermediate temporary files")
 parser.add_argument("--forceall", action="store_true", help="force snakemake to rerun everything")
-parser.add_argument("--timelimit", help="time limit on gurobi")
+parser.add_argument("--ilp_solver", choices=["GLPK", "gurobi"], default="GLPK",
+                    help="ILP solver to use. Default is GLPK, which is slower but is bundled with pling and is free. "
+                         "If using gurobi, make sure you have a valid license and gurobi_cl is in your PATH.")
+parser.add_argument("--timelimit", help="time limit in seconds for ILP solver")
 parser.add_argument("--resources", help="tsv stating number of threads and memory to use for each rule")
 parser.add_argument("--profile", help="to run on cluster with corresponding snakemake profile")
 
@@ -54,8 +58,11 @@ if args.resources!=None:
 else:
     resources = pd.read_csv(f"{plingpath}/resources.tsv", sep="\t")
 
-if not os.path.isdir(f"{args.output_dir}/tmp_files"):
-    os.mkdir(f"{args.output_dir}/tmp_files")
+output_dir = Path(args.output_dir)
+output_dir.mkdir(parents=True, exist_ok=True)
+
+tmp_dir = output_dir/"tmp_files"
+tmp_dir.mkdir(parents=True, exist_ok=True)
 
 configfile = f"{args.output_dir}/tmp_files/config.yaml"
 with open(configfile, "w") as config:
@@ -73,6 +80,7 @@ with open(configfile, "w") as config:
     config.write(f"bh_connectivity: {args.bh_connectivity}\n\n")
     config.write(f"bh_neighbours_edge_density: {args.bh_neighbours_edge_density}\n\n")
     config.write(f"small_subcommunity_size_threshold: {args.small_subcommunity_size_threshold}\n\n")
+    config.write(f"ilp_solver: {args.ilp_solver}\n\n")
     config.write(f"timelimit: {timelimit}\n\n")
     for row in resources.index:
         rule = resources.loc[row, "Rule"]
@@ -123,5 +131,5 @@ except subprocess.CalledProcessError as e:
 
 
 #delete intermediary files
-if args.storetmp == False:
-    shutil.rmtree(f"{args.output_dir}/tmp_files")
+if not args.storetmp:
+    shutil.rmtree(tmp_dir)

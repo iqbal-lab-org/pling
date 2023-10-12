@@ -61,6 +61,7 @@ rule make_unimogs:
         genome2 = lambda wildcards: wildcards.genome2,
         identity_threshold = config["identity_threshold"]
     conda: "../envs/integerise.yaml"
+    shadow: "shallow"
     script:
         "unimog.py"
 

@@ -1,0 +1,5 @@
+data
+.idea
+.snakemake
+__pycache__
+logs
