@@ -13,7 +13,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: [ 3.11 ]
+        python-version: [ 3.8, 3.9, "3.10", 3.11 ]
     steps:
       - uses: actions/checkout@v3
       - uses: mamba-org/setup-micromamba@v1
@@ -36,4 +36,4 @@ jobs:
         shell: bash -el {0}
         run: |
           micromamba activate test-env
-          python -m unittest discover -s tests -t .
+          python -m unittest discover -v -v -v -s tests -t .
