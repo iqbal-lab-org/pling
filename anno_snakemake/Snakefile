@@ -45,7 +45,7 @@ rule bakta:
     output:
         ann_dir = directory(f"{OUTPUTPATH}/annotation/{{community}}/bakta/{{genome}}")
     conda:
-        "bakta"
+        "../envs/bakta.yaml"
     threads: config["bakta_threads"]
     resources:
         mem_mb=lambda wildcards, attempt: attempt * config["bakta_mem"]
