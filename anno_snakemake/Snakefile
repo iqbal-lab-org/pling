@@ -92,6 +92,8 @@ rule minimap:
         dir_ref = FASTAPATH
     output:
         f"{OUTPUTPATH}/tmp_files/minimap/{{community}}/output/{{genome}}.paf"
+    conda:
+        "../envs/minimap2.yaml"
     threads: config["minimap_threads"]
     resources:
         mem_mb = lambda wildcards, attempt: attempt * config["minimap_mem"]
