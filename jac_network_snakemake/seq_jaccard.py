@@ -1,9 +1,6 @@
 import subprocess
 from pathlib import Path
 from typing import Tuple
-from Bio import SeqIO
-from Bio.SeqRecord import SeqRecord
-from Bio.Seq import Seq
 from intervaltree import IntervalTree
 
 def get_coverage(tree):

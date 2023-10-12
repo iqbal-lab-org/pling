@@ -27,9 +27,15 @@ def get_community_to_plasmid():
 
 COMMUNITY_TO_PLASMID, COMMUNITIES = get_community_to_plasmid()
 
+def blocks_input(community):
+    if config["dedup"]:
+        files = [f"{OUTPUTPATH}/unimogs/relabelled/dedup/{community}_dedup.unimog", f"{OUTPUTPATH}/unimogs/relabelled/dedup/{community}_map_dedup.txt"]
+    else:
+        files = [f"{OUTPUTPATH}/unimogs/{community}_anno.unimog", f"{OUTPUTPATH}/unimogs/{{community}}_map.txt"]
+    return files
+
 rule all:
     input:
-        dedup_unimog = expand(f"{OUTPUTPATH}/unimogs/relabelled/dedup/{{community}}_dedup.unimog", community=COMMUNITIES),
         blocks_unimog = expand(f"{OUTPUTPATH}/unimogs/relabelled/blocks/{{community}}_blocks.unimog", community=COMMUNITIES),
         blocks_map = expand(f"{OUTPUTPATH}/unimogs/relabelled/blocks/{{community}}_map_blocks.txt", community=COMMUNITIES)
 
@@ -39,7 +45,7 @@ rule bakta:
     output:
         ann_dir = directory(f"{OUTPUTPATH}/annotation/{{community}}/bakta/{{genome}}")
     conda:
-        "bakta"
+        "../envs/bakta.yaml"
     threads: config["bakta_threads"]
     resources:
         mem_mb=lambda wildcards, attempt: attempt * config["bakta_mem"]
@@ -56,7 +62,7 @@ rule panaroo:
         pangenome = directory(f"{OUTPUTPATH}/annotation/{{community}}/panaroo"),
         aln = directory(f"{OUTPUTPATH}/annotation/{{community}}/panaroo/aligned_gene_sequences")
     conda:
-        "panaroo"
+        "../envs/panaroo.yaml"
     threads: config["panaroo_threads"]
     resources:
         mem_mb=lambda wildcards, attempt: attempt * config["panaroo_mem"]
@@ -86,6 +92,8 @@ rule minimap:
         dir_ref = FASTAPATH
     output:
         f"{OUTPUTPATH}/tmp_files/minimap/{{community}}/output/{{genome}}.paf"
+    conda:
+        "../envs/minimap2.yaml"
     threads: config["minimap_threads"]
     resources:
         mem_mb = lambda wildcards, attempt: attempt * config["minimap_mem"]
@@ -144,8 +152,7 @@ rule deduplication:
 
 rule blocks:
     input:
-        map = f"{OUTPUTPATH}/unimogs/relabelled/dedup/{{community}}_map_dedup.txt",
-        unimog = f"{OUTPUTPATH}/unimogs/relabelled/dedup/{{community}}_dedup.unimog"
+        lambda wildcards: blocks_input(wildcards.community)
     output:
         relabelled_unimog = f"{OUTPUTPATH}/unimogs/relabelled/blocks/{{community}}_blocks.unimog",
         blocks_map = f"{OUTPUTPATH}/unimogs/relabelled/blocks/{{community}}_map_blocks.txt"

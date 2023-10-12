@@ -189,8 +189,8 @@ if testing == True:
     output_map = f"{OUTPUTPATH}/unimogs/relabelled/blocks/0_map_blocks.txt"
     genomes = [el[0] for el in pd.read_csv("/home/daria/Documents/projects/Murray_Family/clusters_adrian/lists/cluster_4_ids.csv", header=None).values]
 else:
-    map_filepath = snakemake.input.map
-    unimog_filepath = snakemake.input.unimog
+    map_filepath = snakemake.input[1]
+    unimog_filepath = snakemake.input[0]
     relabelled_unimog = snakemake.output.relabelled_unimog
     relabelled_dir = snakemake.params.relabelled_dir
     output_map = snakemake.output.blocks_map
