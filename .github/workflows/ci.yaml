@@ -1,0 +1,39 @@
+name: Test pling
+
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+    branches:
+      - master
+
+jobs:
+  Testing:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: [ 3.8, 3.9, "3.10", 3.11 ]
+    steps:
+      - uses: actions/checkout@v3
+      - uses: mamba-org/setup-micromamba@v1
+        with:
+          micromamba-version: '1.3.1-0'
+          environment-name: test-env
+          condarc: |
+            channels:
+              - conda-forge
+              - bioconda
+              - defaults
+          create-args: >-
+            python=${{ matrix.python-version }}
+            snakemake
+            mamba
+          init-shell: bash
+          cache-environment: true
+          post-cleanup: 'all'
+      - name: Test workflow (local test data)
+        shell: bash -el {0}
+        run: |
+          micromamba activate test-env
+          python -m unittest discover -s pling/tests -t .
