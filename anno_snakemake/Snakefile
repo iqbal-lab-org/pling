@@ -27,9 +27,15 @@ def get_community_to_plasmid():
 
 COMMUNITY_TO_PLASMID, COMMUNITIES = get_community_to_plasmid()
 
+def blocks_input(community):
+    if config["dedup"]:
+        files = [f"{OUTPUTPATH}/unimogs/relabelled/dedup/{community}_dedup.unimog", f"{OUTPUTPATH}/unimogs/relabelled/dedup/{community}_map_dedup.txt"]
+    else:
+        files = [f"{OUTPUTPATH}/unimogs/{community}_anno.unimog", f"{OUTPUTPATH}/unimogs/{{community}}_map.txt"]
+    return files
+
 rule all:
     input:
-        dedup_unimog = expand(f"{OUTPUTPATH}/unimogs/relabelled/dedup/{{community}}_dedup.unimog", community=COMMUNITIES),
         blocks_unimog = expand(f"{OUTPUTPATH}/unimogs/relabelled/blocks/{{community}}_blocks.unimog", community=COMMUNITIES),
         blocks_map = expand(f"{OUTPUTPATH}/unimogs/relabelled/blocks/{{community}}_map_blocks.txt", community=COMMUNITIES)
 
@@ -63,7 +69,7 @@ rule panaroo:
     params:
         files = lambda wildcards: [f"{OUTPUTPATH}/annotation/{wildcards.community}/bakta/{genome}/{genome}.gff3" for genome in COMMUNITY_TO_PLASMID[wildcards.community]]
     shell:
-        "panaroo -i {params.files} -o {output.pangenome} --clean-mode moderate -a pan --merge_paralogs -t {threads}"
+        "singularity run /usr/bin/Panaroo.img -i {params.files} -o {output.pangenome} --clean-mode moderate -a pan --merge_paralogs -t {threads}"
 
 rule gen_minimap_input:
     input:
@@ -144,8 +150,7 @@ rule deduplication:
 
 rule blocks:
     input:
-        map = f"{OUTPUTPATH}/unimogs/relabelled/dedup/{{community}}_map_dedup.txt",
-        unimog = f"{OUTPUTPATH}/unimogs/relabelled/dedup/{{community}}_dedup.unimog"
+        lambda wildcards: blocks_input(wildcards.community)
     output:
         relabelled_unimog = f"{OUTPUTPATH}/unimogs/relabelled/blocks/{{community}}_blocks.unimog",
         blocks_map = f"{OUTPUTPATH}/unimogs/relabelled/blocks/{{community}}_map_blocks.txt"

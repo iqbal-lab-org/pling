@@ -111,6 +111,7 @@ rule ilp_GLPK:
         solution = f"{OUTPUTPATH}/tmp_files/ding/solutions/{{genome1}}~{{genome2}}.sol",
     params:
         timelimit=get_timelimit(config["ilp_solver"]),
+        snakefile_dir = os.path.dirname(sys.argv[sys.argv.index("--snakefile")+1])
     resources:
         mem_mb = lambda wildcards, attempt: attempt * config["ilp_mem"]
     threads: 1
@@ -123,7 +124,7 @@ rule ilp_GLPK:
           -o {output.solution}.tmp \
           {params.timelimit} \
           2>&1 > {log}
-        python dcj_snakemake/glpk_sol_to_gurobi_sol.py <{output.solution}.tmp >{output.solution}
+        python {params.snakefile_dir}/glpk_sol_to_gurobi_sol.py <{output.solution}.tmp >{output.solution}
         rm {output.solution}.tmp
         """
 
