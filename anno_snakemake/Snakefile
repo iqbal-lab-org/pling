@@ -62,14 +62,14 @@ rule panaroo:
         pangenome = directory(f"{OUTPUTPATH}/annotation/{{community}}/panaroo"),
         aln = directory(f"{OUTPUTPATH}/annotation/{{community}}/panaroo/aligned_gene_sequences")
     conda:
-        "panaroo"
+        "../envs/panaroo.yaml"
     threads: config["panaroo_threads"]
     resources:
         mem_mb=lambda wildcards, attempt: attempt * config["panaroo_mem"]
     params:
         files = lambda wildcards: [f"{OUTPUTPATH}/annotation/{wildcards.community}/bakta/{genome}/{genome}.gff3" for genome in COMMUNITY_TO_PLASMID[wildcards.community]]
     shell:
-        "singularity run /usr/bin/Panaroo.img -i {params.files} -o {output.pangenome} --clean-mode moderate -a pan --merge_paralogs -t {threads}"
+        "panaroo -i {params.files} -o {output.pangenome} --clean-mode moderate -a pan --merge_paralogs -t {threads}"
 
 rule gen_minimap_input:
     input:
