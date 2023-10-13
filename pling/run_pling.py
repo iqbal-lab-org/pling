@@ -1,5 +1,3 @@
-#!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """
 Created on Tue Aug 15 14:34:47 2023
 
@@ -152,6 +150,9 @@ def pling(args):
         shutil.rmtree(tmp_dir)
 
 
-if __name__ == "__main__":
+def main():
     args = parse_args()
     pling(args)
+
+if __name__ == "__main__":
+    main()
