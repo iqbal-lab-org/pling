@@ -1,7 +1,4 @@
-from pathlib import Path
-from multiprocessing import Pool
 import os
-import subprocess
 import pandas as pd
 
 configfile: "../config.yaml"
