@@ -59,8 +59,20 @@ rule make_unimogs:
         identity_threshold = config["identity_threshold"]
     conda: "../envs/integerise.yaml"
     shadow: "shallow"
-    script:
-        "unimog.py"
+    shell:
+        """
+        # set conda env first in $PATH
+        PATH="$CONDA_PREFIX"/bin:$PATH
+        python pling/align_snakemake/unimog.py \
+            --genome_1_fasta {input.genome_1_fasta} \
+            --genome1 {params.genome1} \
+            --genome_2_fasta {input.genome_2_fasta} \
+            --genome2 {params.genome2} \
+            --identity_threshold {params.identity_threshold} \
+            --unimogs {output.unimogs} \
+            --jaccard {output.jaccard} \
+            --seq_blocks {output.seq_blocks}
+        """
 
 rule cat_jaccard:
     input:
