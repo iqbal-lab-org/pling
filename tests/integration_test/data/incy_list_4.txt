@@ -1,0 +1,4 @@
+tests/integration_test/data/CP057418.1.fna
+tests/integration_test/data/NZ_CP027199.1.fna
+tests/integration_test/data/NZ_LR882977.1.fna
+tests/integration_test/data/NZ_MF510423.1.fna
