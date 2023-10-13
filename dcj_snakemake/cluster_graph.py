@@ -120,6 +120,7 @@ def produce_plasmid_communities_tsv(plasmid_communities_filepath, plasmid_to_com
         "plasmid": plasmids,
         "community": communities,
     })
+    plasmid_communities_df.sort_values(by=['plasmid'])
     plasmid_communities_df.to_csv(plasmid_communities_filepath, sep="\t", index=False)
 
 

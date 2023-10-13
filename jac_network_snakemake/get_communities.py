@@ -41,8 +41,9 @@ def main():
 
     print(f"Finding communities...")
     # communities = list(asyn_lpa_communities(G=graph, weight='weight', seed=42))
-    communities = list(connected_components(graph))
+    communities = [sorted(community) for community in sorted(connected_components(graph), key=len, reverse=True)]
     isolates = list(nx.isolates(graph))
+    isolates.sort()
     print(f"Finding communities - done!")
 
     # outputs communities
