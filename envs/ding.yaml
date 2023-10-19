@@ -5,4 +5,4 @@ dependencies:
  - python =3.8
  - pip
  - pip:
-   - git+https://github.com/leoisl/dingiiofficial_wrapper
+   - git+https://github.com/leoisl/dingiiofficial_wrapper@pypi_conda
