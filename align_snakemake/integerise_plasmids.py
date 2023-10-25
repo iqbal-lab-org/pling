@@ -44,10 +44,13 @@ def split_overlaps_greedy(og_matches, r, q, length_threshold):
         overlap = matches[i][rend]-matches[i+1][rstart]
         if overlap>length_threshold:
             if matches[i][rend]-matches[i][rstart] >= matches[i+1][rend]-matches[i+1][rstart]: #lhs match bigger than rhs match, so overlap remains in lhs and is removed from rhs match
-                if matches[i+1]["qstrand"] == 1:
-                    matches[i+1]={rstart:matches[i][rend], rend:matches[i+1][rend], qstart:matches[i+1][qstart]+overlap, qend:matches[i+1][qend], "qstrand":matches[i+1]["qstrand"]}
+                if matches[i+1][rend]>matches[i][rend]: #ensure that this is a true overlap and not containment
+                    if matches[i+1]["qstrand"] == 1:
+                        matches[i+1]={rstart:matches[i][rend], rend:matches[i+1][rend], qstart:matches[i+1][qstart]+overlap, qend:matches[i+1][qend], "qstrand":matches[i+1]["qstrand"]}
+                    else:
+                        matches[i+1]={rstart:matches[i][rend], rend:matches[i+1][rend], qstart:matches[i+1][qstart], qend:matches[i+1][qend]-overlap, "qstrand":matches[i+1]["qstrand"]}
                 else:
-                    matches[i+1]={rstart:matches[i][rend], rend:matches[i+1][rend], qstart:matches[i+1][qstart], qend:matches[i+1][qend]-overlap, "qstrand":matches[i+1]["qstrand"]}
+                    matches[i+1]={rstart:-1, rend:-1, qstart:-1, qend:-1, "qstrand":0}
             else: #rhs match bigger than lhs match, so overlap remains in rhs and is removed from lhs match
                 if matches[i]["qstrand"] == 1:
                     matches[i]={rstart:matches[i][rstart], rend:matches[i+1][rstart], qstart:matches[i][qstart], qend:matches[i][qend]-overlap, "qstrand":matches[i]["qstrand"]}
@@ -85,9 +88,10 @@ def make_interval_tree(block_coords):
         qstart = block_coords[i]["qstart"]
         qend = block_coords[i]["qend"]
         qstrand = block_coords[i]["qstrand"]
-        max_id=max_id+1
-        ref_to_block[rstart:rend] = max_id
-        query_to_block[qstart:qend] = qstrand * max_id
+        if not (rstart==-1 and rend==-1 and qstart==-1 and qend==-1 and qstrand==0):
+            max_id=max_id+1
+            ref_to_block[rstart:rend] = max_id
+            query_to_block[qstart:qend] = qstrand * max_id
     return ref_to_block, query_to_block, max_id
 
 def populate_interval_tree_with_unmatched_blocks(interval_tree, total_length, block_index, length_threshold):
@@ -140,7 +144,7 @@ def get_coverage(tree):
         coverage = coverage + (interval.end - interval.begin)
     return coverage
 
-def integerise_plasmids(plasmid_1: Path, plasmid_2: Path, prefix: str, plasmid_1_name, plasmid_2_name, identity_threshold=80, length_threshold=200) -> Tuple[str, str]:
+def integerise_plasmids(plasmid_1: Path, plasmid_2: Path, prefix: str, plasmid_1_name, plasmid_2_name, identity_threshold=80, length_threshold=200):
     subprocess.check_call(f"perl -w $(which dnadiff) {plasmid_1} {plasmid_2} -p {prefix} 2>/dev/null", shell=True)
     show_coords_output = subprocess.check_output(f"show-coords -TrcldH -I {identity_threshold} {prefix}.1delta", shell=True).strip().split(b'\n')  # TODO: what about this threshold?
 
@@ -178,9 +182,12 @@ def integerise_plasmids(plasmid_1: Path, plasmid_2: Path, prefix: str, plasmid_1
     else:
         coverage_ref = get_coverage(ref_coverage)
         coverage_query = get_coverage(query_coverage)
+        print(og_matches)
         ref_split = split_overlaps_greedy(og_matches, "r", "q", length_threshold)
+        print(ref_split)
         blub = sorted(ref_split, key=lambda match: match["qstart"])
         block_coords = split_overlaps_greedy(blub, "q", "r", length_threshold)
+        print(block_coords)
         ref_to_block, query_to_block, max_id = make_interval_tree(block_coords)
         populate_interval_tree_with_unmatched_blocks(ref_to_block, len_ref, max_id+1, length_threshold)
         populate_interval_tree_with_unmatched_blocks(query_to_block, len_query, len(ref_to_block)+1, length_threshold)
@@ -205,18 +212,7 @@ def integerise_plasmids(plasmid_1: Path, plasmid_2: Path, prefix: str, plasmid_1
 testing = False
 
 if testing == True:
-    matches = [{"rstart":1, "rend":1032, "qstart":1, "qend":1032, "qstrand":1}, {"rstart":1005, "rend":3385, "qstart":550, "qend":2930, "qstrand":1}]
-
-    ref_split = split_overlaps_greedy(matches, "r", "q", 200)
-    sorting = lambda match: match["qstart"]
-    blub = sorted(ref_split, key=sorting)
-    print(blub)
-    block_coords = split_overlaps_greedy(blub, "q", "r", 200)
-    print(block_coords)
-    ref_to_block, query_to_block, max_id = make_interval_tree(block_coords)
-    populate_interval_tree_with_unmatched_blocks(ref_to_block, 3385, max_id+1, 200)
-    populate_interval_tree_with_unmatched_blocks(query_to_block, 2930, len(ref_to_block)+1, 200)
-    #print(sorted(ref_to_block))
-    #print(sorted(query_to_block))
-    print(get_unimog(ref_to_block))
-    print(get_unimog(query_to_block))
+    plasmid1 = "NZ_LT985234.1"
+    plasmid2 = "NZ_CP062902.1"
+    path = "/home/daria/Documents/projects/INC-plasmids/samples/fastas/incy"
+    print(integerise_plasmids(f"{path}/{plasmid1}.fna", f"{path}/{plasmid2}.fna", f"{plasmid1}~{plasmid2}", plasmid1, plasmid2))
