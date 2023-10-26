@@ -88,7 +88,7 @@ def make_interval_tree(block_coords):
         qstart = block_coords[i]["qstart"]
         qend = block_coords[i]["qend"]
         qstrand = block_coords[i]["qstrand"]
-        if not (rstart==-1 and rend==-1 and qstart==-1 and qend==-1 and qstrand==0):
+        if not (rstart == rend or qstart == qend):
             max_id=max_id+1
             ref_to_block[rstart:rend] = max_id
             query_to_block[qstart:qend] = qstrand * max_id
