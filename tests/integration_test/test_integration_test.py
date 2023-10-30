@@ -1,6 +1,6 @@
 from argparse import Namespace
 from unittest import TestCase
-import run_pling
+from pling import run_pling
 from tests.utils import *
 
 

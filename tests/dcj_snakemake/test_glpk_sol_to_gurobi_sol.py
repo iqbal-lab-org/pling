@@ -1,5 +1,5 @@
 from unittest import TestCase
-from dcj_snakemake.glpk_sol_to_gurobi_sol import glpk_sol_to_gurobi_sol
+from pling.dcj_snakemake.glpk_sol_to_gurobi_sol import glpk_sol_to_gurobi_sol
 from tests.utils import *
 
 
