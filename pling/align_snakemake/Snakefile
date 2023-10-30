@@ -61,8 +61,14 @@ rule make_unimogs:
     shadow: "shallow"
     shell:
         """
-        # set conda env first in $PATH
-        PATH="$CONDA_PREFIX"/bin:$PATH
+        # set conda env first in $PATH - TODO: keep this or manage in other way?
+        # this issue happens when running a pipeline and a conda env is already active but it is not the first
+        # in the $PATH that have python installed (let's call this env E).
+        # In this case, snakemake will activate the "../envs/integerise.yaml" env but the python in the $PATH is the one
+        # in E, which won't have the dependencies required to run the script below.
+        # This is the expected behaviour, is not a bug in conda or snakemake.
+        # For more details, see https://github.com/conda/conda/issues/9392#issuecomment-1291041085 
+        PATH="$CONDA_PREFIX"/bin:$PATH  # quick fix for the issue described above
         python pling/align_snakemake/unimog.py \
             --genome_1_fasta {input.genome_1_fasta} \
             --genome1 {params.genome1} \
@@ -85,6 +91,7 @@ rule cat_jaccard:
     shell:
         "cat {input.jaccards} > {output.jaccard}"
 
+
 rule get_communities:
     input:
         jaccard = f"{OUTPUTPATH}/jaccard/all_pairs_jaccard.tsv"
@@ -99,4 +106,13 @@ rule get_communities:
     params:
         jaccard_threshold=config["seq_jaccard_threshold"],
         genomes=GENOMES
-    script: "get_communities.py"
+    shell: """
+        PATH="$CONDA_PREFIX"/bin:$PATH  # set conda env first in $PATH
+        python pling/align_snakemake/get_communities.py \
+            --jaccard {input.jaccard} \
+            --jaccard-threshold {params.jaccard_threshold} \
+            --genomes "{params.genomes}" \
+            --communities {output.communities} \
+            --communities-sizes {output.communities_sizes} \
+            --isolates {output.isolates}
+    """
