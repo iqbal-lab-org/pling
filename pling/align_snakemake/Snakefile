@@ -16,8 +16,7 @@ rule all:
     input:
         unimogs = get_files("unimog"),
         seq_jaccard = f"{OUTPUTPATH}/jaccard/all_pairs_jaccard.tsv",
-        communities = f"{OUTPUTPATH}/jaccard/jaccard_communities.txt",
-        communities_sizes = f"{OUTPUTPATH}/jaccard/jaccard_communities_sizes.txt"
+        communities = f"{OUTPUTPATH}/jaccard/jaccard_communities"
 
 rule make_unimogs:
     input:
@@ -25,7 +24,7 @@ rule make_unimogs:
         genome_2_fasta=lambda wildcards: f"{FASTAPATH}/{wildcards.genome2}{FASTAEXT[wildcards.genome2]}"
     output:
         unimogs=f"{OUTPUTPATH}/unimogs/{{genome1}}~{{genome2}}_align.unimog",
-        jaccard=f"{OUTPUTPATH}/tmp_files/jaccard_pairwise/{{genome1}}~{{genome2}}_jaccard.tsv",
+        jaccard_distance=f"{OUTPUTPATH}/tmp_files/jaccard_pairwise/{{genome1}}~{{genome2}}_jaccard_distance.tsv",
         seq_blocks=f"{OUTPUTPATH}/unimogs/{{genome1}}~{{genome2}}_map.txt"
     threads: config["make_unimogs_threads"]
     resources:
@@ -53,7 +52,7 @@ rule make_unimogs:
             --genome2 {params.genome2} \
             --identity_threshold {params.identity_threshold} \
             --unimogs {output.unimogs} \
-            --jaccard {output.jaccard} \
+            --jaccard {output.jaccard_distance} \
             --seq_blocks {output.seq_blocks}
         """
 
