@@ -10,8 +10,9 @@ GENOMES = list(FASTAEXT.keys())
 OUTPUTPATH = config["output_dir"] #output directory will contain subdirectory with unimogs from integerisation pipeline, as well as placing all new output from current pipeline in subdirectories within it
 PREFIX = config["prefix"]
 INTEGERISATION = config["integerisation"]
-JACCARD_THRESHOLD = config["seq_jaccard_threshold"]
+JACCARD_DISTANCE = config["seq_jaccard_distance"]
 COMMUNITIES = config["communities"]
+
 
 def get_plasmid_to_community():
     plasmid_to_community = {}
@@ -36,10 +37,11 @@ def get_unimog(integerisation, genome1, genome2):
 def get_dist_files(jaccard_tsv):
     files=[]
     with open(jaccard_tsv, "r") as f:
+        next(f)  # skip header
         for line in f:
             plasmid_1, plasmid_2, jaccard = line.strip().split("\t")
             jaccard = float(jaccard)
-            if jaccard >= JACCARD_THRESHOLD:
+            if jaccard <= JACCARD_DISTANCE:
                 files.append(f"{OUTPUTPATH}/tmp_files/dists_pairwise/{plasmid_1}~{plasmid_2}.dist")
     return files
 
@@ -165,7 +167,7 @@ rule dcj_matrix:
 rule build_DCJ_graph:
     input:
         matrix = f"{OUTPUTPATH}/{PREFIX}_matrix.dist", #Path to file with matrix of DCJ distances
-        communities=f"{OUTPUTPATH}/jaccard/jaccard_communities.txt"
+        communities=COMMUNITIES
     output:
         dcj_graph_outdir = directory(f"{OUTPUTPATH}/dcj_graph")
     conda:
