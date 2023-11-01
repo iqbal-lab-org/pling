@@ -58,7 +58,8 @@ rule make_unimogs:
 
 rule get_communities:
     input:
-        jaccard = f"{OUTPUTPATH}/jaccard/all_pairs_jaccard.tsv"
+        jaccard = f"{OUTPUTPATH}/jaccard/all_pairs_jaccard.tsv",
+        genomes = rules.create_genomes_tsv.output.genomes_tsv
     output:
         communities = directory(f"{OUTPUTPATH}/jaccard/jaccard_communities"),
     threads: 1
@@ -69,13 +70,13 @@ rule get_communities:
         jaccard_distance=config["seq_jaccard_distance"],
         bh_connectivity=config["bh_connectivity"],
         bh_neighbours_edge_density=config["bh_neighbours_edge_density"]
-        # genomes=GENOMES
     shell: """
         plasnet \
             --distance-threshold {params.jaccard_distance} \
             --bh-connectivity {params.bh_connectivity} \
             --bh-neighbours-edge-density {params.bh_neighbours_edge_density} \
             --output-plasmid-graph \
+            {input.genomes} \
             {input.jaccard} \
             {output.communities}
     """
