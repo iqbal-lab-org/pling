@@ -30,12 +30,13 @@ def main():
     # Use the arguments
     unimog, jaccard, blocks_ref, blocks_query = unimogs_to_ilp_core(args.genome_1_fasta, args.genome_2_fasta,
                                                                     args.genome1, args.genome2, args.identity_threshold)
+    jaccard_distance = 1-jaccard
 
-    with open(args.unimogs_output, 'w+') as f:
+    with open(args.unimogs_output, 'w') as f:
         f.write(unimog)
 
-    with open(args.jaccard_output, 'w+') as f:
-        f.write(f"{args.genome1}\t{args.genome2}\t{jaccard}\n")
+    with open(args.jaccard_output, 'w') as f:
+        f.write(f"{args.genome1}\t{args.genome2}\t{jaccard_distance}\n")
 
     blocks = pd.concat([blocks_ref, blocks_query])
     blocks.to_csv(args.seq_blocks_output, sep="\t", index=False)
