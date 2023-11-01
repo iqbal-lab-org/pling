@@ -61,23 +61,22 @@ rule get_communities:
     input:
         jaccard = f"{OUTPUTPATH}/jaccard/all_pairs_jaccard.tsv"
     output:
-        communities = f"{OUTPUTPATH}/jaccard/jaccard_communities.txt",
-        communities_sizes = f"{OUTPUTPATH}/jaccard/jaccard_communities_sizes.txt",
-        isolates = f"{OUTPUTPATH}/jaccard/jaccard_isolates.txt"
+        communities = directory(f"{OUTPUTPATH}/jaccard/jaccard_communities"),
     threads: 1
     resources:
         mem_mb=lambda wildcards, attempt: config["get_communities_mem"]*attempt
-    conda: "../envs/env.yaml"
+    conda: "../envs/plasnet.yaml"
     params:
-        jaccard_threshold=config["seq_jaccard_threshold"],
-        genomes=GENOMES
+        jaccard_distance=config["seq_jaccard_distance"],
+        bh_connectivity=config["bh_connectivity"],
+        bh_neighbours_edge_density=config["bh_neighbours_edge_density"]
+        # genomes=GENOMES
     shell: """
-        PATH="$CONDA_PREFIX"/bin:$PATH  # set conda env first in $PATH
-        python pling/align_snakemake/get_communities.py \
-            --jaccard {input.jaccard} \
-            --jaccard-threshold {params.jaccard_threshold} \
-            --genomes "{params.genomes}" \
-            --communities {output.communities} \
-            --communities-sizes {output.communities_sizes} \
-            --isolates {output.isolates}
+        plasnet \
+            --distance-threshold {params.jaccard_distance} \
+            --bh-connectivity {params.bh_connectivity} \
+            --bh-neighbours-edge-density {params.bh_neighbours_edge_density} \
+            --output-plasmid-graph \
+            {input.jaccard} \
+            {output.communities}
     """
