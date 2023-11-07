@@ -193,15 +193,12 @@ def integerise_plasmids(plasmid_1: Path, plasmid_2: Path, prefix: str, plasmid_1
         blocks_ref = pd.DataFrame({"Plasmid":[], "Block_ID":[], "Start":[], "End":[]})
         blocks_query = pd.DataFrame({"Plasmid":[], "Block_ID":[], "Start":[], "End":[]})
     else:
-        overlap_threshold = 20
+        overlap_threshold = length_threshold
         coverage_ref = get_coverage(ref_coverage)
         coverage_query = get_coverage(query_coverage)
-        print(og_matches)
         ref_split = split_overlaps_greedy(og_matches, "r", "q", overlap_threshold)
-        print(ref_split)
         blub = sorted(ref_split, key=lambda match: match["qstart"])
         block_coords = split_overlaps_greedy(blub, "q", "r", overlap_threshold)
-        print(block_coords)
         ref_to_block, query_to_block, max_id = make_interval_tree(block_coords, length_threshold)
         populate_interval_tree_with_unmatched_blocks(ref_to_block, len_ref, max_id+1, length_threshold)
         populate_interval_tree_with_unmatched_blocks(query_to_block, len_query, len(ref_to_block)+1, length_threshold)
