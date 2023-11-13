@@ -127,36 +127,6 @@ class Matches:
         self.list.insert(index+1, interval)
         self.list.insert(index+2, rhs_split)
 
-    def greedy(self, i, roverlap, ref_bool):
-        if ref_bool:
-            f = lambda x, j: x-self[j].indels() if self[j].indels()>0 else x #if there are indels, overlap might be bigger than the length of the query match
-            if self[i].rend-self[i].rstart >= self[i+1].rend-self[i+1].rstart: #lhs match bigger than rhs match, so overlap remains in lhs and is removed from rhs match
-                overlap = f(roverlap,i+1)
-                if self[i+1].strand == 1:
-                    self[i+1]=Match(self[i].rend, self[i+1].rend, self[i+1].qstart+overlap, self[i+1].qend, 1)
-                else:
-                    self[i+1]=Match(self[i].rend, self[i+1].rend, self[i+1].qstart, self[i+1].qend-overlap, -1)
-            else: #rhs match bigger than lhs match, so overlap remains in rhs and is removed from lhs match
-                overlap = f(roverlap,i)
-                if self[i].qstrand == 1:
-                    self[i]=Match(self[i].rstart, self[i+1].rstart, self[i].qstart, self[i].qend-overlap, 1)
-                else:
-                    self[i]=Match(self[i].rstart, self[i+1].rstart, self[i].qstart+overlap, self[i].qend, -1)
-        else:
-            f = lambda x, j: x+self[j].indels() if self[j].indels()<0 else x #if there are indels, overlap might be bigger than the length of the query match
-            if self[i].qend-self[i].qstart >= self[i+1].qend-self[i+1].qstart: #lhs match bigger than rhs match, so overlap remains in lhs and is removed from rhs match
-                overlap = f(roverlap,i+1)
-                if self[i+1].strand == 1:
-                    self[i+1]=Match(self[i+1].rstart+overlap, self[i+1].rend, self[i].qend, self[i+1].qend, 1)
-                else:
-                    self[i+1]=Match(self[i+1].rstart, self[i+1].rend-overlap, self[i].qend, self[i+1].qend, -1)
-            else: #rhs match bigger than lhs match, so overlap remains in rhs and is removed from lhs match
-                overlap = f(roverlap,i)
-                if self[i].qstrand == 1:
-                    self[i]=Match(self[i].rstart, self[i].rend-overlap, self[i].qstart, self[i+1].qstart, 1)
-                else:
-                    self[i]=Match(self[i].rstart+overlap, self[i].rend, self[i].qstart, self[i+1].qstart, -1)
-
     def find_opposite_overlaps(self, i, roverlap, ref_bool):
         overlaps = []
         rstart_1 = self[i].rstart
@@ -206,17 +176,12 @@ class Matches:
             if overlap>overlap_threshold:
                 overlap_matches = self.find_opposite_overlaps(i, overlap, True)
                 contain_overlap_1 = self.contain_interval(overlap_matches[0].qstart, overlap_matches[0].qend, False)
+                for match in contain_overlap_1:
+                    self.split_match(match, overlap_matches[0].qstart, overlap_matches[0].qend, False)
                 contain_overlap_2 = self.contain_interval(overlap_matches[1].qstart, overlap_matches[1].qend, False)
-                if len(contain_overlap_1)<3 or len(contain_overlap_2)<3:
-                    for match in contain_overlap_1:
-                        self.split_match(match, overlap_matches[0].qstart, overlap_matches[0].qend, False)
-                    contain_overlap_2 = self.contain_interval(overlap_matches[1].qstart, overlap_matches[1].qend, False)
-                    for match in contain_overlap_2:
-                        self.split_match(match, overlap_matches[1].qstart, overlap_matches[1].qend, False)
-                else:
-                    self.greedy(i, overlap, True)
+                for match in contain_overlap_2:
+                    self.split_match(match, overlap_matches[1].qstart, overlap_matches[1].qend, False)
             i = i+1
-            #end = self[i].rend
 
         self.sort(False)
         i=0
@@ -231,14 +196,11 @@ class Matches:
                 overlap_matches = self.find_opposite_overlaps(i, overlap, False)
                 contain_overlap_1 = self.contain_interval(overlap_matches[0].rstart, overlap_matches[0].rend, True)
                 contain_overlap_2 = self.contain_interval(overlap_matches[1].rstart, overlap_matches[1].rend, True)
-                if len(contain_overlap_1)<3 or len(contain_overlap_2)<3:
-                    for match in contain_overlap_1:
-                        self.split_match(match, overlap_matches[0].rstart, overlap_matches[0].rend, True)
-                    contain_overlap_2 = self.contain_interval(overlap_matches[1].rstart, overlap_matches[1].rend, True)
-                    for match in contain_overlap_2:
-                        self.split_match(match, overlap_matches[1].rstart, overlap_matches[1].rend, True)
-                else:
-                    self.greedy(i, overlap, False)
+                for match in contain_overlap_1:
+                    self.split_match(match, overlap_matches[0].rstart, overlap_matches[0].rend, True)
+                contain_overlap_2 = self.contain_interval(overlap_matches[1].rstart, overlap_matches[1].rend, True)
+                for match in contain_overlap_2:
+                    self.split_match(match, overlap_matches[1].rstart, overlap_matches[1].rend, True)
             i = i+1
 
 def make_interval_tree_w_dups(block_coords, length_threshold):
