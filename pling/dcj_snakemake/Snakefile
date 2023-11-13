@@ -60,6 +60,25 @@ rule all:
         matrix = f"{OUTPUTPATH}/{PREFIX}_matrix.dist",
         dcj_graph_outdir = f"{OUTPUTPATH}/dcj_graph"
 
+
+rule ding:
+    input:
+    output:
+        f"{OUTPUTPATH}/tmp_files/ding/completion/batch_{batch}"
+    params:
+        ilp_solver=config["ilp_solver"],
+        integerisation=INTEGERISATION,
+        outputpath=OUTPUTPATH,
+        batch=lambda wildcards: wildcards.batch,
+        plasmid_to_community=plasmid_to_community,
+        timelimit=get_timelimit(config["ilp_solver"]),
+        snakefile_dir=os.path.dirname(sys.argv[sys.argv.index("--snakefile")+1])
+    resources:
+        mem_mb = lambda wildcards, attempt: attempt * config["ilp_mem"]
+    conda: "../envs/ding_and_glpk.yaml"
+    script:
+        "run_ding.py"
+
 rule unimog_to_ilp:
     input:
         unimog=lambda wildcards: get_unimog(INTEGERISATION, wildcards.genome1, wildcards.genome2)
