@@ -53,6 +53,12 @@ class Matches:
             self.query[match.qstart:match.qend] = (match.rstart, match.rend, match.strand)
         self.list[key] = match
 
+    def insert(self, key, match):
+        self.list.insert(key, match)
+        if match.rend-match.rstart>0 and match.qend-match.qstart>0:
+            self.reference[match.rstart:match.rend]= (match.qstart, match.qend, match.strand)
+            self.query[match.qstart:match.qend] = (match.rstart, match.rend, match.strand)
+
     def __len__(self):
         return len(self.list)
 
@@ -87,15 +93,21 @@ class Matches:
                 self.list[i+k] = subsort[k]
             i = i+len(subsort)
 
+    def purge_null_intervals(self):
+        purged = [el for el in self.list if el.rstart!=el.rend and el.qstart!=el.qend]
+        self.list = purged
+
     def contain_interval(self, start, end, ref_bool): #find in which matches interval (start, end) is contained in ref/query genome
         matches = []
         if ref_bool:
             interval_matches = list(self.reference[start:end])
             for interval in interval_matches:
+                if interval.begin <=start and interval.end >=end:
                     matches.append(Match(interval.begin, interval.end, interval.data[0], interval.data[1], interval.data[2]))
         else:
             interval_matches = list(self.query[start:end])
             for interval in interval_matches:
+                if interval.begin <=start and interval.end >=end:
                     matches.append(Match(interval.data[0], interval.data[1], interval.begin, interval.end, interval.data[2]))
         return matches
 
@@ -123,9 +135,10 @@ class Matches:
                 rhs_split = Match(match.rend-lhs_len, match.rend, match.qstart, start, -1 )
                 interval = Match(match.rstart+rhs_len, match.rend-lhs_len, start, end, -1)
                 lhs_split = Match(match.rstart, match.rstart +rhs_len, end, match.qend, -1)
-        self[index] = lhs_split
-        self.list.insert(index+1, interval)
-        self.list.insert(index+2, rhs_split)
+        self[index] = lhs_split #add even if null interval bc otherwise will break the walk from left to right -- null interval from here will be removed later
+        self.insert(index+1, interval)
+        if rhs_split.rend != rhs_split.rstart and rhs_split.qend!=rhs_split.qstart: #don't add null interval
+            self.insert(index+2, rhs_split)
 
     def find_opposite_overlaps(self, i, roverlap, ref_bool):
         overlaps = []
@@ -164,15 +177,38 @@ class Matches:
         return overlaps
 
     def resolve_overlaps(self, overlap_threshold):
+        self.sort(False)
+        i=0
+        finished = False
+        while not finished:
+            overlap = 0
+            if self[i].qstart!=self[i].qend: #ignore null intervals
+                try:
+                    if self[i+1].qstart!=self[i+1].qend:
+                        overlap = self[i].qend-self[i+1].qstart
+                except IndexError:
+                    finished = True
+            if overlap>overlap_threshold:
+                overlap_matches = self.find_opposite_overlaps(i, overlap, False)
+                contain_overlap_1 = self.contain_interval(overlap_matches[0].rstart, overlap_matches[0].rend, True)
+                for match in contain_overlap_1:
+                    self.split_match(match, overlap_matches[0].rstart, overlap_matches[0].rend, True)
+                contain_overlap_2 = self.contain_interval(overlap_matches[1].rstart, overlap_matches[1].rend, True)
+                for match in contain_overlap_2:
+                    self.split_match(match, overlap_matches[1].rstart, overlap_matches[1].rend, True)
+            i = i+1
+        self.purge_null_intervals()
         self.sort(True)
         i=0
         finished = False
         while not finished:
-            try:
-                overlap = self[i].rend-self[i+1].rstart
-            except IndexError:
-                overlap = 0
-                finished = True
+            overlap = 0
+            if self[i].rstart!=self[i].rend:
+                try:
+                    if self[i+1].rstart!=self[i+1].rend:
+                        overlap = self[i].rend-self[i+1].rstart
+                except IndexError:
+                    finished = True
             if overlap>overlap_threshold:
                 overlap_matches = self.find_opposite_overlaps(i, overlap, True)
                 contain_overlap_1 = self.contain_interval(overlap_matches[0].qstart, overlap_matches[0].qend, False)
@@ -181,26 +217,6 @@ class Matches:
                 contain_overlap_2 = self.contain_interval(overlap_matches[1].qstart, overlap_matches[1].qend, False)
                 for match in contain_overlap_2:
                     self.split_match(match, overlap_matches[1].qstart, overlap_matches[1].qend, False)
-            i = i+1
-
-        self.sort(False)
-        i=0
-        finished = False
-        while not finished:
-            try:
-                overlap = self[i].qend-self[i+1].qstart
-            except IndexError:
-                overlap = 0
-                finished = True
-            if overlap>overlap_threshold:
-                overlap_matches = self.find_opposite_overlaps(i, overlap, False)
-                contain_overlap_1 = self.contain_interval(overlap_matches[0].rstart, overlap_matches[0].rend, True)
-                contain_overlap_2 = self.contain_interval(overlap_matches[1].rstart, overlap_matches[1].rend, True)
-                for match in contain_overlap_1:
-                    self.split_match(match, overlap_matches[0].rstart, overlap_matches[0].rend, True)
-                contain_overlap_2 = self.contain_interval(overlap_matches[1].rstart, overlap_matches[1].rend, True)
-                for match in contain_overlap_2:
-                    self.split_match(match, overlap_matches[1].rstart, overlap_matches[1].rend, True)
             i = i+1
 
 def make_interval_tree_w_dups(block_coords, length_threshold):
@@ -284,23 +300,12 @@ def new_integerise_plasmids(plasmid_1: Path, plasmid_2: Path, prefix: str, plasm
 
 testing = False
 if testing == True:
-    matches = Matches([Match(1, 1032, 1, 1032, 1), Match(1005, 3385, 550, 2930, 1)])
-    overlap_threshold = 200
-    length_threshold=0
-    matches.resolve_overlaps(overlap_threshold)
-    print(matches)
-    ref_to_block, query_to_block, max_id = make_interval_tree_w_dups(matches.list, length_threshold)
-    populate_interval_tree_with_unmatched_blocks(ref_to_block, 3385, max_id+1, length_threshold)
-    populate_interval_tree_with_unmatched_blocks(query_to_block, 2930, len(ref_to_block)+1, length_threshold)
-    plasmid_1_unimogs = get_unimog(ref_to_block)
-    plasmid_2_unimogs = get_unimog(query_to_block)
-    blocks_ref = get_blocks('reference', ref_to_block)
-    blocks_query = get_blocks('query', query_to_block)
-    print(plasmid_1_unimogs, plasmid_2_unimogs, blocks_ref, blocks_query)
     #plasmid1 = "NZ_LT985234.1"
     #plasmid2 = "NZ_CP062902.1"
-    '''
-    plasmid2 = "NZ_LR999867.1"
-    plasmid1 = "NZ_CP032890.1"
-    path = "/home/daria/Documents/projects/INC-plasmids/samples/fastas/incy"
-    print(new_integerise_plasmids(f"{path}/{plasmid1}.fna", f"{path}/{plasmid2}.fna", f"{plasmid1}~{plasmid2}", plasmid1, plasmid2, length_threshold=200))'''
+    #plasmid2 = "NZ_LR999867.1"
+    #plasmid1 = "NZ_CP032890.1"
+    #path = "/home/daria/Documents/projects/INC-plasmids/samples/fastas/incy"
+    plasmid1 = "2_dup_3_dup"
+    plasmid2 = "3_dup"
+    path = "/home/daria/Documents/projects/pling/tests/test1/fastas"
+    print(new_integerise_plasmids(f"{path}/{plasmid1}.fna", f"{path}/{plasmid2}.fna", f"{plasmid1}~{plasmid2}", plasmid1, plasmid2, length_threshold=200))
