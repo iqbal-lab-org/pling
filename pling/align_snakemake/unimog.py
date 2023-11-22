@@ -4,10 +4,10 @@ import pandas as pd
 import argparse
 
 def unimogs_to_ilp_core(genome_1_fasta, genome_2_fasta, genome_1, genome_2, identity_threshold):
-    plasmid_1_unimogs, plasmid_2_unimogs, jaccard, blocks_ref, blocks_query = new_integerise_plasmids(genome_1_fasta, genome_2_fasta,
+    plasmid_1_unimogs, plasmid_2_unimogs, jaccard_distance, blocks_ref, blocks_query = new_integerise_plasmids(genome_1_fasta, genome_2_fasta,
                                                                 f"{genome_1}~{genome_2}", genome_1, genome_2, identity_threshold)
     unimog = f">{genome_1}\n{plasmid_1_unimogs}\n>{genome_2}\n{plasmid_2_unimogs}"
-    return unimog, jaccard, blocks_ref, blocks_query
+    return unimog, jaccard_distance, blocks_ref, blocks_query
 
 
 def main():
@@ -28,10 +28,8 @@ def main():
     args = parser.parse_args()
 
     # Use the arguments
-    unimog, jaccard, blocks_ref, blocks_query = unimogs_to_ilp_core(args.genome_1_fasta, args.genome_2_fasta,
+    unimog, jaccard_distance, blocks_ref, blocks_query = unimogs_to_ilp_core(args.genome_1_fasta, args.genome_2_fasta,
                                                                     args.genome1, args.genome2, args.identity_threshold)
-    jaccard_distance = 1-jaccard
-
     with open(args.unimogs_output, 'w') as f:
         f.write(unimog)
 

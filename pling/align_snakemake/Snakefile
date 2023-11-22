@@ -15,7 +15,7 @@ include: "../common_rules/common_rules.smk"
 rule all:
     input:
         unimogs = get_files("unimog"),
-        seq_jaccard = f"{OUTPUTPATH}/jaccard/all_pairs_jaccard.tsv",
+        seq_jaccard = f"{OUTPUTPATH}/jaccard/all_pairs_jaccard_distance.tsv",
         communities = f"{OUTPUTPATH}/jaccard/jaccard_communities"
 
 rule make_unimogs:
@@ -58,7 +58,7 @@ rule make_unimogs:
 
 rule get_communities:
     input:
-        jaccard = f"{OUTPUTPATH}/jaccard/all_pairs_jaccard.tsv",
+        jaccard = f"{OUTPUTPATH}/jaccard/all_pairs_jaccard_distance.tsv",
         genomes = rules.create_genomes_tsv.output.genomes_tsv
     output:
         communities = directory(f"{OUTPUTPATH}/jaccard/jaccard_communities"),
@@ -71,7 +71,7 @@ rule get_communities:
         bh_connectivity=config["bh_connectivity"],
         bh_neighbours_edge_density=config["bh_neighbours_edge_density"]
     shell: """
-        plasnet \
+        plasnet split \
             --distance-threshold {params.jaccard_distance} \
             --bh-connectivity {params.bh_connectivity} \
             --bh-neighbours-edge-density {params.bh_neighbours_edge_density} \
