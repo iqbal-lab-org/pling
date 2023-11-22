@@ -20,7 +20,7 @@ class Test_Pling_end_to_end(TestCase):
                          output_dir='tests/integration_test/data/out',
                          integerisation='align',
                          bakta_db=None,
-                         jaccard=0.4,
+                         jaccard_distance=0.6,
                          dcj=4,
                          dedup=None,
                          dedup_threshold=None,
@@ -40,3 +40,5 @@ class Test_Pling_end_to_end(TestCase):
 
         assert_files_are_identical("tests/integration_test/data/out/all_plasmids_matrix.dist",
                                    "tests/integration_test/data/all_plasmids_matrix.truth.dist")
+        assert_files_are_identical("tests/integration_test/data/out/all_plasmids_distances.tsv",
+                                   "tests/integration_test/data/all_plasmids_distances.truth.tsv")
