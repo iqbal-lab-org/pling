@@ -164,6 +164,21 @@ rule dcj_matrix:
     script:
         "dcj_matrix.py"
 
+rule dcj_tsv:
+    input:
+        dist_files = get_dist_files(f"{OUTPUTPATH}/jaccard/all_pairs_jaccard_distance.tsv")
+    output:
+        tsv=f"{OUTPUTPATH}/{PREFIX}_distances.tsv"
+    conda:
+        "../envs/blocks.yaml"
+    params:
+        genomes= GENOMES,
+        outputpath = OUTPUTPATH
+    resources:
+        mem_mb = lambda wildcards, attempt: attempt * config["dcj_matrix_mem"]
+    script:
+        "dcj_tsv.py"
+
 rule build_DCJ_graph:
     input:
         matrix = f"{OUTPUTPATH}/{PREFIX}_matrix.dist", #Path to file with matrix of DCJ distances
