@@ -16,7 +16,7 @@ COMMUNITIES = config["communities"]
 
 def get_plasmid_to_community():
     plasmid_to_community = {}
-    with open(COMMUNITIES) as communities_fh:
+    with open(COMMUNITIES + "/objects/communities.txt") as communities_fh:
         for community_index, line in enumerate(communities_fh):
             plasmids = line.strip().split()
             for plasmid in plasmids:
@@ -151,7 +151,7 @@ rule dcj_dist:
 
 rule dcj_matrix:
     input:
-        dist_files = get_dist_files(f"{OUTPUTPATH}/jaccard/all_pairs_jaccard.tsv")
+        dist_files = get_dist_files(f"{OUTPUTPATH}/jaccard/all_pairs_jaccard_distance.tsv")
     output:
         matrix=f"{OUTPUTPATH}/{PREFIX}_matrix.dist"
     conda:
@@ -181,19 +181,22 @@ rule dcj_tsv:
 
 rule build_DCJ_graph:
     input:
-        matrix = f"{OUTPUTPATH}/{PREFIX}_matrix.dist", #Path to file with matrix of DCJ distances
-        communities=COMMUNITIES
+        distances_tsv = rules.dcj_tsv.output.tsv,
+        communities=COMMUNITIES+"/objects/communities.pkl"
     output:
         dcj_graph_outdir = directory(f"{OUTPUTPATH}/dcj_graph")
-    conda:
-        "../envs/blocks.yaml"
     threads: 1
     resources:
         mem_mb=lambda wildcards, attempt: config["build_DCJ_graph_mem"]*attempt
+    conda: "../envs/plasnet.yaml"
     params:
         dcj_dist_threshold=config["dcj_dist_threshold"],
-        bh_connectivity = config["bh_connectivity"], #Minimum number of connections a plasmid need to be considered a blackhole plasmid
-        bh_neighbours_edge_density = config["bh_neighbours_edge_density"], #Maximum number of edge density between blackhole plasmid neighbours to label the plasmid as blackhole
         small_subcommunity_size_threshold = config["small_subcommunity_size_threshold"] #Communities with size up to this parameter will be joined to neighbouring larger subcommunities
-    script:
-        "cluster_graph.py"
+    shell: """
+            plasnet type \
+                --distance-threshold {params.dcj_dist_threshold} \
+                --small-subcommunity-size-threshold {params.small_subcommunity_size_threshold} \
+                {input.communities} \
+                {input.distances_tsv} \
+                {output.dcj_graph_outdir}
+        """
