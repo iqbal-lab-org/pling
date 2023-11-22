@@ -4,4 +4,6 @@ channels:
   - defaults
 dependencies:
   - python =3.9
-  - plasnet =0.3.1
+  - pip
+  - pip:
+    - plasnet==0.3.1
