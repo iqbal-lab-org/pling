@@ -30,6 +30,7 @@ rule pairwise_seq_jaccard:
         genome1 = lambda wildcards: wildcards.genome1,
         genome2 = lambda wildcards: wildcards.genome2,
         identity_threshold = config["identity_threshold"],
+    shadow: "shallow"
     shell: """
         # set conda env first in $PATH - TODO: keep this or manage in other way?
         # this issue happens when running a pipeline and a conda env is already active but it is not the first
