@@ -25,7 +25,7 @@ def get_community_to_plasmid():
 COMMUNITY_TO_PLASMID, COMMUNITIES = get_community_to_plasmid()
 
 def blocks_input(community):
-    if config["dedup"]:
+    if config.get("dedup", False):
         files = [f"{OUTPUTPATH}/unimogs/relabelled/dedup/{community}_dedup.unimog", f"{OUTPUTPATH}/unimogs/relabelled/dedup/{community}_map_dedup.txt"]
     else:
         files = [f"{OUTPUTPATH}/unimogs/{community}_anno.unimog", f"{OUTPUTPATH}/unimogs/{{community}}_map.txt"]
@@ -125,50 +125,50 @@ rule consolidation:
     """
 
 
+if config.get("dedup", False):
+    rule gen_dedup_input:
+        input:
+            lambda wildcards: [f"{FASTAPATH}/{genome}{FASTAEXT[genome]}" for genome in COMMUNITY_TO_PLASMID[wildcards.community]]
+        output:
+            f"{OUTPUTPATH}/tmp_files/community_fastas/{{community}}.fna"
+        threads: 1
+        resources:
+            mem_mb = lambda wildcards, attempt: attempt * 4000
+        shell:
+            "cat {input} > {output}"
 
-rule gen_dedup_input:
-    input:
-        lambda wildcards: [f"{FASTAPATH}/{genome}{FASTAEXT[genome]}" for genome in COMMUNITY_TO_PLASMID[wildcards.community]]
-    output:
-        f"{OUTPUTPATH}/tmp_files/community_fastas/{{community}}.fna"
-    threads: 1
-    resources:
-        mem_mb = lambda wildcards, attempt: attempt * 4000
-    shell:
-        "cat {input} > {output}"
-
-rule deduplication:
-    input:
-        fasta = f"{OUTPUTPATH}/tmp_files/community_fastas/{{community}}.fna",
-        unimog = f"{OUTPUTPATH}/unimogs/{{community}}_anno.unimog",
-        map = f"{OUTPUTPATH}/unimogs/{{community}}_map.txt"
-    output:
-        nucmer = f"{OUTPUTPATH}/tmp_files/nucmer/{{community}}.nucmer",
-        relabelled_unimog = f"{OUTPUTPATH}/unimogs/relabelled/dedup/{{community}}_dedup.unimog",
-        dedup_map = f"{OUTPUTPATH}/unimogs/relabelled/dedup/{{community}}_map_dedup.txt"
-    conda:
-        "../envs/dedup.yaml"
-    threads: config["deduplication_threads"]
-    resources:
-        mem_mb = lambda wildcards, attempt: attempt * config["deduplication_mem"]
-    params:
-        pafs=f"{OUTPUTPATH}/tmp_files/minimap/{{community}}/output",
-        nucmer_threshold=config["dedup_threshold"],
-        genomes = lambda wildcards: COMMUNITY_TO_PLASMID[wildcards.community]
-    shell: """
-        # set conda env first in $PATH - TODO: keep this or manage in other way?
-        # this issue happens when running a pipeline and a conda env is already active but it is not the first
-        # in the $PATH that have python installed (let's call this env E).
-        # In this case, snakemake will activate the "../envs/integerise.yaml" env but the python in the $PATH is the one
-        # in E, which won't have the dependencies required to run the script below.
-        # This is the expected behaviour, is not a bug in conda or snakemake.
-        # For more details, see https://github.com/conda/conda/issues/9392#issuecomment-1291041085 
-        PATH="$CONDA_PREFIX"/bin:$PATH  # quick fix for the issue described above
-        python pling/anno_snakemake/multipartite.py \
-            {input.fasta} {input.unimog} {input.map} \
-            {params.pafs} {params.nucmer_threshold} "{params.genomes}" \
-            {output.nucmer} {output.relabelled_unimog} {output.dedup_map}
-    """
+    rule deduplication:
+        input:
+            fasta = f"{OUTPUTPATH}/tmp_files/community_fastas/{{community}}.fna",
+            unimog = f"{OUTPUTPATH}/unimogs/{{community}}_anno.unimog",
+            map = f"{OUTPUTPATH}/unimogs/{{community}}_map.txt"
+        output:
+            nucmer = f"{OUTPUTPATH}/tmp_files/nucmer/{{community}}.nucmer",
+            relabelled_unimog = f"{OUTPUTPATH}/unimogs/relabelled/dedup/{{community}}_dedup.unimog",
+            dedup_map = f"{OUTPUTPATH}/unimogs/relabelled/dedup/{{community}}_map_dedup.txt"
+        conda:
+            "../envs/dedup.yaml"
+        threads: config["deduplication_threads"]
+        resources:
+            mem_mb = lambda wildcards, attempt: attempt * config["deduplication_mem"]
+        params:
+            pafs=f"{OUTPUTPATH}/tmp_files/minimap/{{community}}/output",
+            nucmer_threshold=config["dedup_threshold"],
+            genomes = lambda wildcards: COMMUNITY_TO_PLASMID[wildcards.community]
+        shell: """
+            # set conda env first in $PATH - TODO: keep this or manage in other way?
+            # this issue happens when running a pipeline and a conda env is already active but it is not the first
+            # in the $PATH that have python installed (let's call this env E).
+            # In this case, snakemake will activate the "../envs/integerise.yaml" env but the python in the $PATH is the one
+            # in E, which won't have the dependencies required to run the script below.
+            # This is the expected behaviour, is not a bug in conda or snakemake.
+            # For more details, see https://github.com/conda/conda/issues/9392#issuecomment-1291041085 
+            PATH="$CONDA_PREFIX"/bin:$PATH  # quick fix for the issue described above
+            python pling/anno_snakemake/multipartite.py \
+                {input.fasta} {input.unimog} {input.map} \
+                {params.pafs} {params.nucmer_threshold} "{params.genomes}" \
+                {output.nucmer} {output.relabelled_unimog} {output.dedup_map}
+        """
 
 rule blocks:
     input:
