@@ -80,8 +80,9 @@ def make_config_file(args):
         config.write(f"dcj_dist_threshold: {args.dcj}\n\n")
         config.write("prefix: all_plasmids\n\n")
         config.write(f"communities: {args.output_dir}/jaccard/jaccard_communities\n\n")
-        config.write(f"dedup: {args.dedup}\n\n")
-        config.write(f"dedup_threshold: {args.dedup_threshold}\n\n")
+        if args.dedup:
+            config.write(f"dedup: {args.dedup}\n\n")
+            config.write(f"dedup_threshold: {args.dedup_threshold}\n\n")
         config.write(f"identity_threshold: {args.identity}\n\n")
         config.write(f"length_threshold: {args.min_indel_size}\n\n")
         config.write(f"bh_connectivity: {args.bh_connectivity}\n\n")
