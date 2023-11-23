@@ -7,9 +7,7 @@ Created on Mon Feb 21 16:45:19 2022
 
 import pandas as pd
 from pafpy import PafFile
-import os
-from pathlib import Path
-import math
+import argparse
 
 def gene_locations(pafs,genomes):
     output = pd.DataFrame() #dataframe of output
@@ -69,15 +67,24 @@ def make_unimog(unimogpath, int_sequences): #create unimog file of integer seque
                 unimog.write(str(gene)+" ")
             unimog.write(")\n")
 
-pafs=snakemake.params.pafs
-genomes=snakemake.params.genomes
 
-data = gene_locations(pafs,genomes)
-sorting = sort(data,genomes)
-ints, table = to_int(sorting,data)
+def main(pafs, genomes, unimogpath, output_map):
+    data = gene_locations(pafs, genomes)
+    sorting = sort(data, genomes)
+    ints, table = to_int(sorting, data)
 
-unimogpath = snakemake.output.unimog
-output_map = snakemake.output.map
+    make_unimog(unimogpath, ints)
+    pd.Series(table).to_csv(output_map, sep="\t", header=False)
 
-make_unimog(unimogpath, ints)
-pd.Series(table).to_csv(output_map, sep="\t", header=False)
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description="Process some genomes.")
+    parser.add_argument("pafs", help="Path to PAFs file")
+    parser.add_argument("genomes", help="Genomes in the community")
+    parser.add_argument("unimogpath", help="Output path for Unimog file")
+    parser.add_argument("output_map", help="Output path for map file")
+
+    args = parser.parse_args()
+    args.genomes = args.genomes.split(" ")
+
+    main(args.pafs, args.genomes, args.unimogpath, args.output_map)
