@@ -103,7 +103,7 @@ def make_config_file(args):
 def pling(args):
     configfile, tmp_dir, forceall, profile = make_config_file(args)
 
-    snakemake_args = f"--configfile {configfile} --cores {args.cores} --use-conda --rerun-incomplete {profile} {forceall}"
+    snakemake_args = f"--configfile {configfile} --cores {args.cores} --use-conda --use-singularity --rerun-incomplete {profile} {forceall}"
 
     #integerisation
     if args.integerisation == "anno":
