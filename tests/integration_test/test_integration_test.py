@@ -15,9 +15,9 @@ class Test_Pling_end_to_end(TestCase):
         second_file_content = self.read_file(path_to_second_file)
         self.assertEqual(first_file_content, second_file_content)
 
-    def test_pling_end_to_end(self):
+    def test_pling_align_end_to_end(self):
         args = Namespace(genomes_list='tests/integration_test/data/incy_list_4.txt',
-                         output_dir='tests/integration_test/data/out',
+                         output_dir='tests/integration_test/data/out_align',
                          integerisation='align',
                          bakta_db=None,
                          jaccard_distance=0.6,
@@ -38,7 +38,7 @@ class Test_Pling_end_to_end(TestCase):
                          profile=None)
         run_pling.pling(args)
 
-        assert_files_are_identical("tests/integration_test/data/out/all_plasmids_matrix.dist",
+        assert_files_are_identical("tests/integration_test/data/out_align/all_plasmids_matrix.dist",
                                    "tests/integration_test/data/all_plasmids_matrix.truth.dist")
-        assert_files_are_identical("tests/integration_test/data/out/all_plasmids_distances.tsv",
+        assert_files_are_identical("tests/integration_test/data/out_align/all_plasmids_distances.tsv",
                                    "tests/integration_test/data/all_plasmids_distances.truth.tsv")
