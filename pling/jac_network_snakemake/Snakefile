@@ -30,7 +30,6 @@ rule pairwise_seq_jaccard:
         genome1 = lambda wildcards: wildcards.genome1,
         genome2 = lambda wildcards: wildcards.genome2,
         identity_threshold = config["identity_threshold"],
-        length_threshold = config["length_threshold"]
     shell: """
         # set conda env first in $PATH - TODO: keep this or manage in other way?
         # this issue happens when running a pipeline and a conda env is already active but it is not the first
@@ -44,7 +43,7 @@ rule pairwise_seq_jaccard:
         python pling/jac_network_snakemake/seq_jaccard.py \
             {params.genome1} {params.genome2} \
             {input.genome_1_fasta} {input.genome_2_fasta} \
-            {params.identity_threshold} {params.length_threshold} \
+            {params.identity_threshold} \
             {output.jaccard}
     """
 
