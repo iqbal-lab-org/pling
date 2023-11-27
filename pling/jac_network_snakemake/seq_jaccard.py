@@ -19,7 +19,7 @@ def get_coordinates(split_line, index):
     end+=1
     return start, end
 
-def seq_jaccard(plasmid_1: Path, plasmid_2: Path, prefix: str, identity_threshold=80, length_threshold=200) -> Tuple[str, str]:
+def get_sequence_jaccard_distance(plasmid_1: Path, plasmid_2: Path, prefix: str, identity_threshold=80) -> Tuple[str, str]:
     subprocess.check_call(f"perl -w $(which dnadiff) {plasmid_1} {plasmid_2} -p {prefix} 2>/dev/null", shell=True)
     show_coords_output = subprocess.check_output(f"show-coords -TrcldH -I {identity_threshold} {prefix}.1delta", shell=True).strip().split(b'\n')  # TODO: what about this threshold?
 
@@ -53,19 +53,19 @@ def seq_jaccard(plasmid_1: Path, plasmid_2: Path, prefix: str, identity_threshol
     coverage_query = get_coverage(query_to_block)
 
     if len_ref>len_query:
-        jaccard = coverage_query/len_query
+        jaccard_similarity = coverage_query/len_query
     else:
-        jaccard = coverage_ref/len_ref
+        jaccard_similarity = coverage_ref/len_ref
 
-    return jaccard
+    jaccard_distance = 1-jaccard_similarity
+    return jaccard_distance
 
 
 def main(args):
-    jaccard = seq_jaccard(args.genome_1_fasta, args.genome_2_fasta, f"{args.genome1}~{args.genome2}", args.identity_threshold,
-                          args.length_threshold)
+    jaccard_distance = get_sequence_jaccard_distance(args.genome_1_fasta, args.genome_2_fasta, f"{args.genome1}~{args.genome2}", args.identity_threshold)
 
-    with open(args.jaccardpath, 'w+') as f:
-        f.write(f"{args.genome1}\t{args.genome2}\t{jaccard}\n")
+    with open(args.jaccardpath, 'w') as f:
+        f.write(f"{args.genome1}\t{args.genome2}\t{jaccard_distance}\n")
 
 
 if __name__ == "__main__":
@@ -75,7 +75,6 @@ if __name__ == "__main__":
     parser.add_argument('genome_1_fasta', help='Path to the FASTA file for first genome')
     parser.add_argument('genome_2_fasta', help='Path to the FASTA file for second genome')
     parser.add_argument('identity_threshold', type=float, help='Identity threshold for comparison')
-    parser.add_argument('length_threshold', type=float, help='Length threshold for comparison')
     parser.add_argument('jaccardpath', help='Output path for the Jaccard index results')
 
     args = parser.parse_args()

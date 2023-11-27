@@ -214,11 +214,12 @@ def integerise_plasmids(plasmid_1: Path, plasmid_2: Path, prefix: str, plasmid_1
             pass
 
     if len_ref>len_query:
-        jaccard = coverage_query/len_query
+        jaccard_similarity = coverage_query/len_query
     else:
-        jaccard = coverage_ref/len_ref
+        jaccard_similarity = coverage_ref/len_ref
+    jaccard_distance = 1-jaccard_similarity
 
-    return plasmid_1_unimogs, plasmid_2_unimogs, jaccard, blocks_ref, blocks_query
+    return plasmid_1_unimogs, plasmid_2_unimogs, jaccard_distance, blocks_ref, blocks_query
 
 testing = False
 

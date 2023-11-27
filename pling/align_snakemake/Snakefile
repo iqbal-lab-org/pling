@@ -14,10 +14,9 @@ include: "../common_rules/common_rules.smk"
 
 rule all:
     input:
-        unimogs = get_files("unimog"),
-        seq_jaccard = f"{OUTPUTPATH}/jaccard/all_pairs_jaccard.tsv",
-        communities = f"{OUTPUTPATH}/jaccard/jaccard_communities.txt",
-        communities_sizes = f"{OUTPUTPATH}/jaccard/jaccard_communities_sizes.txt"
+        unimogs = get_files("unimog", OUTPUTPATH, get_pairs(GENOMES)),
+        seq_jaccard = f"{OUTPUTPATH}/jaccard/all_pairs_jaccard_distance.tsv",
+        communities = f"{OUTPUTPATH}/jaccard/jaccard_communities"
 
 rule make_unimogs:
     input:
@@ -25,7 +24,7 @@ rule make_unimogs:
         genome_2_fasta=lambda wildcards: f"{FASTAPATH}/{wildcards.genome2}{FASTAEXT[wildcards.genome2]}"
     output:
         unimogs=f"{OUTPUTPATH}/unimogs/{{genome1}}~{{genome2}}_align.unimog",
-        jaccard=f"{OUTPUTPATH}/tmp_files/jaccard_pairwise/{{genome1}}~{{genome2}}_jaccard.tsv",
+        jaccard_distance=f"{OUTPUTPATH}/tmp_files/jaccard_pairwise/{{genome1}}~{{genome2}}_jaccard_distance.tsv",
         seq_blocks=f"{OUTPUTPATH}/unimogs/{{genome1}}~{{genome2}}_map.txt"
     threads: config["make_unimogs_threads"]
     resources:
@@ -53,31 +52,31 @@ rule make_unimogs:
             --genome2 {params.genome2} \
             --identity_threshold {params.identity_threshold} \
             --unimogs {output.unimogs} \
-            --jaccard {output.jaccard} \
+            --jaccard {output.jaccard_distance} \
             --seq_blocks {output.seq_blocks}
         """
 
 rule get_communities:
     input:
-        jaccard = f"{OUTPUTPATH}/jaccard/all_pairs_jaccard.tsv"
+        jaccard = f"{OUTPUTPATH}/jaccard/all_pairs_jaccard_distance.tsv",
+        genomes = rules.create_genomes_tsv.output.genomes_tsv
     output:
-        communities = f"{OUTPUTPATH}/jaccard/jaccard_communities.txt",
-        communities_sizes = f"{OUTPUTPATH}/jaccard/jaccard_communities_sizes.txt",
-        isolates = f"{OUTPUTPATH}/jaccard/jaccard_isolates.txt"
+        communities = directory(f"{OUTPUTPATH}/jaccard/jaccard_communities"),
     threads: 1
     resources:
         mem_mb=lambda wildcards, attempt: config["get_communities_mem"]*attempt
-    conda: "../envs/env.yaml"
+    conda: "../envs/plasnet.yaml"
     params:
-        jaccard_threshold=config["seq_jaccard_threshold"],
-        genomes=GENOMES
+        jaccard_distance=config["seq_jaccard_distance"],
+        bh_connectivity=config["bh_connectivity"],
+        bh_neighbours_edge_density=config["bh_neighbours_edge_density"]
     shell: """
-        PATH="$CONDA_PREFIX"/bin:$PATH  # set conda env first in $PATH
-        python pling/align_snakemake/get_communities.py \
-            --jaccard {input.jaccard} \
-            --jaccard-threshold {params.jaccard_threshold} \
-            --genomes "{params.genomes}" \
-            --communities {output.communities} \
-            --communities-sizes {output.communities_sizes} \
-            --isolates {output.isolates}
+        plasnet split \
+            --distance-threshold {params.jaccard_distance} \
+            --bh-connectivity {params.bh_connectivity} \
+            --bh-neighbours-edge-density {params.bh_neighbours_edge_density} \
+            --output-plasmid-graph \
+            {input.genomes} \
+            {input.jaccard} \
+            {output.communities}
     """

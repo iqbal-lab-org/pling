@@ -6,3 +6,4 @@ dependencies:
  - pandas =1.4.3
  - networkx =2.8.4
  - numpy =1.22.3
+ - pafpy =0.2.0
