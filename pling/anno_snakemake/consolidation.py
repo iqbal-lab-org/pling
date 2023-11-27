@@ -78,7 +78,7 @@ def main(pafs, genomes, unimogpath, output_map):
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Process some genomes.")
+    parser = argparse.ArgumentParser(description="Construct integer sequence representation of genome, with integer=gene.")
     parser.add_argument("pafs", help="Path to PAFs file")
     parser.add_argument("genomes", help="Genomes in the community")
     parser.add_argument("unimogpath", help="Output path for Unimog file")
