@@ -235,7 +235,7 @@ if __name__ == "__main__":
 
     parser.add_argument("pafs", help="Path to PAFs file")
     parser.add_argument("nucmer_threshold", type=float, help="Nucmer threshold for minimum percent identity of match")
-    parser.add_argument("genomes", help="Path to Genomes file")
+    parser.add_argument("genomes", help="Genomes in consideration")
 
     parser.add_argument("nucmer", help="Output path for nucmer file")
     parser.add_argument("outputpath", help="Output path for relabelled Unimog file")
