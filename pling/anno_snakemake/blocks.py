@@ -193,7 +193,7 @@ if __name__ == "__main__":
     parser.add_argument("unimog_filepath", help="Path to the Unimog file")
     parser.add_argument("map_filepath", help="Path to the map file")
 
-    parser.add_argument("genomes")
+    parser.add_argument("genomes", help="Genomes in consideration")
     parser.add_argument("relabelled_dir", help="Directory for relabelled output")
 
     parser.add_argument("relabelled_unimog", help="Output path for relabelled Unimog file")
