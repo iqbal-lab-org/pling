@@ -10,30 +10,7 @@ FASTAEXT = {os.path.splitext(os.path.basename(el))[0]:os.path.splitext(os.path.b
 GENOMES = list(FASTAEXT.keys())
 FASTAPATH = os.path.dirname(FASTAFILES[0])
 
-def get_pairs():
-    genome_pairs=[]
-    n = len(GENOMES)
-    for i in range(n):
-        j=0
-        while j<i:
-            genome_pairs.append([GENOMES[i], GENOMES[j]])
-            j=j+1
-    return genome_pairs
-
-PAIRS = get_pairs()
-
-def get_files(type):
-    files = []
-    if type == "jaccard":
-        dir = f"{OUTPUTPATH}/tmp_files/jaccard_pairwise"
-        end = "jaccard.tsv"
-    elif type == "unimog":
-        dir = f"{OUTPUTPATH}/unimogs"
-        end = "align.unimog"
-    for el in PAIRS:
-        if len(el)>1:
-            files.append(f"{dir}/{el[0]}~{el[1]}_{end}")
-    return files
+include: "../common_rules/common_rules.smk"
 
 rule all:
     input:
@@ -79,18 +56,6 @@ rule make_unimogs:
             --jaccard {output.jaccard} \
             --seq_blocks {output.seq_blocks}
         """
-
-rule cat_jaccard:
-    input:
-        jaccards = get_files("jaccard")
-    output:
-        jaccard = f"{OUTPUTPATH}/jaccard/all_pairs_jaccard.tsv"
-    threads: 1
-    resources:
-        mem_mb=lambda wildcards, attempt: 4000*attempt
-    shell:
-        "cat {input.jaccards} > {output.jaccard}"
-
 
 rule get_communities:
     input:
