@@ -1,8 +1,5 @@
 import os
-from operator import attrgetter
-import shutil
 import pandas as pd
-from pathlib import Path
 
 configfile: "../config.yaml"
 
@@ -13,29 +10,11 @@ FASTAPATH = os.path.dirname(FASTAFILES[0])
 OUTPUTPATH = config["output_dir"]
 PREFIX = config["prefix"]
 
-def get_pairs():
-    genome_pairs=[]
-    n = len(GENOMES)
-    for i in range(n):
-        j=0
-        while j<i:
-            genome_pairs.append([GENOMES[i], GENOMES[j]])
-            j=j+1
-    return genome_pairs
-
-PAIRS = get_pairs()
-
-def get_files():
-    files = []
-    for el in PAIRS:
-        if len(el)>1:
-            files.append(f"{OUTPUTPATH}/tmp_files/jaccard_pairwise/{el[0]}~{el[1]}_jaccard.tsv")
-    return files
+include: "../common_rules/common_rules.smk"
 
 rule all:
     input:
-        communities = f"{OUTPUTPATH}/jaccard/jaccard_communities.txt",
-        communities_sizes = f"{OUTPUTPATH}/jaccard/jaccard_communities_sizes.txt"
+        communities = f"{OUTPUTPATH}/jaccard/jaccard_communities"
 
 rule pairwise_seq_jaccard:
     input:
@@ -55,29 +34,28 @@ rule pairwise_seq_jaccard:
     script:
         "seq_jaccard.py"
 
-rule cat_jaccard:
-    input:
-        jaccards = get_files()
-    output:
-        jaccard = f"{OUTPUTPATH}/jaccard/all_pairs_jaccard.tsv"
-    threads: 1
-    resources:
-        mem_mb=lambda wildcards, attempt: 4000*attempt
-    shell:
-        "cat {input.jaccards} > {output.jaccard}"
 
 rule get_communities:
     input:
-        jaccard = f"{OUTPUTPATH}/jaccard/all_pairs_jaccard.tsv"
+        jaccard = f"{OUTPUTPATH}/jaccard/all_pairs_jaccard_distance.tsv",
+        genomes = rules.create_genomes_tsv.output.genomes_tsv
     output:
-        communities = f"{OUTPUTPATH}/jaccard/jaccard_communities.txt",
-        communities_sizes = f"{OUTPUTPATH}/jaccard/jaccard_communities_sizes.txt",
-        isolates = f"{OUTPUTPATH}/jaccard/jaccard_isolates.txt"
+        communities = directory(f"{OUTPUTPATH}/jaccard/jaccard_communities"),
     threads: 1
     resources:
         mem_mb=lambda wildcards, attempt: config["get_communities_mem"]*attempt
-    conda: "../envs/env.yaml"
+    conda: "../envs/plasnet.yaml"
     params:
-        jaccard_threshold=config["seq_jaccard_threshold"],
-        genomes = GENOMES
-    script: "get_communities.py"
+        jaccard_distance=config["seq_jaccard_distance"],
+        bh_connectivity=config["bh_connectivity"],
+        bh_neighbours_edge_density=config["bh_neighbours_edge_density"]
+    shell: """
+        plasnet split \
+            --distance-threshold {params.jaccard_distance} \
+            --bh-connectivity {params.bh_connectivity} \
+            --bh-neighbours-edge-density {params.bh_neighbours_edge_density} \
+            --output-plasmid-graph \
+            {input.genomes} \
+            {input.jaccard} \
+            {output.communities}
+    """
