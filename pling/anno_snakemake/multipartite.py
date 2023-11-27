@@ -11,6 +11,7 @@ from pafpy import PafFile
 import pandas as pd
 import networkx as nx
 import numpy as np
+import argparse
 
 def read_in_unimog(inputpath_unimog):
     sequences = {}
@@ -198,9 +199,9 @@ def deduplication(inputpath_unimog, inputpath_nucmer, inputpath_paf, inputpath_m
     name_and_int = name_and_int.values.tolist()
     name_to_int = {el[0]:el[1] for el in name_and_int}
     int_to_name = {el[1]:el[0] for el in name_and_int}
-    sequences = read_in_unimog(unimog)
-    block_matches = read_in_nucmer(nucmer, genomes)
-    gene_matches = get_gene_matches(pafs, genomes)
+    sequences = read_in_unimog(inputpath_unimog)
+    block_matches = read_in_nucmer(inputpath_nucmer, genomes)
+    gene_matches = get_gene_matches(inputpath_paf, genomes)
     duplicates = find_duplicates(sequences)
     label = max([max([abs(el) for el in sequences[genome]]) for genome in genomes])
     if duplicates:
@@ -211,38 +212,37 @@ def deduplication(inputpath_unimog, inputpath_nucmer, inputpath_paf, inputpath_m
     else:
         generate_dedup_unimog(outputpath, map_outputpath, sequences, int_to_name)
 
-testing = False
 
-if testing == True:
-    OUTPUTPATH =  "/home/daria/Documents/projects/pling/tests/test1/annotation"
-    fasta = f"{OUTPUTPATH}/tmp_files/community_fastas/0.fna"
-    nucmer = f"{OUTPUTPATH}/tmp_files/nucmer/0.nucmer"
-    nucmer_threshold = 98.5
-    unimog = f"{OUTPUTPATH}/unimogs/0_anno.unimog"
-    inputpath_map = f"{OUTPUTPATH}/0_map.txt"
-    pafs = f"{OUTPUTPATH}/tmp_files/minimap/0/output"
-    genomes = [el[0] for el in pd.read_csv("/home/daria/Documents/projects/pling/tests/test1/fastas/list.txt", header=None).values]
-    outputpath = f"{OUTPUTPATH}/unimogs/relabelled/dedup/0_dedup.unimog"
-    map_outputpath = f"{OUTPUTPATH}/unimogs/relabelled/dedup/0_map_dedup.txt"
-else:
-    fasta = snakemake.input.fasta
-    nucmer = snakemake.output.nucmer
-    nucmer_threshold = snakemake.params.nucmer_threshold
-    unimog = snakemake.input.unimog
-    inputpath_map = snakemake.input.map
-    pafs = snakemake.params.pafs
-    genomes = snakemake.params.genomes
-    outputpath = snakemake.output.relabelled_unimog
-    map_outputpath = snakemake.output.dedup_map
+def main(fasta, nucmer, nucmer_threshold, unimog, inputpath_map, pafs, genomes, outputpath, map_outputpath):
+    runner = pymummer.nucmer.Runner(
+        fasta,
+        fasta,
+        nucmer,
+        min_id=nucmer_threshold,  # minimum percent identity of match
+        promer=False,
+        maxmatch=True
+    )
+    runner.run()
 
-runner = pymummer.nucmer.Runner(
-                    fasta,
-                    fasta,
-                    nucmer,
-                    min_id=nucmer_threshold,     # minimum percent identity of match
-                    promer=False,
-                    maxmatch=True
-                )
-runner.run()
+    deduplication(unimog, nucmer, pafs, inputpath_map, genomes, outputpath, map_outputpath)
 
-deduplication(unimog, nucmer, pafs, inputpath_map, genomes, outputpath, map_outputpath)
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description="Run nucmer and deduplication process.")
+    parser.add_argument("fasta", help="Path to FASTA file")
+    parser.add_argument("unimog", help="Path to Unimog file")
+    parser.add_argument("inputpath_map", help="Path to input map file")
+
+    parser.add_argument("pafs", help="Path to PAFs file")
+    parser.add_argument("nucmer_threshold", type=float, help="Nucmer threshold for minimum percent identity of match")
+    parser.add_argument("genomes", help="Genomes in consideration")
+
+    parser.add_argument("nucmer", help="Output path for nucmer file")
+    parser.add_argument("outputpath", help="Output path for relabelled Unimog file")
+    parser.add_argument("map_outputpath", help="Output path for deduplicated map file")
+
+    args = parser.parse_args()
+
+    args.genomes = args.genomes.split(" ")
+
+    main(args.fasta, args.nucmer, args.nucmer_threshold, args.unimog, args.inputpath_map, args.pafs, args.genomes, args.outputpath, args.map_outputpath)
