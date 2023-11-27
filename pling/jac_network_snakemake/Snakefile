@@ -37,25 +37,16 @@ rule pairwise_seq_jaccard:
 
 rule get_communities:
     input:
-        jaccard = f"{OUTPUTPATH}/jaccard/all_pairs_jaccard_distance.tsv",
-        genomes = rules.create_genomes_tsv.output.genomes_tsv
+        jaccard = f"{OUTPUTPATH}/jaccard/all_pairs_jaccard.tsv"
     output:
-        communities = directory(f"{OUTPUTPATH}/jaccard/jaccard_communities"),
+        communities = f"{OUTPUTPATH}/jaccard/jaccard_communities.txt",
+        communities_sizes = f"{OUTPUTPATH}/jaccard/jaccard_communities_sizes.txt",
+        isolates = f"{OUTPUTPATH}/jaccard/jaccard_isolates.txt"
     threads: 1
     resources:
         mem_mb=lambda wildcards, attempt: config["get_communities_mem"]*attempt
-    conda: "../envs/plasnet.yaml"
+    conda: "../envs/env.yaml"
     params:
-        jaccard_distance=config["seq_jaccard_distance"],
-        bh_connectivity=config["bh_connectivity"],
-        bh_neighbours_edge_density=config["bh_neighbours_edge_density"]
-    shell: """
-        plasnet split \
-            --distance-threshold {params.jaccard_distance} \
-            --bh-connectivity {params.bh_connectivity} \
-            --bh-neighbours-edge-density {params.bh_neighbours_edge_density} \
-            --output-plasmid-graph \
-            {input.genomes} \
-            {input.jaccard} \
-            {output.communities}
-    """
+        jaccard_threshold=config["seq_jaccard_threshold"],
+        genomes = GENOMES
+    script: "get_communities.py"
