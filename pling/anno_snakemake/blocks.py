@@ -189,7 +189,7 @@ def main(map_filepath, unimog_filepath, relabelled_unimog, relabelled_dir, outpu
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Process and output genome data.")
+    parser = argparse.ArgumentParser(description="Simplify integer sequence by finding blocks of genes that are always in the same order across all genomes, and representing those blocks with just one integer.")
     parser.add_argument("unimog_filepath", help="Path to the Unimog file")
     parser.add_argument("map_filepath", help="Path to the map file")
 
