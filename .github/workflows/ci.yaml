@@ -15,7 +15,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [ ubuntu-latest, macos-latest ]
+        os: [ ubuntu-latest ]
         python-version: [ 3.8, 3.9, "3.10", 3.11 ]
     steps:
       - uses: actions/checkout@v3
@@ -32,11 +32,23 @@ jobs:
             python=${{ matrix.python-version }}
             snakemake
             mamba
+            poetry
           init-shell: bash
           cache-environment: true
           post-cleanup: 'all'
-      - name: Test workflow (local test data)
+
+      - uses: eWaterCycle/setup-singularity@v7
+        with:
+          singularity-version: 3.7.1
+
+      - name: Install
         shell: bash -el {0}
         run: |
           micromamba activate test-env
-          python -m unittest discover -v -v -v -s tests -t .
+          make install-ci
+
+      - name: Test
+        shell: bash -el {0}
+        run: |
+          micromamba activate test-env
+          make test
