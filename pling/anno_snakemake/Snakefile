@@ -1,5 +1,6 @@
 import os
 import pandas as pd
+from pling.utils import get_pling_root_dir
 
 configfile: "../config.yaml"
 
@@ -111,7 +112,8 @@ rule consolidation:
     params:
         pafs=f"{OUTPUTPATH}/tmp_files/minimap/{{community}}/output",
         genomes = lambda wildcards: COMMUNITY_TO_PLASMID[wildcards.community],
-        outputpath = OUTPUTPATH
+        outputpath = OUTPUTPATH,
+        pling_root_dir = get_pling_root_dir()
     shell: """
         # set conda env first in $PATH - TODO: keep this or manage in other way?
         # this issue happens when running a pipeline and a conda env is already active but it is not the first
@@ -121,7 +123,7 @@ rule consolidation:
         # This is the expected behaviour, is not a bug in conda or snakemake.
         # For more details, see https://github.com/conda/conda/issues/9392#issuecomment-1291041085 
         PATH="$CONDA_PREFIX"/bin:$PATH  # quick fix for the issue described above
-        python pling/anno_snakemake/consolidation.py {params.pafs} "{params.genomes}" {output.unimog} {output.map}
+        python {params.pling_root_dir}/pling/anno_snakemake/consolidation.py {params.pafs} "{params.genomes}" {output.unimog} {output.map}
     """
 
 
@@ -154,7 +156,8 @@ if config.get("dedup", False):
         params:
             pafs=f"{OUTPUTPATH}/tmp_files/minimap/{{community}}/output",
             nucmer_threshold=config["dedup_threshold"],
-            genomes = lambda wildcards: COMMUNITY_TO_PLASMID[wildcards.community]
+            genomes = lambda wildcards: COMMUNITY_TO_PLASMID[wildcards.community],
+            pling_root_dir = get_pling_root_dir()
         shell: """
             # set conda env first in $PATH - TODO: keep this or manage in other way?
             # this issue happens when running a pipeline and a conda env is already active but it is not the first
@@ -164,7 +167,7 @@ if config.get("dedup", False):
             # This is the expected behaviour, is not a bug in conda or snakemake.
             # For more details, see https://github.com/conda/conda/issues/9392#issuecomment-1291041085 
             PATH="$CONDA_PREFIX"/bin:$PATH  # quick fix for the issue described above
-            python pling/anno_snakemake/multipartite.py \
+            python {params.pling_root_dir}/pling/anno_snakemake/multipartite.py \
                 {input.fasta} {input.unimog} {input.map} \
                 {params.pafs} {params.nucmer_threshold} "{params.genomes}" \
                 {output.nucmer} {output.relabelled_unimog} {output.dedup_map}
@@ -183,7 +186,8 @@ rule blocks:
         mem_mb = lambda wildcards, attempt: attempt * config["blocks_mem"]
     params:
         genomes = lambda wildcards: COMMUNITY_TO_PLASMID[wildcards.community],
-        relabelled_dir = f"{OUTPUTPATH}/unimogs/relabelled/blocks"
+        relabelled_dir = f"{OUTPUTPATH}/unimogs/relabelled/blocks",
+        pling_root_dir = get_pling_root_dir()
     shell: """
         # set conda env first in $PATH - TODO: keep this or manage in other way?
         # this issue happens when running a pipeline and a conda env is already active but it is not the first
@@ -193,7 +197,7 @@ rule blocks:
         # This is the expected behaviour, is not a bug in conda or snakemake.
         # For more details, see https://github.com/conda/conda/issues/9392#issuecomment-1291041085 
         PATH="$CONDA_PREFIX"/bin:$PATH  # quick fix for the issue described above
-        python pling/anno_snakemake/blocks.py \
+        python {params.pling_root_dir}/pling/anno_snakemake/blocks.py \
             {input} \
             "{params.genomes}" {params.relabelled_dir} \
             {output.relabelled_unimog} {output.blocks_map} \

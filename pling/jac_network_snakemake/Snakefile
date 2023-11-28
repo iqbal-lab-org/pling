@@ -1,5 +1,6 @@
 import os
 import pandas as pd
+from pling.utils import get_pling_root_dir
 
 configfile: "../config.yaml"
 
@@ -30,6 +31,7 @@ rule pairwise_seq_jaccard:
         genome1 = lambda wildcards: wildcards.genome1,
         genome2 = lambda wildcards: wildcards.genome2,
         identity_threshold = config["identity_threshold"],
+        pling_root_dir = get_pling_root_dir()
     shadow: "shallow"
     shell: """
         # set conda env first in $PATH - TODO: keep this or manage in other way?
@@ -41,7 +43,7 @@ rule pairwise_seq_jaccard:
         # For more details, see https://github.com/conda/conda/issues/9392#issuecomment-1291041085 
         PATH="$CONDA_PREFIX"/bin:$PATH  # quick fix for the issue described above
         
-        python pling/jac_network_snakemake/seq_jaccard.py \
+        python {params.pling_root_dir}/pling/jac_network_snakemake/seq_jaccard.py \
             {params.genome1} {params.genome2} \
             {input.genome_1_fasta} {input.genome_2_fasta} \
             {params.identity_threshold} \

@@ -1,5 +1,6 @@
 import os
 import pandas as pd
+from pling.utils import get_pling_root_dir
 
 configfile: "../config.yaml"
 
@@ -32,7 +33,8 @@ rule make_unimogs:
     params:
         genome1 = lambda wildcards: wildcards.genome1,
         genome2 = lambda wildcards: wildcards.genome2,
-        identity_threshold = config["identity_threshold"]
+        identity_threshold = config["identity_threshold"],
+        pling_root_dir = get_pling_root_dir()
     conda: "../envs/integerise.yaml"
     shadow: "shallow"
     shell:
@@ -45,7 +47,7 @@ rule make_unimogs:
         # This is the expected behaviour, is not a bug in conda or snakemake.
         # For more details, see https://github.com/conda/conda/issues/9392#issuecomment-1291041085 
         PATH="$CONDA_PREFIX"/bin:$PATH  # quick fix for the issue described above
-        python pling/align_snakemake/unimog.py \
+        python {params.pling_root_dir}/pling/align_snakemake/unimog.py \
             --genome_1_fasta {input.genome_1_fasta} \
             --genome1 {params.genome1} \
             --genome_2_fasta {input.genome_2_fasta} \
