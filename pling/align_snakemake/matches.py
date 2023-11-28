@@ -187,6 +187,7 @@ class Matches:
                 not_null = self[i].qstart!=self[i].qend and self[i+1].qstart!=self[i+1].qend #ignore null intervals
             except IndexError:
                 finished = True
+                not_null = False
             if not_null and overlap>overlap_threshold:
                 overlap_matches = self.find_opposite_overlaps(i, overlap, False)
                 contain_overlap_1 = self.contain_interval(overlap_matches[0].rstart, overlap_matches[0].rend, True)
@@ -207,6 +208,7 @@ class Matches:
                 not_null = self[i].rstart!=self[i].rend and self[i+1].rstart!=self[i+1].rend
             except IndexError:
                 finished = True
+                not_null = False
             if not_null and overlap>overlap_threshold:
                 overlap_matches = self.find_opposite_overlaps(i, overlap, True)
                 contain_overlap_1 = self.contain_interval(overlap_matches[0].qstart, overlap_matches[0].qend, False)

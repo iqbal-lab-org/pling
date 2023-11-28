@@ -1,5 +1,6 @@
 import os
 import pandas as pd
+import math
 
 configfile: "../config.yaml"
 
@@ -8,31 +9,49 @@ PREFIX = config["prefix"]
 FASTAFILES = [el[0] for el in pd.read_csv(config["genomes_list"], header=None).values]
 FASTAEXT = {os.path.splitext(os.path.basename(el))[0]:os.path.splitext(os.path.basename(el))[1] for el in FASTAFILES}
 GENOMES = list(FASTAEXT.keys())
-FASTAPATH = os.path.dirname(FASTAFILES[0])
+batch_size = 5
+number_of_batches = math.ceil((len(GENOMES)*(len(GENOMES)-1)/2)/batch_size)
 
 include: "../common_rules/common_rules.smk"
 
 rule all:
     input:
-        unimogs = get_files("unimog", OUTPUTPATH, get_pairs(GENOMES)),
+        #unimogs = get_files("unimog", OUTPUTPATH, get_pairs(GENOMES)),
         seq_jaccard = f"{OUTPUTPATH}/jaccard/all_pairs_jaccard_distance.tsv",
         communities = f"{OUTPUTPATH}/jaccard/jaccard_communities"
 
+rule get_batches:
+    output:
+        [f"{OUTPUTPATH}/tmp_files/batches/batch_{i}.txt" for i in range(number_of_batches)]
+    params:
+        outputpath = OUTPUTPATH,
+        genomes_list = config["genomes_list"],
+        batch_size = batch_size,
+        number_of_batches = number_of_batches
+    shell:
+        """
+        PATH="$CONDA_PREFIX"/bin:$PATH  # quick fix for the issue described above
+        python /home/daria/Documents/projects/pling/pling/align_snakemake/get_batches.py \
+            --genomes_list {params.genomes_list} \
+            --batch_size {params.batch_size} \
+            --number_of_batches {params.number_of_batches} \
+            --outputpath {params.outputpath}
+        """
+
 rule make_unimogs:
     input:
-        genome_1_fasta=lambda wildcards: f"{FASTAPATH}/{wildcards.genome1}{FASTAEXT[wildcards.genome1]}",
-        genome_2_fasta=lambda wildcards: f"{FASTAPATH}/{wildcards.genome2}{FASTAEXT[wildcards.genome2]}"
+        batch_list=lambda wildcards: f"{OUTPUTPATH}/tmp_files/batches/batch_{wildcards.batch}.txt"
     output:
-        unimogs=f"{OUTPUTPATH}/unimogs/{{genome1}}~{{genome2}}_align.unimog",
-        jaccard_distance=f"{OUTPUTPATH}/tmp_files/jaccard_pairwise/{{genome1}}~{{genome2}}_jaccard_distance.tsv",
-        seq_blocks=f"{OUTPUTPATH}/unimogs/{{genome1}}~{{genome2}}_map.txt"
+        jaccard=f"{OUTPUTPATH}/tmp_files/jaccard_pairwise/batch_{{batch}}_jaccard.tsv"
     threads: config["make_unimogs_threads"]
     resources:
         mem_mb=lambda wildcards, attempt: config["make_unimogs_mem"]*attempt
     params:
-        genome1 = lambda wildcards: wildcards.genome1,
-        genome2 = lambda wildcards: wildcards.genome2,
-        identity_threshold = config["identity_threshold"]
+        genomes_list = config["genomes_list"],
+        batch = lambda wildcards: wildcards.batch,
+        outputpath = OUTPUTPATH,
+        identity_threshold = config["identity_threshold"],
+        jaccard_distance = config["seq_jaccard_distance"]
     conda: "../envs/integerise.yaml"
     shadow: "shallow"
     shell:
@@ -43,17 +62,15 @@ rule make_unimogs:
         # In this case, snakemake will activate the "../envs/integerise.yaml" env but the python in the $PATH is the one
         # in E, which won't have the dependencies required to run the script below.
         # This is the expected behaviour, is not a bug in conda or snakemake.
-        # For more details, see https://github.com/conda/conda/issues/9392#issuecomment-1291041085 
+        # For more details, see https://github.com/conda/conda/issues/9392#issuecomment-1291041085
         PATH="$CONDA_PREFIX"/bin:$PATH  # quick fix for the issue described above
-        python pling/align_snakemake/unimog.py \
-            --genome_1_fasta {input.genome_1_fasta} \
-            --genome1 {params.genome1} \
-            --genome_2_fasta {input.genome_2_fasta} \
-            --genome2 {params.genome2} \
+        python /home/daria/Documents/projects/pling/pling/align_snakemake/unimog.py \
+            --genomes_list {params.genomes_list} \
+            --batch {params.batch} \
             --identity_threshold {params.identity_threshold} \
-            --unimogs {output.unimogs} \
-            --jaccard {output.jaccard_distance} \
-            --seq_blocks {output.seq_blocks}
+            --jaccard_distance {params.jaccard_distance} \
+            --outputpath {params.outputpath} \
+            --jaccard_output {output.jaccard}
         """
 
 rule get_communities:
