@@ -43,7 +43,7 @@ def get_files(type,OUTPUTPATH, PAIRS):
 
 rule cat_jaccard:
     input:
-        jaccards = get_files("jaccard", OUTPUTPATH, get_pairs(GENOMES))
+        jaccards = expand(f"{OUTPUTPATH}/tmp_files/jaccard_pairwise/batch_{{batch}}_jaccard.tsv", batch=[str(i) for i in range(number_of_batches)])
     output:
         all_jaccard_distances = f"{OUTPUTPATH}/jaccard/all_pairs_jaccard_distance.tsv"
     threads: 1

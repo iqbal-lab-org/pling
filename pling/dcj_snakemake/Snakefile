@@ -1,0 +1,123 @@
+import os
+import pandas as pd
+import sys
+
+configfile: "../config.yaml"
+
+FASTAFILES = [el[0] for el in pd.read_csv(config["genomes_list"], header=None).values]
+FASTAEXT = {os.path.splitext(os.path.basename(el))[0]:os.path.splitext(os.path.basename(el))[1] for el in FASTAFILES}
+GENOMES = list(FASTAEXT.keys())
+OUTPUTPATH = config["output_dir"] #output directory will contain subdirectory with unimogs from integerisation pipeline, as well as placing all new output from current pipeline in subdirectories within it
+PREFIX = config["prefix"]
+INTEGERISATION = config["integerisation"]
+JACCARD_THRESHOLD = config["seq_jaccard_threshold"]
+COMMUNITIES = config["communities"]
+
+def get_plasmid_to_community():
+    plasmid_to_community = {}
+    with open(COMMUNITIES) as communities_fh:
+        for community_index, line in enumerate(communities_fh):
+            plasmids = line.strip().split()
+            for plasmid in plasmids:
+                plasmid_to_community[plasmid] = community_index
+    return plasmid_to_community
+
+plasmid_to_community = get_plasmid_to_community()
+
+def get_unimog_anno(integerisation, genome1, genome2):
+    unimog = ""
+    if integerisation == "anno":
+        community = plasmid_to_community[genome1]
+        unimog = f"{OUTPUTPATH}/unimogs/relabelled/blocks/{community}_blocks.unimog"
+    elif integerisation == "align":
+        unimog = f"{OUTPUTPATH}/unimogs/{genome1}~{genome2}_align.unimog"
+    return unimog
+
+def get_unimog(integerisation, batch, genome1, genome2):
+    unimog = ""
+    if integerisation == "anno":
+        community = plasmid_to_community[genome1]
+        unimog = f"{OUTPUTPATH}/unimogs/relabelled/blocks/{community}_blocks.unimog"
+    elif integerisation == "align":
+        unimog = f"{OUTPUTPATH}/unimogs/batch_{batch}/{genome1}~{genome2}_align.unimog"
+    return unimog
+
+def get_dist_files(jaccard_tsv):
+    files=[]
+    with open(jaccard_tsv, "r") as f:
+        for line in f:
+            plasmid_1, plasmid_2, jaccard = line.strip().split("\t")
+            jaccard = float(jaccard)
+            if jaccard >= JACCARD_THRESHOLD:
+                files.append(f"{OUTPUTPATH}/tmp_files/dists_pairwise/{plasmid_1}~{plasmid_2}.dist")
+    return files
+
+def get_timelimit(solver):
+    if config["timelimit"]=="None":
+        return ""
+    else:
+        solver_to_timelimit = {
+            "GLPK": f"--tmlim {config['timelimit']}",
+            "gurobi": f"TimeLimit={config['timelimit']}",
+        }
+        return solver_to_timelimit[solver]
+
+rule all:
+    input:
+        matrix = f"{OUTPUTPATH}/{PREFIX}_matrix.dist",
+        dcj_graph_outdir = f"{OUTPUTPATH}/dcj_graph"
+
+
+rule ding:
+    input:
+
+    output:
+        f"{OUTPUTPATH}/tmp_files/ding/completion/batch_{batch}"
+    params:
+        ilp_solver=config["ilp_solver"],
+        integerisation=INTEGERISATION,
+        outputpath=OUTPUTPATH,
+        batch=lambda wildcards: wildcards.batch,
+        timelimit=get_timelimit(config["ilp_solver"]),
+        snakefile_dir=os.path.dirname(sys.argv[sys.argv.index("--snakefile")+1]),
+        pairs
+    resources:
+        mem_mb = lambda wildcards, attempt: attempt * config["ilp_mem"]
+    conda: "../envs/ding_and_glpk.yaml"
+    script:
+        "run_ding.py"
+
+rule dcj_matrix:
+    input:
+        unimogs_done = expand(f"{OUTPUTPATH}/tmp_files/ding/completion/batch_{{batch}}", batch=)
+    output:
+        matrix=f"{OUTPUTPATH}/{PREFIX}_matrix.dist"
+    conda:
+        "../envs/blocks.yaml"
+    params:
+        dist_files = get_dist_files(f"{OUTPUTPATH}/jaccard/all_pairs_jaccard.tsv")
+        genomes= GENOMES,
+        outputpath = OUTPUTPATH
+    resources:
+        mem_mb = lambda wildcards, attempt: attempt * config["dcj_matrix_mem"]
+    script:
+        "dcj_matrix.py"
+
+rule build_DCJ_graph:
+    input:
+        matrix = f"{OUTPUTPATH}/{PREFIX}_matrix.dist", #Path to file with matrix of DCJ distances
+        communities=f"{OUTPUTPATH}/jaccard/jaccard_communities.txt"
+    output:
+        dcj_graph_outdir = directory(f"{OUTPUTPATH}/dcj_graph")
+    conda:
+        "../envs/blocks.yaml"
+    threads: 1
+    resources:
+        mem_mb=lambda wildcards, attempt: config["build_DCJ_graph_mem"]*attempt
+    params:
+        dcj_dist_threshold=config["dcj_dist_threshold"],
+        bh_connectivity = config["bh_connectivity"], #Minimum number of connections a plasmid need to be considered a blackhole plasmid
+        bh_neighbours_edge_density = config["bh_neighbours_edge_density"], #Maximum number of edge density between blackhole plasmid neighbours to label the plasmid as blackhole
+        small_subcommunity_size_threshold = config["small_subcommunity_size_threshold"] #Communities with size up to this parameter will be joined to neighbouring larger subcommunities
+    script:
+        "cluster_graph.py"
