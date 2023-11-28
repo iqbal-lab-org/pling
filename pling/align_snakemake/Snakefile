@@ -2,13 +2,13 @@ import os
 import pandas as pd
 from pling.utils import get_pling_root_dir
 import math
+from pling.utils import get_pling_root_dir, get_fasta_file_info
 
 configfile: "../config.yaml"
 
 OUTPUTPATH = config["output_dir"]
 PREFIX = config["prefix"]
-FASTAFILES = [el[0] for el in pd.read_csv(config["genomes_list"], header=None).values]
-FASTAEXT = {os.path.splitext(os.path.basename(el))[0]:os.path.splitext(os.path.basename(el))[1] for el in FASTAFILES}
+FASTAFILES, FASTAEXT, FASTAPATH = get_fasta_file_info(config["genome_list"])
 GENOMES = list(FASTAEXT.keys())
 batch_size = 5
 number_of_batches = math.ceil((len(GENOMES)*(len(GENOMES)-1)/2)/batch_size)
@@ -32,7 +32,7 @@ rule get_batches:
         pling_root_dir = get_pling_root_dir()
     shell:
         """
-        PATH="$CONDA_PREFIX"/bin:$PATH  # quick fix for the issue described above
+        PATH="$CONDA_PREFIX"/bin:$PATH
         python {params.pling_root_dir}/pling/align_snakemake/get_batches.py \
             --genomes_list {params.genomes_list} \
             --batch_size {params.batch_size} \
