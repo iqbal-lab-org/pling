@@ -45,15 +45,9 @@ def main():
     # Parse the arguments
     args = parser.parse_args()
 
-    FASTAFILES = [el[0] for el in pd.read_csv(args.genomes_list, header=None).values]
-    fastaext = {os.path.splitext(os.path.basename(el))[0]:os.path.splitext(os.path.basename(el))[1] for el in FASTAFILES}
-    fastapath = os.path.dirname(FASTAFILES[0])
+    fastafiles, fastaext, fastapath = get_fasta_file_info(config["genome_list"])
 
-    pairs=[]
-    with open(f"{args.outputpath}/tmp_files/batches/batch_{args.batch}.txt","r") as f:
-        for line in f:
-            genome1, genome2 = (line.strip("[]\n").split(","))
-            pairs.append([genome1[1:-1], genome2[2:-1]])
+    pairs=read_in_batch_pairs(f"{args.outputpath}/tmp_files/batches/batch_{args.batch}.txt")
 
     output_dir = Path(f"{args.outputpath}/unimogs/batch_{args.batch}")
     output_dir.mkdir(parents=True, exist_ok=True)
