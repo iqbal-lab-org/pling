@@ -10,12 +10,13 @@ GENOMES = list(FASTAEXT.keys())
 OUTPUTPATH = config["output_dir"] #output directory will contain subdirectory with unimogs from integerisation pipeline, as well as placing all new output from current pipeline in subdirectories within it
 PREFIX = config["prefix"]
 INTEGERISATION = config["integerisation"]
-JACCARD_THRESHOLD = config["seq_jaccard_threshold"]
+JACCARD_DISTANCE = config["seq_jaccard_distance"]
 COMMUNITIES = config["communities"]
+
 
 def get_plasmid_to_community():
     plasmid_to_community = {}
-    with open(COMMUNITIES) as communities_fh:
+    with open(COMMUNITIES + "/objects/communities.txt") as communities_fh:
         for community_index, line in enumerate(communities_fh):
             plasmids = line.strip().split()
             for plasmid in plasmids:
@@ -36,10 +37,11 @@ def get_unimog(integerisation, genome1, genome2):
 def get_dist_files(jaccard_tsv):
     files=[]
     with open(jaccard_tsv, "r") as f:
+        next(f)  # skip header
         for line in f:
             plasmid_1, plasmid_2, jaccard = line.strip().split("\t")
             jaccard = float(jaccard)
-            if jaccard >= JACCARD_THRESHOLD:
+            if jaccard <= JACCARD_DISTANCE:
                 files.append(f"{OUTPUTPATH}/tmp_files/dists_pairwise/{plasmid_1}~{plasmid_2}.dist")
     return files
 
@@ -149,7 +151,7 @@ rule dcj_dist:
 
 rule dcj_matrix:
     input:
-        dist_files = get_dist_files(f"{OUTPUTPATH}/jaccard/all_pairs_jaccard.tsv")
+        dist_files = get_dist_files(f"{OUTPUTPATH}/jaccard/all_pairs_jaccard_distance.tsv")
     output:
         matrix=f"{OUTPUTPATH}/{PREFIX}_matrix.dist"
     conda:
@@ -162,21 +164,39 @@ rule dcj_matrix:
     script:
         "dcj_matrix.py"
 
-rule build_DCJ_graph:
+rule dcj_tsv:
     input:
-        matrix = f"{OUTPUTPATH}/{PREFIX}_matrix.dist", #Path to file with matrix of DCJ distances
-        communities=f"{OUTPUTPATH}/jaccard/jaccard_communities.txt"
+        dist_files = get_dist_files(f"{OUTPUTPATH}/jaccard/all_pairs_jaccard_distance.tsv")
     output:
-        dcj_graph_outdir = directory(f"{OUTPUTPATH}/dcj_graph")
+        tsv=f"{OUTPUTPATH}/{PREFIX}_distances.tsv"
     conda:
         "../envs/blocks.yaml"
+    params:
+        genomes= GENOMES,
+        outputpath = OUTPUTPATH
+    resources:
+        mem_mb = lambda wildcards, attempt: attempt * config["dcj_matrix_mem"]
+    script:
+        "dcj_tsv.py"
+
+rule build_DCJ_graph:
+    input:
+        distances_tsv = rules.dcj_tsv.output.tsv,
+        communities=COMMUNITIES+"/objects/communities.pkl"
+    output:
+        dcj_graph_outdir = directory(f"{OUTPUTPATH}/dcj_graph")
     threads: 1
     resources:
         mem_mb=lambda wildcards, attempt: config["build_DCJ_graph_mem"]*attempt
+    conda: "../envs/plasnet.yaml"
     params:
         dcj_dist_threshold=config["dcj_dist_threshold"],
-        bh_connectivity = config["bh_connectivity"], #Minimum number of connections a plasmid need to be considered a blackhole plasmid
-        bh_neighbours_edge_density = config["bh_neighbours_edge_density"], #Maximum number of edge density between blackhole plasmid neighbours to label the plasmid as blackhole
         small_subcommunity_size_threshold = config["small_subcommunity_size_threshold"] #Communities with size up to this parameter will be joined to neighbouring larger subcommunities
-    script:
-        "cluster_graph.py"
+    shell: """
+            plasnet type \
+                --distance-threshold {params.dcj_dist_threshold} \
+                --small-subcommunity-size-threshold {params.small_subcommunity_size_threshold} \
+                {input.communities} \
+                {input.distances_tsv} \
+                {output.dcj_graph_outdir}
+        """

@@ -5,6 +5,7 @@ import pandas as pd
 import networkx as nx
 import numpy as np
 import os
+import argparse
 
 def read_in_unimog(unimog_filepath):
     sequences = {}
@@ -107,7 +108,7 @@ def double_reverse_block(graph, gene, nodes):
             nodes.remove(-gene)
     return nodes, block
 
-def blocks(seqs, community, int_to_name):
+def get_blocks(seqs, community, int_to_name):
     graph = construct_graph(seqs, community)
     nodes = list(nx.nodes(graph))
     nodes_2 = []
@@ -179,24 +180,26 @@ def output_files(seqs, community, blocks, block_maps, int_to_name, output_map, r
             unimog = unimog + " )"
             f.write(f">{genome}\n{unimog}\n")
 
-testing = False
 
-if testing == True:
-    OUTPUTPATH = "/home/daria/Documents/projects/pling/local_tests"
-    map_filepath = f"{OUTPUTPATH}/0_map.txt"
-    unimog_filepath = f"{OUTPUTPATH}/unimogs/0_anno.unimog"
-    relabelled_unimog = f"{OUTPUTPATH}/unimogs/relabelled/blocks/0_blocks.unimog"
-    output_map = f"{OUTPUTPATH}/unimogs/relabelled/blocks/0_map_blocks.txt"
-    genomes = [el[0] for el in pd.read_csv("/home/daria/Documents/projects/Murray_Family/clusters_adrian/lists/cluster_4_ids.csv", header=None).values]
-else:
-    map_filepath = snakemake.input[1]
-    unimog_filepath = snakemake.input[0]
-    relabelled_unimog = snakemake.output.relabelled_unimog
-    relabelled_dir = snakemake.params.relabelled_dir
-    output_map = snakemake.output.blocks_map
-    genomes = snakemake.params.genomes
+def main(map_filepath, unimog_filepath, relabelled_unimog, relabelled_dir, output_map, genomes):
+    int_to_name = read_in_map(map_filepath)
+    seqs = read_in_unimog(unimog_filepath)
+    blocks, block_maps = get_blocks(seqs, genomes, int_to_name)
+    output_files(seqs, genomes, blocks, block_maps, int_to_name, output_map, relabelled_unimog, relabelled_dir)
 
-int_to_name = read_in_map(map_filepath)
-seqs = read_in_unimog(unimog_filepath)
-blocks, block_maps = blocks(seqs, genomes, int_to_name)
-output_files(seqs, genomes, blocks, block_maps, int_to_name, output_map, relabelled_unimog, relabelled_dir)
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description="Simplify integer sequence by finding blocks of genes that are always in the same order across all genomes, and representing those blocks with just one integer.")
+    parser.add_argument("unimog_filepath", help="Path to the Unimog file")
+    parser.add_argument("map_filepath", help="Path to the map file")
+
+    parser.add_argument("genomes", help="Genomes in consideration")
+    parser.add_argument("relabelled_dir", help="Directory for relabelled output")
+
+    parser.add_argument("relabelled_unimog", help="Output path for relabelled Unimog file")
+    parser.add_argument("output_map", help="Output path for blocks map file")
+
+    args = parser.parse_args()
+    args.genomes = args.genomes.split(" ")
+
+    main(args.map_filepath, args.unimog_filepath, args.relabelled_unimog, args.relabelled_dir, args.output_map, args.genomes)

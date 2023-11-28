@@ -4,10 +4,18 @@ from tests.utils import *
 
 
 class Test_glpk_sol_to_gurobi_sol(TestCase):
-    def test_glpk_sol_to_gurobi_sol(self):
-        with open("tests/dcj_snakemake/test_cases/glpk_sol_to_gurobi_sol/glpk.sol.txt") as input_fh, \
-             open("tests/dcj_snakemake/test_cases/glpk_sol_to_gurobi_sol/glpk_to_gurobi.sol.txt", "w") as output_fh:
+    def test_glpk_sol_to_gurobi_sol_test_case_short(self):
+        with open("tests/dcj_snakemake/test_cases/glpk_sol_to_gurobi_sol/test_case_1/glpk.sol.txt") as input_fh, \
+             open("tests/dcj_snakemake/test_cases/glpk_sol_to_gurobi_sol/test_case_1/glpk_to_gurobi.sol.txt", "w") as output_fh:
                 glpk_sol_to_gurobi_sol(input_fh, output_fh)
         assert_files_are_identical(
-            "tests/dcj_snakemake/test_cases/glpk_sol_to_gurobi_sol/glpk_to_gurobi.sol.txt",
-            "tests/dcj_snakemake/test_cases/glpk_sol_to_gurobi_sol/gurobi.sol")
+            "tests/dcj_snakemake/test_cases/glpk_sol_to_gurobi_sol/test_case_1/glpk_to_gurobi.sol.txt",
+            "tests/dcj_snakemake/test_cases/glpk_sol_to_gurobi_sol/test_case_1/gurobi.sol")
+
+    def test_glpk_sol_to_gurobi_sol_test_case_long(self):
+        with open("tests/dcj_snakemake/test_cases/glpk_sol_to_gurobi_sol/test_case_2/glpk.sol.txt") as input_fh, \
+             open("tests/dcj_snakemake/test_cases/glpk_sol_to_gurobi_sol/test_case_2/glpk_to_gurobi.sol.txt", "w") as output_fh:
+                glpk_sol_to_gurobi_sol(input_fh, output_fh)
+        assert_files_are_identical(
+            "tests/dcj_snakemake/test_cases/glpk_sol_to_gurobi_sol/test_case_2/glpk_to_gurobi.sol.txt",
+            "tests/dcj_snakemake/test_cases/glpk_sol_to_gurobi_sol/test_case_2/gurobi.sol")

@@ -14,9 +14,9 @@ keywords = ["Plasmids", "Comparative genomics", "Genome rearrangement", "DCJ-ind
 pling = 'pling.run_pling:main'
 
 [tool.poetry.dependencies]
-python = ">=3.9,<3.13"
+python = ">=3.8,<3.13"
 snakemake = "^7.32.4"
-pandas = "^2.1.1"
+pandas = "^2.0.3"
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]
