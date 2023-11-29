@@ -185,8 +185,11 @@ class Matches:
             try:
                 overlap = self[i].qend-self[i+1].qstart
                 not_null = self[i].qstart!=self[i].qend and self[i+1].qstart!=self[i+1].qend #ignore null intervals
+                containment = self[i+1].qend<self[i].qend
             except IndexError:
                 finished = True
+                not_null = False
+                containment = False
             if not_null and overlap>overlap_threshold:
                 overlap_matches = self.find_opposite_overlaps(i, overlap, False)
                 contain_overlap_1 = self.contain_interval(overlap_matches[0].rstart, overlap_matches[0].rend, True)
@@ -195,6 +198,10 @@ class Matches:
                 contain_overlap_2 = self.contain_interval(overlap_matches[1].rstart, overlap_matches[1].rend, True)
                 for match in contain_overlap_2:
                     self.split_match(match, overlap_matches[1].rstart, overlap_matches[1].rend, True)
+                if containment:
+                    current_match = self[i]
+                    self.sort(False)
+                    i = self.list.index(current_match)
             i = i+1
         self.purge_null_intervals()
         self.sort(True)
@@ -205,8 +212,11 @@ class Matches:
             try:
                 overlap = self[i].rend-self[i+1].rstart
                 not_null = self[i].rstart!=self[i].rend and self[i+1].rstart!=self[i+1].rend
+                containment = self[i+1].rend<self[i].rend
             except IndexError:
                 finished = True
+                not_null = False
+                containment = False
             if not_null and overlap>overlap_threshold:
                 overlap_matches = self.find_opposite_overlaps(i, overlap, True)
                 contain_overlap_1 = self.contain_interval(overlap_matches[0].qstart, overlap_matches[0].qend, False)
@@ -215,6 +225,10 @@ class Matches:
                 contain_overlap_2 = self.contain_interval(overlap_matches[1].qstart, overlap_matches[1].qend, False)
                 for match in contain_overlap_2:
                     self.split_match(match, overlap_matches[1].qstart, overlap_matches[1].qend, False)
+                if containment:
+                    current_match = self[i]
+                    self.sort(True)
+                    i = self.list.index(current_match)
             i = i+1
 
 def make_interval_tree_w_dups(block_coords, length_threshold):
@@ -282,12 +296,13 @@ def new_integerise_plasmids(plasmid_1: Path, plasmid_2: Path, prefix: str, plasm
         plasmid_2_unimogs = get_unimog(query_to_block)
         blocks_ref = get_blocks(plasmid_1_name, ref_to_block)
         blocks_query = get_blocks(plasmid_2_name, query_to_block)
-
+    '''
     for extension in [".1coords", ".1delta", ".delta", ".mcoords", ".mdelta", ".qdiff", ".rdiff", ".report", ".snps", ".unqry", ".unref"]:
         try:
             Path(prefix+extension).unlink()
         except:
             pass
+    '''
 
     if len_ref>len_query:
         jaccard_similarity = coverage_query/len_query
@@ -297,14 +312,14 @@ def new_integerise_plasmids(plasmid_1: Path, plasmid_2: Path, prefix: str, plasm
 
     return plasmid_1_unimogs, plasmid_2_unimogs, jaccard_distance, blocks_ref, blocks_query
 
-testing = False
+testing = True
 if testing == True:
     #plasmid1 = "NZ_LT985234.1"
     #plasmid2 = "NZ_CP062902.1"
-    #plasmid2 = "NZ_LR999867.1"
-    #plasmid1 = "NZ_CP032890.1"
-    #path = "/home/daria/Documents/projects/INC-plasmids/samples/fastas/incy"
-    plasmid1 = "2_dup_3_dup"
-    plasmid2 = "3_dup"
-    path = "/home/daria/Documents/projects/pling/tests/test1/fastas"
+    plasmid2 = "NZ_LR999867.1"
+    plasmid1 = "NZ_CP032890.1"
+    path = "/home/daria/Documents/projects/INC-plasmids/samples/fastas/incy"
+    #plasmid1 = "2_dup_3_dup"
+    #plasmid2 = "3_dup"
+    #path = "/home/daria/Documents/projects/pling/tests/test1/fastas"
     print(new_integerise_plasmids(f"{path}/{plasmid1}.fna", f"{path}/{plasmid2}.fna", f"{plasmid1}~{plasmid2}", plasmid1, plasmid2, length_threshold=200))
