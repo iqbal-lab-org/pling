@@ -5,13 +5,9 @@ import subprocess
 
 
 class Indel:
-    def __init__(self, rstart, rend, qstart, qend):
-        if rstart == rend:
-            self.type = "INS"
-            self.len = qend-qstart
-        elif qstart == qend:
-            self.type = "DEL"
-            self.len = rend-rstart
+    def __init__(self, rstart, qstart, len, type):
+        self.type = type
+        self.len = len
         self.rstart = rstart
         self.qstart = qstart
 
@@ -293,8 +289,35 @@ def new_integerise_plasmids(plasmid_1: Path, plasmid_2: Path, prefix: str, plasm
 
     assert(len(show_coords_output)>0)
 
+    indels = []
+    len_ref = -1
+    len_query = -1
     for line in show_snps_output:
-        
+        split_line = line.split(b'\t')
+        rsub = split_line[1]
+        qsub = split_line[2]
+        rstart = int(split_line[0])
+        qstart = int(split_line[3])
+        if rsub == ".":
+            type = "INS"
+            try:
+                extend_indel = indels[-1].rstart==rstart and indels[-1].qstart+indels[-1].len=qstart
+            except:
+                extend_indel = False
+            if extend_indel:
+                indels[-1].len += 1
+            else:
+                indels.append(Indel(rstart,qstart,len,type))
+        elif qsub == ".":
+            type = "DEL"
+            try:
+                extend_indel = indels[-1].qstart==qstart and indels[-1].rstart+indels[-1].len=rstart
+            except:
+                extend_indel = False
+            if extend_indel:
+                indels[-1].len += 1
+            else:
+                indels.append(Indel(rstart,qstart,len,type))
 
 
     len_ref = -1
