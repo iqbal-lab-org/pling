@@ -4,13 +4,25 @@ from pathlib import Path
 import subprocess
 
 
+class Indel:
+    def __init__(self, rstart, rend, qstart, qend):
+        if rstart == rend:
+            self.type = "INS"
+            self.len = qend-qstart
+        elif qstart == qend:
+            self.type = "DEL"
+            self.len = rend-rstart
+        self.rstart = rstart
+        self.qstart = qstart
+
 class Match:
-    def __init__(self, rstart, rend, qstart, qend, strand):
+    def __init__(self, rstart, rend, qstart, qend, strand, indels=[]):
         self.rstart = rstart
         self.rend = rend
         self.qstart = qstart
         self.qend = qend
         self.strand = strand
+        self.indels = indels
 
     def __eq__(self, other):
         if type(other) is type(self):
@@ -31,6 +43,28 @@ class Match:
 
     def indels(self):
         return self.rlen()-self.qlen()
+
+    def projection(self, coord, ref_bool): #if ref_bool=True, project from reference to query, else query to reference
+        if ref_bool = True:
+            dist = self.rstart - coord
+            for indel in self.indels:
+                if indel.rstart<=coord<indel.rstart+indel.len:
+                    return indel.qstart
+                elif indel.rstart<coord:
+                    if indel.type == "INS":
+                        dist += indel.len
+                    elif indel.type == "DEL":
+                        dist -= indel.len
+        else:
+            dist = self.qstart - coord
+            for indel in self.indels:
+                if indel.qstart<=coord<indel.qstart+indel.len:
+                    return indel.rstart
+                elif indel.qstart<coord:
+                    if indel.type == "INS":
+                        dist += indel.len
+                    elif indel.type == "DEL":
+                        dist -= indel.len
 
 class Matches:
     def __init__(self, list_of_matches): #list_of_matches is a list of Match objects
@@ -255,8 +289,13 @@ def make_interval_tree_w_dups(block_coords, length_threshold):
 def new_integerise_plasmids(plasmid_1: Path, plasmid_2: Path, prefix: str, plasmid_1_name, plasmid_2_name, identity_threshold=80, length_threshold=200):
     subprocess.check_call(f"perl -w $(which dnadiff) {plasmid_1} {plasmid_2} -p {prefix} 2>/dev/null", shell=True)
     show_coords_output = subprocess.check_output(f"show-coords -TrcldH -I {identity_threshold} {prefix}.1delta", shell=True).strip().split(b'\n')  # TODO: what about this threshold?
+    show_snps_output = subprocess.check_output(f"show-snps -TrH {prefix}.1delta", shell=True).strip().split(b'\n')
 
     assert(len(show_coords_output)>0)
+
+    for line in show_snps_output:
+        
+
 
     len_ref = -1
     len_query = -1
