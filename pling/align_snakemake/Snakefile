@@ -1,6 +1,5 @@
 import os
 import pandas as pd
-from pling.utils import get_pling_root_dir
 import math
 from pling.utils import get_pling_root_dir, get_fasta_file_info
 
