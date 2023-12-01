@@ -1,5 +1,4 @@
 from intervaltree import IntervalTree, Interval
-from integerise_plasmids import *
 from pathlib import Path
 import subprocess
 
@@ -35,15 +34,6 @@ class Match:
 
     def __str__(self):
         return f"({self.rstart}, {self.rend}, {self.qstart}, {self.qend}, {self.strand})"
-
-    def rlen(self):
-        return self.rend-self.rstart
-
-    def qlen(self):
-        return self.qend-self.qstart
-
-    def indels(self):
-        return self.rlen()-self.qlen()
 
     def projection(self, coord, ref_bool): #if ref_bool=True, project from reference to query, else query to reference
         if ref_bool:
@@ -255,7 +245,6 @@ class Matches:
                     current_match = self[i]
                     self.sort(False)
                     i = self.list.index(current_match)
-                #i = self.list.index(overlap_matches[0]) - 1
             i = i+1
         self.sort(True)
         i=0
@@ -285,125 +274,7 @@ class Matches:
                     i = self.list.index(current_match)
             i = i+1
 
-def make_interval_tree_w_dups(block_coords, length_threshold):
-    ref_to_block = IntervalTree()
-    query_to_block = IntervalTree()
-    max_id = 0
-    for i in range(len(block_coords)):
-        rstart = block_coords[i].rstart
-        rend = block_coords[i].rend
-        qstart = block_coords[i].qstart
-        qend = block_coords[i].qend
-        qstrand = block_coords[i].strand
-        if rend-rstart>length_threshold and qend-qstart>length_threshold:
-            if len(ref_to_block.envelop(rstart,rend)) != 0:
-                query_to_block[qstart:qend] = qstrand * list(ref_to_block[rstart:rend])[0].data
-            elif len(query_to_block.envelop(qstart,qend)) != 0:
-                ref_to_block[rstart:rend] = qstrand * list(query_to_block[qstart:qend])[0].data
-            else:
-                max_id=max_id+1
-                ref_to_block[rstart:rend] = max_id
-                query_to_block[qstart:qend] = qstrand * max_id
-    return ref_to_block, query_to_block, max_id
-
-def new_integerise_plasmids(plasmid_1: Path, plasmid_2: Path, prefix: str, plasmid_1_name, plasmid_2_name, identity_threshold=80, length_threshold=200):
-    subprocess.check_call(f"perl -w $(which dnadiff) {plasmid_1} {plasmid_2} -p {prefix} 2>/dev/null", shell=True)
-    show_coords_output = subprocess.check_output(f"show-coords -TrcldH -I {identity_threshold} {prefix}.1delta", shell=True).strip().split(b'\n')  # TODO: what about this threshold?
-    show_snps_output = subprocess.check_output(f"show-snps -TrH {prefix}.1delta", shell=True).strip().split(b'\n')
-
-    assert(len(show_coords_output)>0)
-
-    indels = []
-    len_ref = -1
-    len_query = -1
-    if len(show_snps_output)>1:
-        for line in show_snps_output:
-            split_line = line.split(b'\t')
-            rsub = split_line[1]
-            qsub = split_line[2]
-            rstart = int(split_line[0])
-            qstart = int(split_line[3])
-            if rsub == ".":
-                type = "INS"
-                try:
-                    extend_indel = indels[-1].rstart==rstart and indels[-1].qstart+indels[-1].len==qstart
-                except:
-                    extend_indel = False
-                if extend_indel:
-                    indels[-1].len += 1
-                else:
-                    indels.append(Indel(rstart,qstart,1,type))
-            elif qsub == ".":
-                type = "DEL"
-                try:
-                    extend_indel = indels[-1].qstart==qstart and indels[-1].rstart+indels[-1].len==rstart
-                except:
-                    extend_indel = False
-                if extend_indel:
-                    indels[-1].len += 1
-                else:
-                    indels.append(Indel(rstart,qstart,1,type))
-
-    len_ref = -1
-    len_query = -1
-    og_matches = []
-
-    for line in show_coords_output:
-        split_line = line.split(b'\t')
-
-        try:
-            start_ref, end_ref = get_coordinates(split_line, 0)
-            start_query, end_query = get_coordinates(split_line, 2)
-        except ValueError:
-            continue
-
-        len_ref = int(split_line[7])
-        len_query = int(split_line[8])
-        strand_query = int(split_line[12])
-        match_indels = []
-        for indel in indels:
-            if start_ref<=indel.rstart and end_ref>indel.rend and start_query<=indel.qstart and end_query>indel.qend:
-                match_indels.append(indel)
-        og_matches.append(Match(start_ref, end_ref, start_query, end_query, strand_query, match_indels))
-
-    matches = Matches(og_matches)
-    coverage_ref = 0
-    coverage_query = 0
-    no_matches_available = len_ref==-1
-    if no_matches_available:
-        plasmid_1_unimogs = "1 )"
-        plasmid_2_unimogs = "2 )"
-        blocks_ref = pd.DataFrame({"Plasmid":[], "Block_ID":[], "Start":[], "End":[]})
-        blocks_query = pd.DataFrame({"Plasmid":[], "Block_ID":[], "Start":[], "End":[]})
-    else:
-        overlap_threshold = 0
-        coverage_ref = get_coverage(matches.reference)
-        coverage_query = get_coverage(matches.query)
-        matches.resolve_overlaps(overlap_threshold)
-        ref_to_block, query_to_block, max_id = make_interval_tree_w_dups(matches.list, length_threshold)
-        populate_interval_tree_with_unmatched_blocks(ref_to_block, len_ref, max_id+1, length_threshold)
-        populate_interval_tree_with_unmatched_blocks(query_to_block, len_query, len(ref_to_block)+1, length_threshold)
-        plasmid_1_unimogs = get_unimog(ref_to_block)
-        plasmid_2_unimogs = get_unimog(query_to_block)
-        blocks_ref = get_blocks(plasmid_1_name, ref_to_block)
-        blocks_query = get_blocks(plasmid_2_name, query_to_block)
-
-    for extension in [".1coords", ".1delta", ".delta", ".mcoords", ".mdelta", ".qdiff", ".rdiff", ".report", ".snps", ".unqry", ".unref"]:
-        try:
-            Path(prefix+extension).unlink()
-        except:
-            pass
-
-
-    if len_ref>len_query:
-        jaccard_similarity = coverage_query/len_query
-    else:
-        jaccard_similarity = coverage_ref/len_ref
-    jaccard_distance = 1-jaccard_similarity
-
-    return plasmid_1_unimogs, plasmid_2_unimogs, jaccard_distance, blocks_ref, blocks_query
-
-testing = True
+testing = False
 if testing == True:
     #plasmid1 = "NZ_LT985234.1"
     #plasmid2 = "NZ_CP062902.1"

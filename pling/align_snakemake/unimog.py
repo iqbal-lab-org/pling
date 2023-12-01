@@ -1,10 +1,9 @@
 from integerise_plasmids import integerise_plasmids
-from matches import new_integerise_plasmids
 import pandas as pd
 import argparse
 
 def unimogs_to_ilp_core(genome_1_fasta, genome_2_fasta, genome_1, genome_2, identity_threshold):
-    plasmid_1_unimogs, plasmid_2_unimogs, jaccard_distance, blocks_ref, blocks_query = new_integerise_plasmids(genome_1_fasta, genome_2_fasta,
+    plasmid_1_unimogs, plasmid_2_unimogs, jaccard_distance, blocks_ref, blocks_query = integerise_plasmids(genome_1_fasta, genome_2_fasta,
                                                                 f"{genome_1}~{genome_2}", genome_1, genome_2, identity_threshold)
     unimog = f">{genome_1}\n{plasmid_1_unimogs}\n>{genome_2}\n{plasmid_2_unimogs}"
     return unimog, jaccard_distance, blocks_ref, blocks_query
@@ -42,4 +41,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
