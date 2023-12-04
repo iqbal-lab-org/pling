@@ -1,6 +1,7 @@
 import os
 import pandas as pd
 from pling.utils import get_pling_root_dir
+import math
 
 configfile: "../config.yaml"
 
@@ -10,6 +11,8 @@ GENOMES = list(FASTAEXT.keys())
 FASTAPATH = os.path.dirname(FASTAFILES[0])
 OUTPUTPATH = config["output_dir"]
 PREFIX = config["prefix"]
+batch_size = config["batch_size"]
+number_of_batches = math.ceil((len(GENOMES)*(len(GENOMES)-1)/2)/batch_size)
 
 include: "../common_rules/common_rules.smk"
 
@@ -19,17 +22,17 @@ rule all:
 
 rule pairwise_seq_jaccard:
     input:
-        genome_1_fasta=lambda wildcards: f"{FASTAPATH}/{wildcards.genome1}{FASTAEXT[wildcards.genome1]}",
-        genome_2_fasta=lambda wildcards: f"{FASTAPATH}/{wildcards.genome2}{FASTAEXT[wildcards.genome2]}"
+        batch_list=lambda wildcards: f"{OUTPUTPATH}/tmp_files/batches/batch_{wildcards.batch}.txt"
     output:
-        jaccard=f"{OUTPUTPATH}/tmp_files/jaccard_pairwise/{{genome1}}~{{genome2}}_jaccard_distance.tsv"
+        jaccard=f"{OUTPUTPATH}/tmp_files/jaccard_pairwise/batch_{{batch}}_jaccard.tsv"
     threads: config["pairwise_seq_jaccard_threads"]
     resources:
         mem_mb=lambda wildcards, attempt: config["pairwise_seq_jaccard_mem"]*attempt
     conda: "../envs/integerise.yaml"
     params:
-        genome1 = lambda wildcards: wildcards.genome1,
-        genome2 = lambda wildcards: wildcards.genome2,
+        genomes_list = config["genomes_list"],
+        batch = lambda wildcards: wildcards.batch,
+        outputpath = OUTPUTPATH,
         identity_threshold = config["identity_threshold"],
         pling_root_dir = get_pling_root_dir()
     shadow: "shallow"
@@ -40,15 +43,16 @@ rule pairwise_seq_jaccard:
         # In this case, snakemake will activate the "../envs/integerise.yaml" env but the python in the $PATH is the one
         # in E, which won't have the dependencies required to run the script below.
         # This is the expected behaviour, is not a bug in conda or snakemake.
-        # For more details, see https://github.com/conda/conda/issues/9392#issuecomment-1291041085 
+        # For more details, see https://github.com/conda/conda/issues/9392#issuecomment-1291041085
         PATH="$CONDA_PREFIX"/bin:$PATH  # quick fix for the issue described above
-        
+
         python {params.pling_root_dir}/pling/jac_network_snakemake/seq_jaccard.py \
-            {params.genome1} {params.genome2} \
-            {input.genome_1_fasta} {input.genome_2_fasta} \
-            {params.identity_threshold} \
-            {output.jaccard}
-    """
+            --genomes_list {params.genomes_list} \
+            --batch {params.batch} \
+            --identity_threshold {params.identity_threshold} \
+            --outputpath {params.outputpath} \
+            --jaccard_output {output.jaccard} \
+        """
 
 
 rule get_communities:

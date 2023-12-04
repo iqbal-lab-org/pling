@@ -16,17 +16,6 @@ COMMUNITIES = config["communities"]
 batch_size = config["batch_size"]
 number_of_batches = math.ceil((len(GENOMES)*(len(GENOMES)-1)/2)/batch_size)
 
-def get_plasmid_to_community():
-    plasmid_to_community = {}
-    with open(f"{COMMUNITIES}/objects/communities.txt") as communities_fh:
-        for community_index, line in enumerate(communities_fh):
-            plasmids = line.strip().split()
-            for plasmid in plasmids:
-                plasmid_to_community[plasmid] = community_index
-    return plasmid_to_community
-
-plasmid_to_community = get_plasmid_to_community()
-
 def get_dist_files(jaccard_tsv):
     files=[]
     with open(jaccard_tsv, "r") as f:
@@ -51,7 +40,7 @@ rule all:
 
 rule ding:
     input:
-        unimog_dir = lambda wildcards: f"{OUTPUTPATH}/unimogs/batch_{wildcards.batch}",
+        #unimog = lambda wildcards: f"{OUTPUTPATH}/unimogs/batch_{wildcards.batch}_align.unimog",
         jaccard_tsv = lambda wildcards: f"{OUTPUTPATH}/tmp_files/jaccard_pairwise/batch_{wildcards.batch}_jaccard.tsv"
     output:
         f"{OUTPUTPATH}/tmp_files/ding/completion/batch_{{batch}}"
@@ -60,6 +49,7 @@ rule ding:
         ilp_solver=config["ilp_solver"],
         integerisation=INTEGERISATION,
         outputpath=OUTPUTPATH,
+        communitypath=f"{COMMUNITIES}/objects/communities.txt",
         batch=lambda wildcards: wildcards.batch,
         timelimit=get_timelimit(config["timelimit"]),
         snakefile_dir=os.path.dirname(sys.argv[sys.argv.index("--snakefile")+1]),
@@ -75,6 +65,7 @@ rule ding:
                     --jaccard_tsv {input.jaccard_tsv} \
                     --jaccard_distance {params.jaccard_distance} \
                     --outputpath {params.outputpath} \
+                    --communitypath {params.communitypath} \
                     --integerisation {params.integerisation} \
                     --ilp_solver {params.ilp_solver} \
                     {params.timelimit} \

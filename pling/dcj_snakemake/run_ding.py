@@ -1,6 +1,16 @@
 import subprocess
 import argparse
 from utils import read_in_batch_pairs
+from pathlib import Path
+
+def get_plasmid_to_community(communitypath):
+    plasmid_to_community = {}
+    with open(communitypath) as communities_fh:
+        for community_index, line in enumerate(communities_fh):
+            plasmids = line.strip().split()
+            for plasmid in plasmids:
+                plasmid_to_community[plasmid] = community_index
+    return plasmid_to_community
 
 def get_jaccard_distances_for_batch(jaccard_tsv):
     jaccards = {}
@@ -11,16 +21,20 @@ def get_jaccard_distances_for_batch(jaccard_tsv):
             jaccards[(plasmid_1,plasmid_2)] = jaccard
     return jaccards
 
-def get_unimog(outputpath, integerisation, batch, genome1, genome2):
+def get_unimog(outputpath, integerisation, plasmid_to_community, batch, genome1, genome2):
     unimog = ""
     if integerisation == "align":
-        unimog = f"{outputpath}/unimogs/batch_{batch}/{genome1}~{genome2}_align.unimog"
-    '''
+        unimog = f"{outputpath}/unimogs/batch_{batch}_align.unimog"
     elif integerisation == "anno":
         community = plasmid_to_community[genome1]
-        unimog = f"{OUTPUTPATH}/unimogs/relabelled/blocks/{community}_blocks.unimog"
-    '''
+        unimog = f"{outputpath}/unimogs/relabelled/blocks/{community}_blocks.unimog"
     return unimog
+
+def get_entries(integerisation, genome_1, genome_2):
+    if integerisation == "align":
+        return f"{genome_1}~{genome_2}:{genome_1}", f"{genome_1}~{genome_2}:{genome_2}"
+    elif integerisation == "anno":
+        return genome_1, genome_2
 
 def unimog_to_ilp(unimog, lp, genome1, genome2, log):
     try:
@@ -76,7 +90,7 @@ def dcj_dist(unimog, solution, out_unimog_relabeled, genome1, genome2, dist_file
         print(e)
         raise e
 
-def batchwise_ding(pairs, jaccard_distance, jaccards, ilp_solver, integerisation, outputpath, batch, timelimit, snakefile_dir):
+def batchwise_ding(pairs, jaccard_distance, jaccards, ilp_solver, integerisation, outputpath, batch, timelimit, snakefile_dir, plasmid_to_community):
     for pair in pairs:
         genome1 = pair[0]
         genome2 = pair[1]
@@ -84,20 +98,21 @@ def batchwise_ding(pairs, jaccard_distance, jaccards, ilp_solver, integerisation
         solution = f"{outputpath}/tmp_files/ding/solutions/{genome1}~{genome2}.sol"
         dist_file = f"{outputpath}/tmp_files/dists_pairwise/{genome1}~{genome2}.dist"
         out_unimog_relabeled = f"{outputpath}/unimogs/matched/{genome1}~{genome2}_matched.unimog"
-        log = "logs/unimog_to_ilp/{genome1}~{genome2}.log"
+        log = f"logs/unimog_to_ilp/{genome1}~{genome2}.log"
+        entry1, entry2 = get_entries(integerisation, genome1, genome2)
         if jaccards[(genome1,genome2)]<=jaccard_distance:
-            unimog = get_unimog(outputpath, integerisation, batch, genome1, genome2)
-            unimog_to_ilp(unimog, lp, genome1, genome2, log)
+            unimog = get_unimog(outputpath, integerisation, plasmid_to_community, batch, genome1, genome2)
+            unimog_to_ilp(unimog, lp, entry1, entry2, log)
             if ilp_solver == "gurobi":
-                log = "logs/ilp/gurobi/{genome1}~{genome2}.log"
+                log = f"logs/ilp/gurobi/{genome1}~{genome2}.log"
                 ilp_gurobi(lp, solution, timelimit, log)
             elif ilp_solver == "GLPK":
-                log = "logs/ilp/GLPK/{genome1}~{genome2}.log"
+                log = f"logs/ilp/GLPK/{genome1}~{genome2}.log"
                 ilp_GLPK(lp, solution, snakefile_dir, timelimit, log)
             else:
                 raise RuntimeError(f"Unknown ILP solver: {ilp_solver}")
-            log = "logs/dcj_dist/{genome1}~{genome2}.log"
-            dcj_dist(unimog, solution, out_unimog_relabeled, genome1, genome2, dist_file, log)
+            log = f"logs/dcj_dist/{genome1}~{genome2}.log"
+            dcj_dist(unimog, solution, out_unimog_relabeled, entry1, entry2, dist_file, log)
     with open(f"{outputpath}/tmp_files/ding/completion/batch_{batch}", "w+") as f:
         f.write("done!")
 
@@ -110,6 +125,7 @@ def main():
     parser.add_argument("--jaccard_tsv", required=True)
     parser.add_argument("--jaccard_distance", required=True)
     parser.add_argument("--outputpath", required=True, help="Path for general output directory")
+    parser.add_argument("--communitypath", required=True)
     parser.add_argument("--integerisation", required=True, type=str)
     parser.add_argument("--ilp_solver", required=True)
     parser.add_argument("--timelimit")
@@ -130,7 +146,17 @@ def main():
     pairs=read_in_batch_pairs(f"{args.outputpath}/tmp_files/batches/batch_{args.batch}.txt")
     jaccards=get_jaccard_distances_for_batch(args.jaccard_tsv)
 
-    batchwise_ding(pairs, float(args.jaccard_distance), jaccards, args.ilp_solver, args.integerisation, args.outputpath, args.batch, timelimit, args.snakefile_dir)
+    output_dirs = [Path(f"{args.outputpath}/tmp_files/ding/ilp"), Path(f"{args.outputpath}/tmp_files/ding/solutions"), Path(f"{args.outputpath}/tmp_files/dists_pairwise"), Path(f"{args.outputpath}/unimogs/matched"), Path("logs/unimog_to_ilp"), Path("logs/ilp/gurobi"), Path("logs/dcj_dist")]
+    for dir in output_dirs:
+        dir.mkdir(parents=True, exist_ok=True)
+
+    if args.integerisation=="anno":
+        plasmid_to_community = get_plasmid_to_community(args.communitypath)
+        print(plasmid_to_community)
+    else:
+        plasmid_to_community=None
+
+    batchwise_ding(pairs, float(args.jaccard_distance), jaccards, args.ilp_solver, args.integerisation, args.outputpath, args.batch, timelimit, args.snakefile_dir, plasmid_to_community)
 
 if __name__ == "__main__":
     main()

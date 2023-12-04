@@ -3,6 +3,7 @@ from pathlib import Path
 from typing import Tuple
 from intervaltree import IntervalTree
 import argparse
+from utils import read_in_batch_pairs, get_fasta_file_info
 
 def get_coverage(tree):
     tree.merge_overlaps()
@@ -60,22 +61,35 @@ def get_sequence_jaccard_distance(plasmid_1: Path, plasmid_2: Path, prefix: str,
     jaccard_distance = 1-jaccard_similarity
     return jaccard_distance
 
+def batchwise_jaccard(fastapath, fastaext, pairs, jaccardpath, identity_threshold):
+    jaccards = []
+    for pair in pairs:
+        genome_1 = pair[0]
+        genome_2 = pair[1]
+        genome_1_fasta = f"{fastapath}/{genome_1}{fastaext[genome_1]}"
+        genome_2_fasta = f"{fastapath}/{genome_2}{fastaext[genome_2]}"
+        jaccard_distance = get_sequence_jaccard_distance(genome_1_fasta, genome_2_fasta, f"{genome_1}~{genome_2}", identity_threshold)
+        jaccards.append(f"{genome_1}\t{genome_2}\t{jaccard_distance}\n")
+    with open(jaccardpath, 'w+') as f:
+        for line in jaccards:
+            f.write(line)
+
 
 def main(args):
-    jaccard_distance = get_sequence_jaccard_distance(args.genome_1_fasta, args.genome_2_fasta, f"{args.genome1}~{args.genome2}", args.identity_threshold)
+    fastafiles, fastaext, fastapath = get_fasta_file_info(args.genomes_list)
 
-    with open(args.jaccardpath, 'w') as f:
-        f.write(f"{args.genome1}\t{args.genome2}\t{jaccard_distance}\n")
+    pairs=read_in_batch_pairs(f"{args.outputpath}/tmp_files/batches/batch_{args.batch}.txt")
 
+    batchwise_jaccard(fastapath, fastaext, pairs, args.jaccard_output, args.identity_threshold)
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Calculate Jaccard index for genome sequences.')
-    parser.add_argument('genome1', help='Identifier for first genome')
-    parser.add_argument('genome2', help='Identifier for second genome')
-    parser.add_argument('genome_1_fasta', help='Path to the FASTA file for first genome')
-    parser.add_argument('genome_2_fasta', help='Path to the FASTA file for second genome')
-    parser.add_argument('identity_threshold', type=float, help='Identity threshold for comparison')
-    parser.add_argument('jaccardpath', help='Output path for the Jaccard index results')
+
+    parser.add_argument("--genomes_list", required=True, help="Text file with list of all fasta filepaths")
+    parser.add_argument("--batch", required=True, help="Batch number")
+    parser.add_argument("--identity_threshold", required=True, type=float, help="Identity threshold for comparison")
+    parser.add_argument("--outputpath", required=True, help="Path for general output directory")
+    parser.add_argument("--jaccard_output", required=True, help="Output path for Jaccard index results")
 
     args = parser.parse_args()
     main(args)

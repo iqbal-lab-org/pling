@@ -3,6 +3,7 @@
 # TODO: prior to including this:
 # OUTPUTPATH
 # GENOMES
+# number_of_batches
 
 rule create_genomes_tsv:
     output:
@@ -54,3 +55,22 @@ rule cat_jaccard:
         cat <(echo -e "plasmid_1\tplasmid_2\tdistance") {input.jaccards} > {output.all_jaccard_distances}
         """
 localrules: cat_jaccard
+
+rule get_batches:
+    output:
+        [f"{OUTPUTPATH}/tmp_files/batches/batch_{i}.txt" for i in range(number_of_batches)]
+    params:
+        outputpath = OUTPUTPATH,
+        genomes_list = config["genomes_list"],
+        batch_size = batch_size,
+        number_of_batches = number_of_batches,
+        pling_root_dir = get_pling_root_dir()
+    shell:
+        """
+        PATH="$CONDA_PREFIX"/bin:$PATH
+        python {params.pling_root_dir}/pling/align_snakemake/get_batches.py \
+            --genomes_list {params.genomes_list} \
+            --batch_size {params.batch_size} \
+            --number_of_batches {params.number_of_batches} \
+            --outputpath {params.outputpath}
+        """
