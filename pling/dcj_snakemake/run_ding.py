@@ -1,5 +1,6 @@
 import subprocess
-from pling.utils import read_in_batch_pairs
+import argparse
+from utils import read_in_batch_pairs
 
 def get_jaccard_distances_for_batch(jaccard_tsv):
     jaccards = {}
@@ -7,13 +8,13 @@ def get_jaccard_distances_for_batch(jaccard_tsv):
         for line in f:
             plasmid_1, plasmid_2, jaccard = line.strip().split("\t")
             jaccard = float(jaccard)
-            jaccards[[plasmid_1,plasmid_2]] = jaccard
-    return jaccard
+            jaccards[(plasmid_1,plasmid_2)] = jaccard
+    return jaccards
 
 def get_unimog(outputpath, integerisation, batch, genome1, genome2):
     unimog = ""
     if integerisation == "align":
-        unimog = f"{OUTPUTPATH}/unimogs/batch_{batch}/{genome1}~{genome2}_align.unimog"
+        unimog = f"{outputpath}/unimogs/batch_{batch}/{genome1}~{genome2}_align.unimog"
     '''
     elif integerisation == "anno":
         community = plasmid_to_community[genome1]
@@ -84,22 +85,21 @@ def batchwise_ding(pairs, jaccard_distance, jaccards, ilp_solver, integerisation
         dist_file = f"{outputpath}/tmp_files/dists_pairwise/{genome1}~{genome2}.dist"
         out_unimog_relabeled = f"{outputpath}/unimogs/matched/{genome1}~{genome2}_matched.unimog"
         log = "logs/unimog_to_ilp/{genome1}~{genome2}.log"
-        if jaccards[pair]<=jaccard_distance:
-            unimog = get_unimog(integerisation, batch, genome1, genome2)
-                unimog_to_ilp(unimog, lp, genome1, genome2, log)
-                if ilp_solver == "gurobi":
-                    log = "logs/ilp/gurobi/{genome1}~{genome2}.log"
-                    ilp_gurobi(lp, solution, timelimit, log)
-                elif ilp_solver == "GLPK":
-                    log = "logs/ilp/GLPK/{genome1}~{genome2}.log"
-                    ilp_GLPK(lp, solution, snakefile_dir, timelimit, log)
-                else:
-                    raise RuntimeError(f"Unknown ILP solver: {ilp_solver}")
-                log = "logs/dcj_dist/{genome1}~{genome2}.log"
-                dcj_dist(unimog, solution, out_unimog_relabeled, genome1, genome2, dist_file, log)
+        if jaccards[(genome1,genome2)]<=jaccard_distance:
+            unimog = get_unimog(outputpath, integerisation, batch, genome1, genome2)
+            unimog_to_ilp(unimog, lp, genome1, genome2, log)
+            if ilp_solver == "gurobi":
+                log = "logs/ilp/gurobi/{genome1}~{genome2}.log"
+                ilp_gurobi(lp, solution, timelimit, log)
+            elif ilp_solver == "GLPK":
+                log = "logs/ilp/GLPK/{genome1}~{genome2}.log"
+                ilp_GLPK(lp, solution, snakefile_dir, timelimit, log)
+            else:
+                raise RuntimeError(f"Unknown ILP solver: {ilp_solver}")
+            log = "logs/dcj_dist/{genome1}~{genome2}.log"
+            dcj_dist(unimog, solution, out_unimog_relabeled, genome1, genome2, dist_file, log)
     with open(f"{outputpath}/tmp_files/ding/completion/batch_{batch}", "w+") as f:
         f.write("done!")
-
 
 def main():
     # Create the parser
@@ -108,16 +108,29 @@ def main():
     # Add the arguments
     parser.add_argument("--batch", required=True, help="Batch number")
     parser.add_argument("--jaccard_tsv", required=True)
+    parser.add_argument("--jaccard_distance", required=True)
     parser.add_argument("--outputpath", required=True, help="Path for general output directory")
-    parser.add_argument("--integerisation", required=True)
+    parser.add_argument("--integerisation", required=True, type=str)
     parser.add_argument("--ilp_solver", required=True)
-    parser.add_argument("--timelimit", required=True)
+    parser.add_argument("--timelimit")
     parser.add_argument("--snakefile_dir", required=True)
 
     # Parse the arguments
     args = parser.parse_args()
 
-    pairs=read_in_batch_pairs(f"{args.outputpath}/tmp_files/batches/batch_{args.batch}.txt")
-    jaccards=get_jaccard_distances_for_batch()
+    if args.timelimit == None:
+        timelimit=""
+    else:
+        solver_to_timelimit = {
+            "GLPK": f"--tmlim {args.timelimit}",
+            "gurobi": f"TimeLimit={args.timelimit}",
+        }
+        timelimit=solver_to_timelimit[args.ilp_solver]
 
-    batchwise_ding(pairs, args.jaccard_distance, args.ilp_solver, args.integerisation, args.outputpath, args.batch, args.timelimit, args.snakefile_dir)
+    pairs=read_in_batch_pairs(f"{args.outputpath}/tmp_files/batches/batch_{args.batch}.txt")
+    jaccards=get_jaccard_distances_for_batch(args.jaccard_tsv)
+
+    batchwise_ding(pairs, float(args.jaccard_distance), jaccards, args.ilp_solver, args.integerisation, args.outputpath, args.batch, timelimit, args.snakefile_dir)
+
+if __name__ == "__main__":
+    main()

@@ -3,6 +3,7 @@ import pandas as pd
 import argparse
 import os
 from pathlib import Path
+from utils import read_in_batch_pairs, get_fasta_file_info
 
 def unimogs_to_ilp_core(genome_1_fasta, genome_2_fasta, genome_1, genome_2, identity_threshold):
     plasmid_1_unimogs, plasmid_2_unimogs, jaccard_distance, blocks_ref, blocks_query = integerise_plasmids(genome_1_fasta, genome_2_fasta,
@@ -44,7 +45,7 @@ def main():
     # Parse the arguments
     args = parser.parse_args()
 
-    fastafiles, fastaext, fastapath = get_fasta_file_info(config["genome_list"])
+    fastafiles, fastaext, fastapath = get_fasta_file_info(args.genomes_list)
 
     pairs=read_in_batch_pairs(f"{args.outputpath}/tmp_files/batches/batch_{args.batch}.txt")
 

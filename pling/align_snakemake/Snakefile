@@ -7,9 +7,9 @@ configfile: "../config.yaml"
 
 OUTPUTPATH = config["output_dir"]
 PREFIX = config["prefix"]
-FASTAFILES, FASTAEXT, FASTAPATH = get_fasta_file_info(config["genome_list"])
+FASTAFILES, FASTAEXT, FASTAPATH = get_fasta_file_info(config["genomes_list"])
 GENOMES = list(FASTAEXT.keys())
-batch_size = 5
+batch_size = config["batch_size"]
 number_of_batches = math.ceil((len(GENOMES)*(len(GENOMES)-1)/2)/batch_size)
 
 include: "../common_rules/common_rules.smk"

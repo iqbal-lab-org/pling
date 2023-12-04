@@ -36,6 +36,7 @@ def parse_args():
     parser.add_argument("--timelimit", help="time limit in seconds for ILP solver")
     parser.add_argument("--resources", help="tsv stating number of threads and memory to use for each rule")
     parser.add_argument("--profile", help="to run on cluster with corresponding snakemake profile")
+    parser.add_argument("--batch_size", default = 50, help="how many pairs of genomes to run together in one job (for integerisation from alignment and DCJ calculation steps)")
 
     args = parser.parse_args()
     return args
@@ -90,6 +91,7 @@ def make_config_file(args):
         config.write(f"small_subcommunity_size_threshold: {args.small_subcommunity_size_threshold}\n\n")
         config.write(f"ilp_solver: {args.ilp_solver}\n\n")
         config.write(f"timelimit: {timelimit}\n\n")
+        config.write(f"batch_size: {args.batch_size}\n\n")
         for row in resources.index:
             rule = resources.loc[row, "Rule"]
             threads = resources.loc[row, "Threads"]

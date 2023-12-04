@@ -6,18 +6,19 @@ from pling.utils import get_pling_root_dir, get_fasta_file_info
 
 configfile: "../config.yaml"
 
-FASTAFILES, FASTAEXT, FASTAPATH = get_fasta_file_info(config["genome_list"])
+FASTAFILES, FASTAEXT, FASTAPATH = get_fasta_file_info(config["genomes_list"])
 GENOMES = list(FASTAEXT.keys())
 OUTPUTPATH = config["output_dir"] #output directory will contain subdirectory with unimogs from integerisation pipeline, as well as placing all new output from current pipeline in subdirectories within it
 PREFIX = config["prefix"]
 INTEGERISATION = config["integerisation"]
-JACCARD_THRESHOLD = config["seq_jaccard_threshold"]
+JACCARD_THRESHOLD = config["seq_jaccard_distance"]
 COMMUNITIES = config["communities"]
+batch_size = config["batch_size"]
 number_of_batches = math.ceil((len(GENOMES)*(len(GENOMES)-1)/2)/batch_size)
 
 def get_plasmid_to_community():
     plasmid_to_community = {}
-    with open(COMMUNITIES) as communities_fh:
+    with open(f"{COMMUNITIES}/objects/communities.txt") as communities_fh:
         for community_index, line in enumerate(communities_fh):
             plasmids = line.strip().split()
             for plasmid in plasmids:
@@ -29,6 +30,7 @@ plasmid_to_community = get_plasmid_to_community()
 def get_dist_files(jaccard_tsv):
     files=[]
     with open(jaccard_tsv, "r") as f:
+        next(f)
         for line in f:
             plasmid_1, plasmid_2, jaccard = line.strip().split("\t")
             jaccard = float(jaccard)
@@ -36,15 +38,11 @@ def get_dist_files(jaccard_tsv):
                 files.append(f"{OUTPUTPATH}/tmp_files/dists_pairwise/{plasmid_1}~{plasmid_2}.dist")
     return files
 
-def get_timelimit(solver):
+def get_timelimit(timelimit):
     if config["timelimit"]=="None":
         return ""
     else:
-        solver_to_timelimit = {
-            "GLPK": f"--tmlim {config['timelimit']}",
-            "gurobi": f"TimeLimit={config['timelimit']}",
-        }
-        return solver_to_timelimit[solver]
+        return f"--timelimit {timelimit}"
 
 rule all:
     input:
@@ -53,32 +51,34 @@ rule all:
 
 rule ding:
     input:
-        unimog_dir = lamda wildcards: f"{OUTPUTPATH}/unimogs/batch_{wildcards.batch}"
+        unimog_dir = lambda wildcards: f"{OUTPUTPATH}/unimogs/batch_{wildcards.batch}",
         jaccard_tsv = lambda wildcards: f"{OUTPUTPATH}/tmp_files/jaccard_pairwise/batch_{wildcards.batch}_jaccard.tsv"
     output:
-        f"{OUTPUTPATH}/tmp_files/ding/completion/batch_{batch}"
+        f"{OUTPUTPATH}/tmp_files/ding/completion/batch_{{batch}}"
     params:
-        jaccard_distance=config["seq_jaccard_distance"],
+        jaccard_distance=JACCARD_THRESHOLD,
         ilp_solver=config["ilp_solver"],
         integerisation=INTEGERISATION,
         outputpath=OUTPUTPATH,
         batch=lambda wildcards: wildcards.batch,
-        timelimit=get_timelimit(config["ilp_solver"]),
+        timelimit=get_timelimit(config["timelimit"]),
         snakefile_dir=os.path.dirname(sys.argv[sys.argv.index("--snakefile")+1]),
+        pling_root_dir = get_pling_root_dir()
     resources:
         mem_mb = lambda wildcards, attempt: attempt * config["ilp_mem"]
     conda: "../envs/ding_and_glpk.yaml"
-    script:
+    shell:
             """
             PATH="$CONDA_PREFIX"/bin:$PATH  # quick fix for the issue described above
             python {params.pling_root_dir}/pling/dcj_snakemake/run_ding.py \
                     --batch {params.batch} \
                     --jaccard_tsv {input.jaccard_tsv} \
+                    --jaccard_distance {params.jaccard_distance} \
                     --outputpath {params.outputpath} \
                     --integerisation {params.integerisation} \
                     --ilp_solver {params.ilp_solver} \
-                    --timelimit {params.timelimit} \
-                    --snakefile_dir {params.snakefile}
+                    {params.timelimit} \
+                    --snakefile_dir {params.snakefile_dir}
             """
 
 rule dcj_matrix:
@@ -89,7 +89,7 @@ rule dcj_matrix:
     conda:
         "../envs/blocks.yaml"
     params:
-        dist_files = get_dist_files(f"{OUTPUTPATH}/jaccard/all_pairs_jaccard.tsv")
+        dist_files = get_dist_files(f"{OUTPUTPATH}/jaccard/all_pairs_jaccard_distance.tsv"),
         genomes= GENOMES,
         outputpath = OUTPUTPATH
     resources:
