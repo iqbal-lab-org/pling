@@ -44,7 +44,7 @@ def jaccard_file(not_pairs, genome_index, smash_matrix, jaccardpath):
         for el in not_pairs:
             i = genome_index[el[0]]
             j = genome_index[el[1]]
-            f.write(f"{el[0]}\t{el[1]}\t{smash_matrix[i][j]}\n")
+            f.write(f"{el[0]}\t{el[1]}\t{1-smash_matrix[i][j]}\n")
 
 def run_smash(genome_list, sig_path, matrixpath):
     try:
