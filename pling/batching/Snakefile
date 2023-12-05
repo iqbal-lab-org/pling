@@ -1,0 +1,52 @@
+from utils import get_pling_root_dir
+
+OUTPUTPATH = config["output_dir"]
+
+def smash():
+    if config.get("sourmash", False):
+        return "--sourmash"
+    else:
+        return ""
+
+def get_batching_resources(type):
+    if config.get("sourmash", False):
+        threads = config["sourmash_threads"]
+        mem = config["sourmash_mem"]
+    else:
+        threads = 1
+        mem = 4000
+    if type == "threads":
+        return threads
+    elif type == "mem":
+        return mem
+
+rule all:
+    input:
+        f"{OUTPUTPATH}/batches"
+
+rule get_batches:
+    output:
+        directory(f"{OUTPUTPATH}/batches")
+    params:
+        outputpath = OUTPUTPATH,
+        genomes_list = config["genomes_list"],
+        batch_size = config["batch_size"],
+        sourmash = smash(),
+        smash_threshold = config.get("sourmash_threshold", 1),
+        jaccardpath = f"{OUTPUTPATH}/tmp_files/jaccard_pairwise/too_low_jaccard_distance.tsv",
+        pling_root_dir = get_pling_root_dir()
+    threads: get_batching_resources("threads")
+    resources:
+        mem_mb=lambda wildcards, attempt: get_batching_resources("mem")*attempt
+    conda: "../envs/smash.yaml"
+    shell:
+        """
+        PATH="$CONDA_PREFIX"/bin:$PATH
+        python {params.pling_root_dir}/batching/get_batches.py \
+            --genomes_list {params.genomes_list} \
+            --batch_size {params.batch_size} \
+            --outputpath {params.outputpath} \
+            {params.sourmash} \
+            --smash_threshold {params.smash_threshold} \
+            --jaccardpath {params.jaccardpath}
+        """

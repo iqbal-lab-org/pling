@@ -1,8 +1,7 @@
 import os
 import pandas as pd
 import sys
-import math
-from pling.utils import get_pling_root_dir, get_fasta_file_info
+from pling.utils import get_pling_root_dir, get_fasta_file_info, get_number_of_batches
 
 configfile: "../config.yaml"
 
@@ -14,7 +13,7 @@ INTEGERISATION = config["integerisation"]
 JACCARD_THRESHOLD = config["seq_jaccard_distance"]
 COMMUNITIES = config["communities"]
 batch_size = config["batch_size"]
-number_of_batches = math.ceil((len(GENOMES)*(len(GENOMES)-1)/2)/batch_size)
+number_of_batches = get_number_of_batches(OUTPUTPATH)
 
 def get_dist_files(jaccard_tsv):
     files=[]

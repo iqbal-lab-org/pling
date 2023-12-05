@@ -37,6 +37,8 @@ def parse_args():
     parser.add_argument("--resources", help="tsv stating number of threads and memory to use for each rule")
     parser.add_argument("--profile", help="to run on cluster with corresponding snakemake profile")
     parser.add_argument("--batch_size", default = 50, help="how many pairs of genomes to run together in one job (for integerisation from alignment and DCJ calculation steps)")
+    parser.add_argument("--sourmash", action="store_true", help="run sourmash as first filter on which pairs to calculate DCJ on")
+    parser.add_argument("--sourmash_threshold", default=0.85, help="threshold for filtering with sourmash")
 
     args = parser.parse_args()
     return args
@@ -92,6 +94,9 @@ def make_config_file(args):
         config.write(f"ilp_solver: {args.ilp_solver}\n\n")
         config.write(f"timelimit: {timelimit}\n\n")
         config.write(f"batch_size: {args.batch_size}\n\n")
+        if args.sourmash:
+            config.write(f"sourmash: {args.sourmash}\n\n")
+            config.write(f"sourmash_threshold: {args.sourmash_threshold}\n\n")
         for row in resources.index:
             rule = resources.loc[row, "Rule"]
             threads = resources.loc[row, "Threads"]
@@ -101,11 +106,20 @@ def make_config_file(args):
 
     return configfile, tmp_dir, forceall, profile
 
-
 def pling(args):
     configfile, tmp_dir, forceall, profile = make_config_file(args)
 
     snakemake_args = f"--configfile {configfile} --cores {args.cores} --use-conda --use-singularity --rerun-incomplete {profile} {forceall}"
+
+    #batching
+    try:
+        print("Batching...\n")
+        subprocess.run(f"snakemake --snakefile {get_pling_path()}/batching/Snakefile {snakemake_args}", shell=True, check=True, capture_output=True)
+        print("Completed batching.\n")
+    except subprocess.CalledProcessError as e:
+        print(e.stderr.decode())
+        print(e)
+        raise e
 
     #integerisation
     if args.integerisation == "anno":

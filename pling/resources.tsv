@@ -13,3 +13,4 @@ dcj_dist	NA	4000
 dcj_matrix	NA	4000
 build_DCJ_graph	NA	8000
 pairwise_seq_jaccard	1	10000
+sourmash	1	10000
