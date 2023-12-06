@@ -45,8 +45,7 @@ rule pairwise_seq_jaccard:
         # This is the expected behaviour, is not a bug in conda or snakemake.
         # For more details, see https://github.com/conda/conda/issues/9392#issuecomment-1291041085
         PATH="$CONDA_PREFIX"/bin:$PATH  # quick fix for the issue described above
-
-        python {params.pling_root_dir}/pling/jac_network_snakemake/seq_jaccard.py \
+        PYTHONPATH={params.pling_root_dir} python {params.pling_root_dir}/pling/jac_network_snakemake/seq_jaccard.py \
             --genomes_list {params.genomes_list} \
             --batch {params.batch} \
             --identity_threshold {params.identity_threshold} \

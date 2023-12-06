@@ -59,7 +59,7 @@ rule ding:
     shell:
             """
             PATH="$CONDA_PREFIX"/bin:$PATH  # quick fix for the issue described above
-            python {params.pling_root_dir}/pling/dcj_snakemake/run_ding.py \
+            PYTHONPATH={params.pling_root_dir} python {params.pling_root_dir}/pling/dcj_snakemake/run_ding.py \
                     --batch {params.batch} \
                     --jaccard_tsv {input.jaccard_tsv} \
                     --jaccard_distance {params.jaccard_distance} \

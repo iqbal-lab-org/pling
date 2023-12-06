@@ -42,7 +42,7 @@ rule get_batches:
     shell:
         """
         PATH="$CONDA_PREFIX"/bin:$PATH
-        python {params.pling_root_dir}/batching/get_batches.py \
+        PYTHONPATH={params.pling_root_dir} python {params.pling_root_dir}/batching/get_batches.py \
             --genomes_list {params.genomes_list} \
             --batch_size {params.batch_size} \
             --outputpath {params.outputpath} \

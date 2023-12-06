@@ -3,7 +3,7 @@
 # TODO: prior to including this:
 # OUTPUTPATH
 # GENOMES
-from utils import get_number_of_batches
+from pling.utils import get_number_of_batches
 
 rule create_genomes_tsv:
     output:
