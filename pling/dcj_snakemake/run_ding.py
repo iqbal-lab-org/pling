@@ -54,7 +54,7 @@ def ilp_gurobi(lp, solution, timelimit, log):
     except subprocess.CalledProcessError as e:
         print(e.stderr.decode())
         print(e)
-        raise e
+        raise ejac_network_snakemake/Snakefile
 
 def ilp_GLPK(lp, solution, snakefile_dir, timelimit, log):
     try:
@@ -83,14 +83,17 @@ def ilp_GLPK(lp, solution, snakefile_dir, timelimit, log):
 def dcj_dist(unimog, solution, out_unimog_relabeled, genome1, genome2, dist_file, log):
     try:
         print("Parsing Gurobi output to get DCJ distances...\n")
-        subprocess.run(f"dingII parsesol {unimog} --solgur {solution} --matching {out_unimog_relabeled} -p {genome1} {genome2} > {dist_file} 2>{log}", shell=True, check=True, capture_output=True)
+        dcj_out = subprocess.run(f"dingII parsesol {unimog} --solgur {solution} -p {genome1} {genome2} 2>{log}", shell=True, check=True, capture_output=True, text=True).stdout
+        dist = int(dcj_out.strip().split(" ")[2])
         print("Completed.\n")
     except subprocess.CalledProcessError as e:
         print(e.stderr.decode())
         print(e)
         raise e
+    return dist
 
 def batchwise_ding(pairs, jaccard_distance, jaccards, ilp_solver, integerisation, outputpath, batch, timelimit, snakefile_dir, plasmid_to_community):
+    dists = []
     for pair in pairs:
         genome1 = pair[0]
         genome2 = pair[1]
@@ -112,9 +115,11 @@ def batchwise_ding(pairs, jaccard_distance, jaccards, ilp_solver, integerisation
             else:
                 raise RuntimeError(f"Unknown ILP solver: {ilp_solver}")
             log = f"logs/dcj_dist/{genome1}~{genome2}.log"
-            dcj_dist(unimog, solution, out_unimog_relabeled, entry1, entry2, dist_file, log)
-    with open(f"{outputpath}/tmp_files/ding/completion/batch_{batch}", "w+") as f:
-        f.write("done!")
+            dist = dcj_dist(unimog, solution, out_unimog_relabeled, entry1, entry2, dist_file, log)
+            dists.append(f"{genome1}\t{genome2}\t{dist}\n")
+    with open(f"{outputpath}/tmp_files/dists_batchwise/batch_{batch}_dcj.tsv", "w+") as f:
+        for line in dists:
+            f.write(line)
 
 def main():
     # Create the parser
@@ -143,7 +148,7 @@ def main():
         }
         timelimit=solver_to_timelimit[args.ilp_solver]
 
-    pairs=read_in_batch_pairs(f"{args.outputpath}/tmp_files/batches/batch_{args.batch}.txt")
+    pairs=read_in_batch_pairs(f"{args.outputpath}/batches/batch_{args.batch}.txt")
     jaccards=get_jaccard_distances_for_batch(args.jaccard_tsv)
 
     output_dirs = [Path(f"{args.outputpath}/tmp_files/ding/ilp"), Path(f"{args.outputpath}/tmp_files/ding/solutions"), Path(f"{args.outputpath}/tmp_files/dists_pairwise"), Path(f"{args.outputpath}/unimogs/matched"), Path("logs/unimog_to_ilp"), Path("logs/ilp/gurobi"), Path("logs/dcj_dist")]

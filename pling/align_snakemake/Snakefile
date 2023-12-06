@@ -21,7 +21,7 @@ rule all:
 
 rule make_unimogs:
     input:
-        batch_list=lambda wildcards: f"{OUTPUTPATH}/tmp_files/batches/batch_{wildcards.batch}.txt"
+        batch_list=lambda wildcards: f"{OUTPUTPATH}/batches/batch_{wildcards.batch}.txt"
     output:
         jaccard=f"{OUTPUTPATH}/tmp_files/jaccard_pairwise/batch_{{batch}}_jaccard.tsv",
         unimog = f"{OUTPUTPATH}/unimogs/batch_{{batch}}_align.unimog",

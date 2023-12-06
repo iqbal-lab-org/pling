@@ -17,16 +17,16 @@ rule create_genomes_tsv:
                 f.write(f"{genome}\n")
 localrules: create_genomes_tsv
 
-def get_low_jaccard_file():
+def get_not_pairs_jaccard_file():
     if config.get("sourmash", False):
-        return f"{OUTPUTPATH}/tmp_files/jaccard_pairwise/too_low_jaccard_distance.tsv"
+        return f"{OUTPUTPATH}/tmp_files/jaccard_pairwise/not_pairs_jaccard_distance.tsv"
     else:
         return ""
 
 rule cat_jaccard:
     input:
         jaccards = expand(f"{OUTPUTPATH}/tmp_files/jaccard_pairwise/batch_{{batch}}_jaccard.tsv", batch=[str(i) for i in range(get_number_of_batches(OUTPUTPATH))]),
-        not_pairs = get_low_jaccard_file()
+        not_pairs = get_not_pairs_jaccard_file()
     output:
         all_jaccard_distances = f"{OUTPUTPATH}/jaccard/all_pairs_jaccard_distance.tsv"
     threads: 1
@@ -36,4 +36,5 @@ rule cat_jaccard:
         """
         cat <(echo -e "plasmid_1\tplasmid_2\tdistance") {input.jaccards} {input.not_pairs}> {output.all_jaccard_distances}
         """
+
 localrules: cat_jaccard

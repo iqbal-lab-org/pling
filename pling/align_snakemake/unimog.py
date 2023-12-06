@@ -3,7 +3,7 @@ import pandas as pd
 import argparse
 import os
 from pathlib import Path
-from pling.utils import read_in_batch_pairs, get_fasta_file_info
+from utils import read_in_batch_pairs, get_fasta_file_info
 
 def unimogs_to_ilp_core(genome_1_fasta, genome_2_fasta, genome_1, genome_2, identity_threshold):
     plasmid_1_unimogs, plasmid_2_unimogs, jaccard_distance, blocks_ref, blocks_query = integerise_plasmids(genome_1_fasta, genome_2_fasta,
@@ -64,7 +64,7 @@ def main():
 
     fastafiles, fastaext, fastapath = get_fasta_file_info(args.genomes_list)
 
-    pairs=read_in_batch_pairs(f"{args.outputpath}/tmp_files/batches/batch_{args.batch}.txt")
+    pairs=read_in_batch_pairs(f"{args.outputpath}/batches/batch_{args.batch}.txt")
 
     batchwise_unimog(fastapath, fastaext, pairs, args.unimog_output, args.map_output, args.jaccard_output, args.identity_threshold, args.jaccard_distance)
 

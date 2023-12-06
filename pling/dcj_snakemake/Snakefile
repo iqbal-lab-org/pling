@@ -13,7 +13,6 @@ INTEGERISATION = config["integerisation"]
 JACCARD_THRESHOLD = config["seq_jaccard_distance"]
 COMMUNITIES = config["communities"]
 batch_size = config["batch_size"]
-number_of_batches = get_number_of_batches(OUTPUTPATH)
 
 def get_dist_files(jaccard_tsv):
     files=[]
@@ -32,9 +31,15 @@ def get_timelimit(timelimit):
     else:
         return f"--timelimit {timelimit}"
 
+def get_not_pairs_dcj_file():
+    if config.get("sourmash", False):
+        return f"{OUTPUTPATH}/tmp_files/dists_batchwise/not_pairs_dcj_distance.tsv"
+    else:
+        return ""
+
 rule all:
     input:
-        matrix = f"{OUTPUTPATH}/{PREFIX}_matrix.dist",
+        #matrix = f"{OUTPUTPATH}/{PREFIX}_matrix.dist",
         dcj_graph_outdir = f"{OUTPUTPATH}/dcj_graph"
 
 rule ding:
@@ -42,7 +47,7 @@ rule ding:
         #unimog = lambda wildcards: f"{OUTPUTPATH}/unimogs/batch_{wildcards.batch}_align.unimog",
         jaccard_tsv = lambda wildcards: f"{OUTPUTPATH}/tmp_files/jaccard_pairwise/batch_{wildcards.batch}_jaccard.tsv"
     output:
-        f"{OUTPUTPATH}/tmp_files/ding/completion/batch_{{batch}}"
+        f"{OUTPUTPATH}/tmp_files/dists_batchwise/batch_{{batch}}_dcj.tsv"
     params:
         jaccard_distance=JACCARD_THRESHOLD,
         ilp_solver=config["ilp_solver"],
@@ -56,6 +61,7 @@ rule ding:
     resources:
         mem_mb = lambda wildcards, attempt: attempt * config["ilp_mem"]
     conda: "../envs/ding_and_glpk.yaml"
+    shadow: "shallow"
     shell:
             """
             PATH="$CONDA_PREFIX"/bin:$PATH  # quick fix for the issue described above
@@ -71,6 +77,7 @@ rule ding:
                     --snakefile_dir {params.snakefile_dir}
             """
 
+'''
 rule dcj_matrix:
     input:
         unimogs_done = expand(f"{OUTPUTPATH}/tmp_files/ding/completion/batch_{{batch}}", batch=[str(i) for i in range(number_of_batches)])
@@ -102,6 +109,21 @@ rule dcj_tsv:
         mem_mb = lambda wildcards, attempt: attempt * config["dcj_matrix_mem"]
     script:
         "dcj_tsv.py"
+'''
+
+rule dcj_tsv:
+    input:
+        dists = expand(f"{OUTPUTPATH}/tmp_files/dists_batchwise/batch_{{batch}}_dcj.tsv", batch=[str(i) for i in range(get_number_of_batches(OUTPUTPATH))]),
+        not_pairs = get_not_pairs_dcj_file()
+    output:
+        tsv = f"{OUTPUTPATH}/{PREFIX}_distances.tsv"
+    threads: 1
+    resources:
+        mem_mb=lambda wildcards, attempt: 4000*attempt
+    shell:
+        """
+        cat <(echo -e "plasmid_1\tplasmid_2\tdistance") {input.dists} {input.not_pairs}> {output.tsv}
+        """
 
 rule build_DCJ_graph:
     input:
