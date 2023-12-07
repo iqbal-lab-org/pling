@@ -1,10 +1,12 @@
 channels:
  - conda-forge
  - defaults
+ - gurobi
 dependencies:
  - python =3.8
  - glpk =5.0
  - pandas =1.5.3
+ - gurobi =10.0.1
  - pip
  - pip:
    - git+https://github.com/leoisl/dingiiofficial_wrapper@pypi_conda

@@ -100,7 +100,8 @@ def main():
 
     if args.sourmash:
         jaccard_file(not_pairs, genome_index, smash_matrix, args.jaccardpath)
-        dcj_file(not_pairs, args.dcj_path)
+
+    dcj_file(not_pairs, genomes, args.dcj_path)
 
     number_of_batches = math.ceil(len(pairs)/args.batch_size)
     batches = {}

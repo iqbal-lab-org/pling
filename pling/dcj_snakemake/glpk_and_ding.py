@@ -36,30 +36,20 @@ def get_entries(integerisation, genome_1, genome_2):
     elif integerisation == "anno":
         return genome_1, genome_2
 
-def unimog_to_ilp(unimog, lp, genome1, genome2, log):
+def unimog_to_ilp(unimog, lp, genome1, genome2):
     try:
         print("Converting unimog to ILP...\n")
-        subprocess.run(f"dingII generate {unimog} -mm --writeilp {lp} -p {genome1} {genome2} 2>{log}", shell=True, check=True, capture_output=True)
+        subprocess.run(f"dingII generate {unimog} -mm --writeilp {lp} -p {genome1} {genome2}", shell=True, check=True, capture_output=True)
         print("Completed.\n")
     except subprocess.CalledProcessError as e:
         print(e.stderr.decode())
         print(e)
         raise e
 
-def ilp_gurobi(lp, solution, timelimit, log):
-    try:
-        print("Solving ILP with Gurobi...\n")
-        subprocess.run(f"gurobi_cl ResultFile={solution} Threads=1 LogFile={log} {timelimit} {lp} >/dev/null", shell=True, check=True, capture_output=True)
-        print("Completed.\n")
-    except subprocess.CalledProcessError as e:
-        print(e.stderr.decode())
-        print(e)
-        raise ejac_network_snakemake/Snakefile
-
-def ilp_GLPK(lp, solution, snakefile_dir, timelimit, log):
+def ilp_GLPK(lp, solution, snakefile_dir, timelimit):
     try:
         print("Solving ILP with GLPK...\n")
-        subprocess.run(f"glpsol --lp {lp} -o {solution}.tmp {timelimit} 2>&1 > {log}", shell=True, check=True, capture_output=True)
+        subprocess.run(f"glpsol --lp {lp} -o {solution}.tmp {timelimit}", shell=True, check=True, capture_output=True)
         print("Completed.\n")
     except subprocess.CalledProcessError as e:
         print(e.stderr.decode())
@@ -80,10 +70,10 @@ def ilp_GLPK(lp, solution, snakefile_dir, timelimit, log):
         print(e)
         raise e
 
-def dcj_dist(unimog, solution, out_unimog_relabeled, genome1, genome2, dist_file, log):
+def dcj_dist(unimog, solution, genome1, genome2):
     try:
         print("Parsing Gurobi output to get DCJ distances...\n")
-        dcj_out = subprocess.run(f"dingII parsesol {unimog} --solgur {solution} -p {genome1} {genome2} 2>{log}", shell=True, check=True, capture_output=True, text=True).stdout
+        dcj_out = subprocess.run(f"dingII parsesol {unimog} --solgur {solution} -p {genome1} {genome2}", shell=True, check=True, capture_output=True, text=True).stdout
         dist = int(dcj_out.strip().split(" ")[2])
         print("Completed.\n")
     except subprocess.CalledProcessError as e:
@@ -92,30 +82,19 @@ def dcj_dist(unimog, solution, out_unimog_relabeled, genome1, genome2, dist_file
         raise e
     return dist
 
-def batchwise_ding(pairs, jaccard_distance, jaccards, ilp_solver, integerisation, outputpath, batch, timelimit, snakefile_dir, plasmid_to_community):
+def batchwise_ding(pairs, jaccard_distance, jaccards, integerisation, outputpath, batch, timelimit, snakefile_dir, plasmid_to_community):
     dists = []
     for pair in pairs:
         genome1 = pair[0]
         genome2 = pair[1]
-        lp = f"{outputpath}/tmp_files/ding/ilp/{genome1}~{genome2}.lp"
-        solution = f"{outputpath}/tmp_files/ding/solutions/{genome1}~{genome2}.sol"
-        dist_file = f"{outputpath}/tmp_files/dists_pairwise/{genome1}~{genome2}.dist"
-        out_unimog_relabeled = f"{outputpath}/unimogs/matched/{genome1}~{genome2}_matched.unimog"
-        log = f"logs/unimog_to_ilp/{genome1}~{genome2}.log"
+        lp = f"ding/ilp/{genome1}~{genome2}.lp"
+        solution = f"ding/solutions/{genome1}~{genome2}.sol"
         entry1, entry2 = get_entries(integerisation, genome1, genome2)
         if jaccards[(genome1,genome2)]<=jaccard_distance:
             unimog = get_unimog(outputpath, integerisation, plasmid_to_community, batch, genome1, genome2)
-            unimog_to_ilp(unimog, lp, entry1, entry2, log)
-            if ilp_solver == "gurobi":
-                log = f"logs/ilp/gurobi/{genome1}~{genome2}.log"
-                ilp_gurobi(lp, solution, timelimit, log)
-            elif ilp_solver == "GLPK":
-                log = f"logs/ilp/GLPK/{genome1}~{genome2}.log"
-                ilp_GLPK(lp, solution, snakefile_dir, timelimit, log)
-            else:
-                raise RuntimeError(f"Unknown ILP solver: {ilp_solver}")
-            log = f"logs/dcj_dist/{genome1}~{genome2}.log"
-            dist = dcj_dist(unimog, solution, out_unimog_relabeled, entry1, entry2, dist_file, log)
+            unimog_to_ilp(unimog, lp, entry1, entry2)
+            ilp_GLPK(lp, solution, snakefile_dir, timelimit)
+            dist = dcj_dist(unimog, solution, entry1, entry2)
             dists.append(f"{genome1}\t{genome2}\t{dist}\n")
     with open(f"{outputpath}/tmp_files/dists_batchwise/batch_{batch}_dcj.tsv", "w+") as f:
         for line in dists:
@@ -132,7 +111,7 @@ def main():
     parser.add_argument("--outputpath", required=True, help="Path for general output directory")
     parser.add_argument("--communitypath", required=True)
     parser.add_argument("--integerisation", required=True, type=str)
-    parser.add_argument("--ilp_solver", required=True)
+    parser.add_argument("--threads")
     parser.add_argument("--timelimit")
     parser.add_argument("--snakefile_dir", required=True)
 
@@ -142,26 +121,21 @@ def main():
     if args.timelimit == None:
         timelimit=""
     else:
-        solver_to_timelimit = {
-            "GLPK": f"--tmlim {args.timelimit}",
-            "gurobi": f"TimeLimit={args.timelimit}",
-        }
-        timelimit=solver_to_timelimit[args.ilp_solver]
+        timelimit=f"--tmlim {args.timelimit}"
 
     pairs=read_in_batch_pairs(f"{args.outputpath}/batches/batch_{args.batch}.txt")
     jaccards=get_jaccard_distances_for_batch(args.jaccard_tsv)
 
-    output_dirs = [Path(f"{args.outputpath}/tmp_files/ding/ilp"), Path(f"{args.outputpath}/tmp_files/ding/solutions"), Path(f"{args.outputpath}/tmp_files/dists_pairwise"), Path(f"{args.outputpath}/unimogs/matched"), Path("logs/unimog_to_ilp"), Path("logs/ilp/gurobi"), Path("logs/dcj_dist")]
+    output_dirs = [Path(f"ding/ilp"), Path(f"ding/solutions")]
     for dir in output_dirs:
         dir.mkdir(parents=True, exist_ok=True)
 
     if args.integerisation=="anno":
         plasmid_to_community = get_plasmid_to_community(args.communitypath)
-        print(plasmid_to_community)
     else:
         plasmid_to_community=None
 
-    batchwise_ding(pairs, float(args.jaccard_distance), jaccards, args.ilp_solver, args.integerisation, args.outputpath, args.batch, timelimit, args.snakefile_dir, plasmid_to_community)
+    batchwise_ding(pairs, float(args.jaccard_distance), jaccards, args.integerisation, args.outputpath, args.batch, timelimit, args.snakefile_dir, plasmid_to_community)
 
 if __name__ == "__main__":
     main()

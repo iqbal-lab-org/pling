@@ -31,90 +31,87 @@ def get_timelimit(timelimit):
     else:
         return f"--timelimit {timelimit}"
 
-def get_not_pairs_dcj_file():
-    if config.get("sourmash", False):
-        return f"{OUTPUTPATH}/tmp_files/dists_batchwise/not_pairs_dcj_distance.tsv"
-    else:
-        return ""
-
 rule all:
     input:
         #matrix = f"{OUTPUTPATH}/{PREFIX}_matrix.dist",
         dcj_graph_outdir = f"{OUTPUTPATH}/dcj_graph"
 
-rule ding:
-    input:
-        #unimog = lambda wildcards: f"{OUTPUTPATH}/unimogs/batch_{wildcards.batch}_align.unimog",
-        jaccard_tsv = lambda wildcards: f"{OUTPUTPATH}/tmp_files/jaccard_pairwise/batch_{wildcards.batch}_jaccard.tsv"
-    output:
-        f"{OUTPUTPATH}/tmp_files/dists_batchwise/batch_{{batch}}_dcj.tsv"
-    params:
-        jaccard_distance=JACCARD_THRESHOLD,
-        ilp_solver=config["ilp_solver"],
-        integerisation=INTEGERISATION,
-        outputpath=OUTPUTPATH,
-        communitypath=f"{COMMUNITIES}/objects/communities.txt",
-        batch=lambda wildcards: wildcards.batch,
-        timelimit=get_timelimit(config["timelimit"]),
-        snakefile_dir=os.path.dirname(sys.argv[sys.argv.index("--snakefile")+1]),
-        pling_root_dir = get_pling_root_dir()
-    resources:
-        mem_mb = lambda wildcards, attempt: attempt * config["ilp_mem"]
-    conda: "../envs/ding_and_glpk.yaml"
-    shadow: "shallow"
-    shell:
-            """
-            PATH="$CONDA_PREFIX"/bin:$PATH  # quick fix for the issue described above
-            PYTHONPATH={params.pling_root_dir} python {params.pling_root_dir}/pling/dcj_snakemake/run_ding.py \
-                    --batch {params.batch} \
-                    --jaccard_tsv {input.jaccard_tsv} \
-                    --jaccard_distance {params.jaccard_distance} \
-                    --outputpath {params.outputpath} \
-                    --communitypath {params.communitypath} \
-                    --integerisation {params.integerisation} \
-                    --ilp_solver {params.ilp_solver} \
-                    {params.timelimit} \
-                    --snakefile_dir {params.snakefile_dir}
-            """
+if config["ilp_solver"] == "GLPK":
+    rule glpk_and_ding:
+        input:
+            #unimog = lambda wildcards: f"{OUTPUTPATH}/unimogs/batch_{wildcards.batch}_align.unimog",
+            jaccard_tsv = lambda wildcards: f"{OUTPUTPATH}/tmp_files/jaccard_pairwise/batch_{wildcards.batch}_jaccard.tsv"
+        output:
+            f"{OUTPUTPATH}/tmp_files/dists_batchwise/batch_{{batch}}_dcj.tsv"
+        params:
+            jaccard_distance=JACCARD_THRESHOLD,
+            integerisation=INTEGERISATION,
+            outputpath=OUTPUTPATH,
+            communitypath=f"{COMMUNITIES}/objects/communities.txt",
+            batch=lambda wildcards: wildcards.batch,
+            timelimit=get_timelimit(config["timelimit"]),
+            snakefile_dir=os.path.dirname(sys.argv[sys.argv.index("--snakefile")+1]),
+            pling_root_dir = get_pling_root_dir()
+        threads: config["ilp_threads"]
+        resources:
+            mem_mb = lambda wildcards, attempt: attempt * config["ilp_mem"]
+        conda: "../envs/ding_and_glpk.yaml"
+        shadow: "shallow"
+        shell:
+                """
+                PATH="$CONDA_PREFIX"/bin:$PATH  # quick fix for the issue described above
+                PYTHONPATH={params.pling_root_dir} python {params.pling_root_dir}/pling/dcj_snakemake/glpk_and_ding.py \
+                        --batch {params.batch} \
+                        --jaccard_tsv {input.jaccard_tsv} \
+                        --jaccard_distance {params.jaccard_distance} \
+                        --outputpath {params.outputpath} \
+                        --communitypath {params.communitypath} \
+                        --integerisation {params.integerisation} \
+                        {params.timelimit} \
+                        --threads {threads} \
+                        --snakefile_dir {params.snakefile_dir}
+                """
 
-'''
-rule dcj_matrix:
-    input:
-        unimogs_done = expand(f"{OUTPUTPATH}/tmp_files/ding/completion/batch_{{batch}}", batch=[str(i) for i in range(number_of_batches)])
-    output:
-        matrix=f"{OUTPUTPATH}/{PREFIX}_matrix.dist"
-    conda:
-        "../envs/blocks.yaml"
-    params:
-        dist_files = get_dist_files(f"{OUTPUTPATH}/jaccard/all_pairs_jaccard_distance.tsv"),
-        genomes= GENOMES,
-        outputpath = OUTPUTPATH
-    resources:
-        mem_mb = lambda wildcards, attempt: attempt * config["dcj_matrix_mem"]
-    script:
-        "dcj_matrix.py"
-
-rule dcj_tsv:
-    input:
-        unimogs_done = expand(f"{OUTPUTPATH}/tmp_files/ding/completion/batch_{{batch}}", batch=[str(i) for i in range(number_of_batches)])
-    output:
-        tsv=f"{OUTPUTPATH}/{PREFIX}_distances.tsv"
-    conda:
-        "../envs/blocks.yaml"
-    params:
-        dist_files = get_dist_files(f"{OUTPUTPATH}/jaccard/all_pairs_jaccard_distance.tsv"),
-        genomes= GENOMES,
-        outputpath = OUTPUTPATH
-    resources:
-        mem_mb = lambda wildcards, attempt: attempt * config["dcj_matrix_mem"]
-    script:
-        "dcj_tsv.py"
-'''
+elif config["ilp_solver"] == "gurobi":
+    rule gurobi_and_ding:
+        input:
+            #unimog = lambda wildcards: f"{OUTPUTPATH}/unimogs/batch_{wildcards.batch}_align.unimog",
+            jaccard_tsv = lambda wildcards: f"{OUTPUTPATH}/tmp_files/jaccard_pairwise/batch_{wildcards.batch}_jaccard.tsv"
+        output:
+            f"{OUTPUTPATH}/tmp_files/dists_batchwise/batch_{{batch}}_dcj.tsv"
+        params:
+            jaccard_distance=JACCARD_THRESHOLD,
+            integerisation=INTEGERISATION,
+            outputpath=OUTPUTPATH,
+            communitypath=f"{COMMUNITIES}/objects/communities.txt",
+            batch=lambda wildcards: wildcards.batch,
+            timelimit=get_timelimit(config["timelimit"]),
+            pling_root_dir = get_pling_root_dir()
+        threads: config["ilp_threads"]
+        resources:
+            mem_mb = lambda wildcards, attempt: attempt * config["ilp_mem"]
+        conda: "../envs/ding_and_glpk.yaml"
+        shadow: "shallow"
+        shell:
+                """
+                PATH="$CONDA_PREFIX"/bin:$PATH  # quick fix for the issue described above
+                PYTHONPATH={params.pling_root_dir} python {params.pling_root_dir}/pling/dcj_snakemake/gurobi_and_ding.py \
+                        --batch {params.batch} \
+                        --jaccard_tsv {input.jaccard_tsv} \
+                        --jaccard_distance {params.jaccard_distance} \
+                        --outputpath {params.outputpath} \
+                        --communitypath {params.communitypath} \
+                        --integerisation {params.integerisation} \
+                        {params.timelimit} \
+                        --threads {threads} \
+                """
+else:
+    raise Exception("Not a valid ILP solver!")
 
 rule dcj_tsv:
     input:
         dists = expand(f"{OUTPUTPATH}/tmp_files/dists_batchwise/batch_{{batch}}_dcj.tsv", batch=[str(i) for i in range(get_number_of_batches(OUTPUTPATH))]),
-        not_pairs = get_not_pairs_dcj_file()
+        not_pairs = f"{OUTPUTPATH}/tmp_files/dists_batchwise/not_pairs_dcj_distance.tsv"
     output:
         tsv = f"{OUTPUTPATH}/{PREFIX}_distances.tsv"
     threads: 1

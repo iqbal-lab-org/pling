@@ -8,7 +8,7 @@ consolidation	NA	4000
 deduplication	1	10000
 blocks	NA	4000
 unimog_to_ilp	NA	4000
-ilp	NA	100000
+ilp	1	100000
 dcj_dist	NA	4000
 dcj_matrix	NA	4000
 build_DCJ_graph	NA	8000
