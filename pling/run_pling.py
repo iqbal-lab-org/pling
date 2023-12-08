@@ -141,7 +141,7 @@ def pling(args):
             raise e
     elif args.integerisation == "align":
         try:
-            print("Aligning, intgerising, and building jaccard network...\n")
+            print("Aligning, integerising, and building jaccard network...\n")
             subprocess.run(f"snakemake --snakefile {get_pling_path()}/align_snakemake/Snakefile {snakemake_args}", shell=True, check=True, capture_output=True)
             print("Completed integerisation and jaccard network.\n")
         except subprocess.CalledProcessError as e:

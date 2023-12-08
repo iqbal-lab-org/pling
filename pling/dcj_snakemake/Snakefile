@@ -40,7 +40,7 @@ if config["ilp_solver"] == "GLPK":
     rule glpk_and_ding:
         input:
             #unimog = lambda wildcards: f"{OUTPUTPATH}/unimogs/batch_{wildcards.batch}_align.unimog",
-            jaccard_tsv = lambda wildcards: f"{OUTPUTPATH}/tmp_files/jaccard_pairwise/batch_{wildcards.batch}_jaccard.tsv"
+            jaccard_tsv = lambda wildcards: f"{OUTPUTPATH}/tmp_files/jaccard_batchwise/batch_{wildcards.batch}_jaccard.tsv"
         output:
             f"{OUTPUTPATH}/tmp_files/dists_batchwise/batch_{{batch}}_dcj.tsv"
         params:
@@ -76,7 +76,7 @@ elif config["ilp_solver"] == "gurobi":
     rule gurobi_and_ding:
         input:
             #unimog = lambda wildcards: f"{OUTPUTPATH}/unimogs/batch_{wildcards.batch}_align.unimog",
-            jaccard_tsv = lambda wildcards: f"{OUTPUTPATH}/tmp_files/jaccard_pairwise/batch_{wildcards.batch}_jaccard.tsv"
+            jaccard_tsv = lambda wildcards: f"{OUTPUTPATH}/tmp_files/jaccard_batchwise/batch_{wildcards.batch}_jaccard.tsv"
         output:
             f"{OUTPUTPATH}/tmp_files/dists_batchwise/batch_{{batch}}_dcj.tsv"
         params:

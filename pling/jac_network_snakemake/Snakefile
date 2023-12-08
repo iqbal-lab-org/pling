@@ -24,7 +24,7 @@ rule pairwise_seq_jaccard:
     input:
         batch_list=lambda wildcards: f"{OUTPUTPATH}/batches/batch_{wildcards.batch}.txt"
     output:
-        jaccard=f"{OUTPUTPATH}/tmp_files/jaccard_pairwise/batch_{{batch}}_jaccard.tsv"
+        jaccard=f"{OUTPUTPATH}/tmp_files/jaccard_batchwise/batch_{{batch}}_jaccard.tsv"
     threads: config["pairwise_seq_jaccard_threads"]
     resources:
         mem_mb=lambda wildcards, attempt: config["pairwise_seq_jaccard_mem"]*attempt

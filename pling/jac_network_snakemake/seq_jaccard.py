@@ -78,7 +78,7 @@ def batchwise_jaccard(fastapath, fastaext, pairs, jaccardpath, identity_threshol
 def main(args):
     fastafiles, fastaext, fastapath = get_fasta_file_info(args.genomes_list)
 
-    pairs=read_in_batch_pairs(f"{args.outputpath}/tmp_files/batches/batch_{args.batch}.txt")
+    pairs=read_in_batch_pairs(f"{args.outputpath}/batches/batch_{args.batch}.txt")
 
     batchwise_jaccard(fastapath, fastaext, pairs, args.jaccard_output, args.identity_threshold)
 

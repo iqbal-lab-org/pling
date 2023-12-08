@@ -19,13 +19,13 @@ localrules: create_genomes_tsv
 
 def get_not_pairs_jaccard_file():
     if config.get("sourmash", False):
-        return f"{OUTPUTPATH}/tmp_files/jaccard_pairwise/not_pairs_jaccard_distance.tsv"
+        return f"{OUTPUTPATH}/tmp_files/jaccard_batchwise/not_pairs_jaccard_distance.tsv"
     else:
         return ""
 
 rule cat_jaccard:
     input:
-        jaccards = expand(f"{OUTPUTPATH}/tmp_files/jaccard_pairwise/batch_{{batch}}_jaccard.tsv", batch=[str(i) for i in range(get_number_of_batches(OUTPUTPATH))]),
+        jaccards = expand(f"{OUTPUTPATH}/tmp_files/jaccard_batchwise/batch_{{batch}}_jaccard.tsv", batch=[str(i) for i in range(get_number_of_batches(OUTPUTPATH))]),
         not_pairs = get_not_pairs_jaccard_file()
     output:
         all_jaccard_distances = f"{OUTPUTPATH}/jaccard/all_pairs_jaccard_distance.tsv"

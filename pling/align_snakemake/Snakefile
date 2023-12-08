@@ -23,7 +23,7 @@ rule make_unimogs:
     input:
         batch_list=lambda wildcards: f"{OUTPUTPATH}/batches/batch_{wildcards.batch}.txt"
     output:
-        jaccard=f"{OUTPUTPATH}/tmp_files/jaccard_pairwise/batch_{{batch}}_jaccard.tsv",
+        jaccard=f"{OUTPUTPATH}/tmp_files/jaccard_batchwise/batch_{{batch}}_jaccard.tsv",
         unimog = f"{OUTPUTPATH}/unimogs/batch_{{batch}}_align.unimog",
         map = f"{OUTPUTPATH}/unimogs/batch_{{batch}}_map.txt"
     threads: config["make_unimogs_threads"]
