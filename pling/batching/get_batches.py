@@ -4,7 +4,7 @@ import math
 import numpy as np
 import subprocess
 from pathlib import Path
-from utils import get_fasta_file_info
+from pling.utils import get_fasta_file_info
 
 def write_batch_file(output_dir, batches, batch):
     output_dir = Path(output_dir)

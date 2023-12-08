@@ -1,5 +1,5 @@
 import argparse
-from utils import read_in_batch_pairs
+from pling.utils import read_in_batch_pairs
 from pathlib import Path
 from dingII.dingII_generate import *
 from dingII.ilp_util_adj import *

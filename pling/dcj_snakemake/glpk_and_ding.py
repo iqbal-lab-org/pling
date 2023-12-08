@@ -1,6 +1,6 @@
 import subprocess
 import argparse
-from utils import read_in_batch_pairs
+from pling.utils import read_in_batch_pairs
 from pathlib import Path
 
 def get_plasmid_to_community(communitypath):

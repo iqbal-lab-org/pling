@@ -1,4 +1,4 @@
-from utils import get_pling_root_dir
+from pling.utils import get_pling_root_dir
 
 OUTPUTPATH = config["output_dir"]
 
@@ -43,7 +43,7 @@ rule get_batches:
     shell:
         """
         PATH="$CONDA_PREFIX"/bin:$PATH
-        PYTHONPATH={params.pling_root_dir} python {params.pling_root_dir}/batching/get_batches.py \
+        PYTHONPATH={params.pling_root_dir} python {params.pling_root_dir}/pling/batching/get_batches.py \
             --genomes_list {params.genomes_list} \
             --batch_size {params.batch_size} \
             --outputpath {params.outputpath} \

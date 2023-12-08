@@ -3,7 +3,7 @@ from pathlib import Path
 from typing import Tuple
 from intervaltree import IntervalTree
 import argparse
-from utils import read_in_batch_pairs, get_fasta_file_info
+from pling.utils import read_in_batch_pairs, get_fasta_file_info
 
 def get_coverage(tree):
     tree.merge_overlaps()
