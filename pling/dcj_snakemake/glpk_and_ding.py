@@ -64,6 +64,8 @@ def batchwise_ding(pairs, jaccard_distance, jaccards, integerisation, outputpath
             ilp_GLPK(lp, solution, snakefile_dir, timelimit)
             dist = dcj_dist(unimog, solution, entry1, entry2)
             dists.append(f"{genome1}\t{genome2}\t{dist}\n")
+        else:
+            dists.append(f"{genome1}\t{genome2}\n")
     with open(f"{outputpath}/tmp_files/dists_batchwise/batch_{batch}_dcj.tsv", "w+") as f:
         for line in dists:
             f.write(line)
