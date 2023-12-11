@@ -10,20 +10,9 @@ GENOMES = list(FASTAEXT.keys())
 OUTPUTPATH = config["output_dir"] #output directory will contain subdirectory with unimogs from integerisation pipeline, as well as placing all new output from current pipeline in subdirectories within it
 PREFIX = config["prefix"]
 INTEGERISATION = config["integerisation"]
-JACCARD_THRESHOLD = config["seq_jaccard_distance"]
+JACCARD_DISTANCE = config["seq_jaccard_distance"]
 COMMUNITIES = config["communities"]
 batch_size = config["batch_size"]
-
-def get_dist_files(jaccard_tsv):
-    files=[]
-    with open(jaccard_tsv, "r") as f:
-        next(f)
-        for line in f:
-            plasmid_1, plasmid_2, jaccard = line.strip().split("\t")
-            jaccard = float(jaccard)
-            if jaccard >= JACCARD_THRESHOLD:
-                files.append(f"{OUTPUTPATH}/tmp_files/dists_pairwise/{plasmid_1}~{plasmid_2}.dist")
-    return files
 
 def get_timelimit(timelimit):
     if config["timelimit"]=="None":
@@ -33,18 +22,16 @@ def get_timelimit(timelimit):
 
 rule all:
     input:
-        #matrix = f"{OUTPUTPATH}/{PREFIX}_matrix.dist",
         dcj_graph_outdir = f"{OUTPUTPATH}/dcj_graph"
 
 if config["ilp_solver"] == "GLPK":
     rule glpk_and_ding:
         input:
-            #unimog = lambda wildcards: f"{OUTPUTPATH}/unimogs/batch_{wildcards.batch}_align.unimog",
             jaccard_tsv = lambda wildcards: f"{OUTPUTPATH}/tmp_files/jaccard_batchwise/batch_{wildcards.batch}_jaccard.tsv"
         output:
             f"{OUTPUTPATH}/tmp_files/dists_batchwise/batch_{{batch}}_dcj.tsv"
         params:
-            jaccard_distance=JACCARD_THRESHOLD,
+            jaccard_distance=JACCARD_DISTANCE,
             integerisation=INTEGERISATION,
             outputpath=OUTPUTPATH,
             communitypath=f"{COMMUNITIES}/objects/communities.txt",
@@ -75,12 +62,11 @@ if config["ilp_solver"] == "GLPK":
 elif config["ilp_solver"] == "gurobi":
     rule gurobi_and_ding:
         input:
-            #unimog = lambda wildcards: f"{OUTPUTPATH}/unimogs/batch_{wildcards.batch}_align.unimog",
             jaccard_tsv = lambda wildcards: f"{OUTPUTPATH}/tmp_files/jaccard_batchwise/batch_{wildcards.batch}_jaccard.tsv"
         output:
             f"{OUTPUTPATH}/tmp_files/dists_batchwise/batch_{{batch}}_dcj.tsv"
         params:
-            jaccard_distance=JACCARD_THRESHOLD,
+            jaccard_distance=JACCARD_DISTANCE,
             integerisation=INTEGERISATION,
             outputpath=OUTPUTPATH,
             communitypath=f"{COMMUNITIES}/objects/communities.txt",

@@ -42,7 +42,7 @@ def get_pairs(genomes, smash, smash_matrix = None, smash_threshold = None):
 def jaccard_file(not_pairs, genome_index, smash_matrix, jaccardpath):
     dir = Path(os.path.dirname(jaccardpath))
     dir.mkdir(parents=True, exist_ok=True)
-    with open(jaccardpath, "w+") as f:
+    with open(jaccardpath, "w") as f:
         for el in not_pairs:
             i = genome_index[el[0]]
             j = genome_index[el[1]]
@@ -51,7 +51,7 @@ def jaccard_file(not_pairs, genome_index, smash_matrix, jaccardpath):
 def dcj_file(not_pairs, genomes, dcj_path):
     dir = Path(os.path.dirname(dcj_path))
     dir.mkdir(parents=True, exist_ok=True)
-    with open(dcj_path, "w+") as f:
+    with open(dcj_path, "w") as f:
         for el in not_pairs:
             f.write(f"{el[0]}\t{el[1]}\n")
         for genome in genomes:
@@ -111,7 +111,7 @@ def main():
     batches[str(number_of_batches-1)] = [pairs[j] for j in range((number_of_batches-1)*args.batch_size, len(pairs))]
     write_batch_file(f"{args.outputpath}/batches", batches, str(number_of_batches-1))
 
-    with open(f"{args.outputpath}/batches/batching_info.txt", "w+") as f:
+    with open(f"{args.outputpath}/batches/batching_info.txt", "w") as f:
         f.write(f"{args.batch_size}\n{number_of_batches}")
 
 if __name__ == "__main__":

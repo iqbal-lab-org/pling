@@ -11,7 +11,7 @@ def unimogs_to_ilp_core(genome_1_fasta, genome_2_fasta, genome_1, genome_2, iden
     unimog = f">{genome_1}~{genome_2}:{genome_1}\n{plasmid_1_unimogs}\n>{genome_1}~{genome_2}:{genome_2}\n{plasmid_2_unimogs}\n"
     return unimog, jaccard_distance, blocks_ref, blocks_query
 
-def batchwise_unimog(fastapath, fastaext, pairs, unimogpath, mappath, jaccardpath, identity_threshold, jaccard_threshold):
+def batchwise_unimog(fastapath, fastaext, pairs, unimogpath, mappath, jaccardpath, identity_threshold, jaccard_distance):
     jaccards = []
     unimogs = []
     batch_blocks = {}
@@ -22,14 +22,14 @@ def batchwise_unimog(fastapath, fastaext, pairs, unimogpath, mappath, jaccardpat
         genome_2_fasta = f"{fastapath}/{genome_2}{fastaext[genome_2]}"
         unimog, jaccard, blocks_ref, blocks_query = unimogs_to_ilp_core(genome_1_fasta, genome_2_fasta, genome_1, genome_2, identity_threshold)
         jaccards.append(f"{genome_1}\t{genome_2}\t{jaccard}\n")
-        if jaccard<=jaccard_threshold:
+        if jaccard<=jaccard_distance:
             unimogs.append(unimog)
             blocks = pd.concat([blocks_ref, blocks_query], ignore_index=True)
             batch_blocks[f"{genome_1}~{genome_2}"] = blocks
-    with open(unimogpath, 'w+') as f:
+    with open(unimogpath, 'w') as f:
         for line in unimogs:
             f.write(line)
-    with open(mappath, 'w+') as f:
+    with open(mappath, 'w') as f:
         f.write("\tPlasmid\tBlock_ID\tStart\tEnd\n")
         for key in batch_blocks.keys():
             f.write(f"{key}")
@@ -40,7 +40,7 @@ def batchwise_unimog(fastapath, fastaext, pairs, unimogpath, mappath, jaccardpat
                 start = blocks.loc[index, "Start"]
                 end = blocks.loc[index, "End"]
                 f.write(f"\t{plasmid}\t{block_id}\t{start}\t{end}\n")
-    with open(jaccardpath, 'w+') as f:
+    with open(jaccardpath, 'w') as f:
         for line in jaccards:
             f.write(line)
 

@@ -18,20 +18,9 @@ def ilp_GLPK(lp, solution, snakefile_dir, timelimit):
     try:
         print("Solving ILP with GLPK...\n")
         subprocess.run(f"glpsol --lp {lp} -o {solution}.tmp {timelimit}", shell=True, check=True, capture_output=True)
-        print("Completed.\n")
-    except subprocess.CalledProcessError as e:
-        print(e.stderr.decode())
-        print(e)
-        raise e
-    try:
-        print("Converting GLPK output to Gurobi output...\n")
+        print("Completed.\n Converting GLPK output to Gurobi output...\n")
         subprocess.run(f"python {snakefile_dir}/glpk_sol_to_gurobi_sol.py <{solution}.tmp >{solution}", shell=True, check=True, capture_output=True)
         print("Completed.\n")
-    except subprocess.CalledProcessError as e:
-        print(e.stderr.decode())
-        print(e)
-        raise e
-    try:
         subprocess.run(f"rm {solution}.tmp", shell=True, check=True, capture_output=True)
     except subprocess.CalledProcessError as e:
         print(e.stderr.decode())
@@ -66,7 +55,7 @@ def batchwise_ding(pairs, jaccard_distance, jaccards, integerisation, outputpath
             dists.append(f"{genome1}\t{genome2}\t{dist}\n")
         else:
             dists.append(f"{genome1}\t{genome2}\n")
-    with open(f"{outputpath}/tmp_files/dists_batchwise/batch_{batch}_dcj.tsv", "w+") as f:
+    with open(f"{outputpath}/tmp_files/dists_batchwise/batch_{batch}_dcj.tsv", "w") as f:
         for line in dists:
             f.write(line)
 

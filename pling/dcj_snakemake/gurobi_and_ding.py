@@ -113,7 +113,7 @@ def compute_DCJ(unimog, entry1, entry2, timelimit, threads):
     except AttributeError:
         print('Encountered an attribute error')
         raise e
-    return dist
+    return int(round(float(dist))
 
 def batchwise_ding(pairs, jaccard_distance, jaccards, integerisation, outputpath, batch, timelimit, threads, plasmid_to_community):
     dists = []
@@ -127,7 +127,7 @@ def batchwise_ding(pairs, jaccard_distance, jaccards, integerisation, outputpath
             dists.append(f"{genome1}\t{genome2}\t{dist}\n")
         else:
             dists.append(f"{genome1}\t{genome2}\n")
-    with open(f"{outputpath}/tmp_files/dists_batchwise/batch_{batch}_dcj.tsv", "w+") as f:
+    with open(f"{outputpath}/tmp_files/dists_batchwise/batch_{batch}_dcj.tsv", "w") as f:
         for line in dists:
             f.write(line)
 

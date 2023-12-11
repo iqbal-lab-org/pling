@@ -15,7 +15,6 @@ include: "../common_rules/common_rules.smk"
 
 rule all:
     input:
-        #unimogs = get_files("unimog", OUTPUTPATH, get_pairs(GENOMES)),
         seq_jaccard = f"{OUTPUTPATH}/jaccard/all_pairs_jaccard_distance.tsv",
         communities = f"{OUTPUTPATH}/jaccard/jaccard_communities"
 

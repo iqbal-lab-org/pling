@@ -70,7 +70,7 @@ def batchwise_jaccard(fastapath, fastaext, pairs, jaccardpath, identity_threshol
         genome_2_fasta = f"{fastapath}/{genome_2}{fastaext[genome_2]}"
         jaccard_distance = get_sequence_jaccard_distance(genome_1_fasta, genome_2_fasta, f"{genome_1}~{genome_2}", identity_threshold)
         jaccards.append(f"{genome_1}\t{genome_2}\t{jaccard_distance}\n")
-    with open(jaccardpath, 'w+') as f:
+    with open(jaccardpath, 'w') as f:
         for line in jaccards:
             f.write(line)
 
