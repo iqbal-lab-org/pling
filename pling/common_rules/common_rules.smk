@@ -3,6 +3,7 @@
 # TODO: prior to including this:
 # OUTPUTPATH
 # GENOMES
+from pling.utils import get_number_of_batches
 
 rule create_genomes_tsv:
     output:
@@ -16,41 +17,25 @@ rule create_genomes_tsv:
                 f.write(f"{genome}\n")
 localrules: create_genomes_tsv
 
-
-def get_pairs(GENOMES):
-    genome_pairs=[]
-    n = len(GENOMES)
-    for i in range(n):
-        j=0
-        while j<i:
-            genome_pairs.append([GENOMES[i], GENOMES[j]])
-            j=j+1
-    return genome_pairs
-
-def get_files(type,OUTPUTPATH, PAIRS):
-    files = []
-    if type == "jaccard":
-        dir = f"{OUTPUTPATH}/tmp_files/jaccard_pairwise"
-        end = "jaccard_distance.tsv"
-    elif type == "unimog":
-        dir = f"{OUTPUTPATH}/unimogs"
-        end = "align.unimog"
-    for el in PAIRS:
-        if len(el)>1:
-            files.append(f"{dir}/{el[0]}~{el[1]}_{end}")
-    return files
-
+def get_not_pairs_jaccard_file():
+    if config.get("sourmash", False):
+        return f"{OUTPUTPATH}/tmp_files/jaccard_batchwise/not_pairs_jaccard_distance.tsv"
+    else:
+        return ""
 
 rule cat_jaccard:
     input:
-        jaccards = get_files("jaccard", OUTPUTPATH, get_pairs(GENOMES))
+        jaccards = expand(f"{OUTPUTPATH}/tmp_files/jaccard_batchwise/batch_{{batch}}_jaccard.tsv", batch=[str(i) for i in range(get_number_of_batches(OUTPUTPATH))])
     output:
         all_jaccard_distances = f"{OUTPUTPATH}/jaccard/all_pairs_jaccard_distance.tsv"
+    params:
+        not_pairs = get_not_pairs_jaccard_file()
     threads: 1
     resources:
         mem_mb=lambda wildcards, attempt: 4000*attempt
     shell:
         """
-        cat <(echo -e "plasmid_1\tplasmid_2\tdistance") {input.jaccards} > {output.all_jaccard_distances}
+        cat <(echo -e "plasmid_1\tplasmid_2\tdistance") {input.jaccards} {params.not_pairs}> {output.all_jaccard_distances}
         """
+
 localrules: cat_jaccard
