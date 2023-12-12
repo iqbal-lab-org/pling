@@ -113,7 +113,7 @@ def compute_DCJ(unimog, entry1, entry2, timelimit, threads):
     except AttributeError:
         print('Encountered an attribute error')
         raise e
-    return int(round(float(dist))
+    return int(round(dist))
 
 def batchwise_ding(pairs, jaccard_distance, jaccards, integerisation, outputpath, batch, timelimit, threads, plasmid_to_community):
     dists = []
