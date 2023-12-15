@@ -61,13 +61,13 @@ def get_sequence_jaccard_distance(plasmid_1: Path, plasmid_2: Path, prefix: str,
     jaccard_distance = 1-jaccard_similarity
     return jaccard_distance
 
-def batchwise_jaccard(fastapath, fastaext, pairs, jaccardpath, identity_threshold):
+def batchwise_jaccard(fastafiles, pairs, jaccardpath, identity_threshold):
     jaccards = []
     for pair in pairs:
         genome_1 = pair[0]
         genome_2 = pair[1]
-        genome_1_fasta = f"{fastapath}/{genome_1}{fastaext[genome_1]}"
-        genome_2_fasta = f"{fastapath}/{genome_2}{fastaext[genome_2]}"
+        genome_1_fasta = fastafiles[genome_1]
+        genome_2_fasta = fastafiles[genome_2]
         jaccard_distance = get_sequence_jaccard_distance(genome_1_fasta, genome_2_fasta, f"{genome_1}~{genome_2}", identity_threshold)
         jaccards.append(f"{genome_1}\t{genome_2}\t{jaccard_distance}\n")
     with open(jaccardpath, 'w') as f:
@@ -80,7 +80,7 @@ def main(args):
 
     pairs=read_in_batch_pairs(f"{args.outputpath}/batches/batch_{args.batch}.txt")
 
-    batchwise_jaccard(fastapath, fastaext, pairs, args.jaccard_output, args.identity_threshold)
+    batchwise_jaccard(fastafiles, pairs, args.jaccard_output, args.identity_threshold)
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Calculate Jaccard index for genome sequences.')

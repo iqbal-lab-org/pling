@@ -19,7 +19,8 @@ def read_in_batch_pairs(filepath):
     return pairs
 
 def get_fasta_file_info(genomes_list):
-    FASTAFILES = [el[0] for el in pd.read_csv(genomes_list, header=None).values]
-    FASTAEXT = {os.path.splitext(os.path.basename(el))[0]:os.path.splitext(os.path.basename(el))[1] for el in FASTAFILES}
-    FASTAPATH = os.path.dirname(FASTAFILES[0])
+    FASTAFILES_LIST = [el[0] for el in pd.read_csv(genomes_list, header=None).values]
+    FASTAFILES = {os.path.splitext(os.path.basename(el))[0]:el for el in FASTAFILES_LIST}
+    FASTAEXT = {os.path.splitext(os.path.basename(el))[0]:os.path.splitext(os.path.basename(el))[1] for el in FASTAFILES_LIST}
+    FASTAPATH = os.path.dirname(FASTAFILES_LIST[0])
     return FASTAFILES, FASTAEXT, FASTAPATH

@@ -7,9 +7,10 @@ configfile: "../config.yaml"
 
 OUTPUTPATH = config["output_dir"]
 PREFIX = config["prefix"]
-FASTAFILES, FASTAEXT, FASTAPATH = get_fasta_file_info(config["genomes_list"])
-GENOMES = list(FASTAEXT.keys())
 batch_size = config["batch_size"]
+FASTAFILES = [el[0] for el in pd.read_csv(config["genomes_list"], header=None).values]
+FASTAEXT = {os.path.splitext(os.path.basename(el))[0]:os.path.splitext(os.path.basename(el))[1] for el in FASTAFILES}
+GENOMES = list(FASTAEXT.keys())
 
 include: "../common_rules/common_rules.smk"
 

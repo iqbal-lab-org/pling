@@ -11,15 +11,15 @@ def unimogs_to_ilp_core(genome_1_fasta, genome_2_fasta, genome_1, genome_2, iden
     unimog = f">{genome_1}~{genome_2}:{genome_1}\n{plasmid_1_unimogs}\n>{genome_1}~{genome_2}:{genome_2}\n{plasmid_2_unimogs}\n"
     return unimog, jaccard_distance, blocks_ref, blocks_query
 
-def batchwise_unimog(fastapath, fastaext, pairs, unimogpath, mappath, jaccardpath, identity_threshold, jaccard_distance):
+def batchwise_unimog(fastafiles, pairs, unimogpath, mappath, jaccardpath, identity_threshold, jaccard_distance):
     jaccards = []
     unimogs = []
     batch_blocks = {}
     for pair in pairs:
         genome_1 = pair[0]
         genome_2 = pair[1]
-        genome_1_fasta = f"{fastapath}/{genome_1}{fastaext[genome_1]}"
-        genome_2_fasta = f"{fastapath}/{genome_2}{fastaext[genome_2]}"
+        genome_1_fasta = fastafiles[genome_1]
+        genome_2_fasta = fastafiles[genome_2]
         unimog, jaccard, blocks_ref, blocks_query = unimogs_to_ilp_core(genome_1_fasta, genome_2_fasta, genome_1, genome_2, identity_threshold)
         jaccards.append(f"{genome_1}\t{genome_2}\t{jaccard}\n")
         if jaccard<=jaccard_distance:
@@ -66,7 +66,7 @@ def main():
 
     pairs=read_in_batch_pairs(f"{args.outputpath}/batches/batch_{args.batch}.txt")
 
-    batchwise_unimog(fastapath, fastaext, pairs, args.unimog_output, args.map_output, args.jaccard_output, args.identity_threshold, args.jaccard_distance)
+    batchwise_unimog(fastafiles, pairs, args.unimog_output, args.map_output, args.jaccard_output, args.identity_threshold, args.jaccard_distance)
 
 
 if __name__ == "__main__":
