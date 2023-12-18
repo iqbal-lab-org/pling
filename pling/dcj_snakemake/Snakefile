@@ -13,6 +13,7 @@ INTEGERISATION = config["integerisation"]
 JACCARD_DISTANCE = config["seq_jaccard_distance"]
 COMMUNITIES = config["communities"]
 batch_size = config["batch_size"]
+dcj_threshold = config["dcj_dist_threshold"]
 
 def get_timelimit(timelimit):
     if config["timelimit"]=="None":
@@ -22,7 +23,7 @@ def get_timelimit(timelimit):
 
 rule all:
     input:
-        dcj_graph_outdir = f"{OUTPUTPATH}/dcj_graph"
+        dcj_graph_outdir = f"{OUTPUTPATH}/dcj_thresh_{dcj_threshold}_graph"
 
 if config["ilp_solver"] == "GLPK":
     rule glpk_and_ding:
@@ -112,7 +113,7 @@ rule build_DCJ_graph:
         distances_tsv = rules.dcj_tsv.output.tsv,
         communities=COMMUNITIES+"/objects/communities.pkl"
     output:
-        dcj_graph_outdir = directory(f"{OUTPUTPATH}/dcj_graph")
+        dcj_graph_outdir = directory(f"{OUTPUTPATH}/dcj_thresh_{dcj_threshold}_graph")
     threads: 1
     resources:
         mem_mb=lambda wildcards, attempt: config["build_DCJ_graph_mem"]*attempt
