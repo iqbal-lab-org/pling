@@ -39,7 +39,7 @@ if config["ilp_solver"] == "GLPK":
             timelimit=get_timelimit(config["timelimit"]),
             snakefile_dir=os.path.dirname(sys.argv[sys.argv.index("--snakefile")+1]),
             pling_root_dir = get_pling_root_dir()
-        threads: config["ilp_threads"]
+        threads: 1 #no multithreading available for GLPK
         resources:
             mem_mb = lambda wildcards, attempt: attempt * config["ilp_mem"]
         conda: "../envs/ding_and_glpk.yaml"
