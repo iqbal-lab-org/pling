@@ -39,3 +39,36 @@ rule cat_jaccard:
         """
 
 localrules: cat_jaccard
+
+def get_metadata(metadata):
+    if metadata == "None":
+        return ""
+    else:
+        return f"--plasmid-metadata {metadata}"
+
+rule get_communities:
+    input:
+        jaccard = f"{OUTPUTPATH}/jaccard/all_pairs_jaccard_distance.tsv",
+        genomes = rules.create_genomes_tsv.output.genomes_tsv
+    output:
+        communities = directory(f"{OUTPUTPATH}/jaccard/jaccard_communities"),
+    threads: 1
+    resources:
+        mem_mb=lambda wildcards, attempt: config["get_communities_mem"]*attempt
+    conda: "../envs/plasnet.yaml"
+    params:
+        jaccard_distance=config["seq_jaccard_distance"],
+        bh_connectivity=config["bh_connectivity"],
+        bh_neighbours_edge_density=config["bh_neighbours_edge_density"],
+        metadata = get_metadata(config["metadata"])
+    shell: """
+        plasnet split \
+            --distance-threshold {params.jaccard_distance} \
+            --bh-connectivity {params.bh_connectivity} \
+            --bh-neighbours-edge-density {params.bh_neighbours_edge_density} \
+            --output-plasmid-graph \
+            {params.metadata} \
+            {input.genomes} \
+            {input.jaccard} \
+            {output.communities}
+    """

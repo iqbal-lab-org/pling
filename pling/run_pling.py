@@ -27,6 +27,7 @@ def parse_args():
     parser.add_argument("--bh_connectivity", default=10, help="minimum number of connections a plasmid need to be considered a blackhole plasmid")
     parser.add_argument("--bh_neighbours_edge_density", default=0.2, help="maximum number of edge density between blackhole plasmid neighbours to label the plasmid as blackhole")
     parser.add_argument("--small_subcommunity_size_threshold", default=4, help="communities with size up to this parameter will be joined to neighbouring larger subcommunities")
+    parser.add_argument("--plasmid_metadata", help="metadata to add beside plasmid ID on the visualisation graph. must be a tsv with a single column, with data in the same order as in genomes_list")
     parser.add_argument("--cores", default=1, help="total number of cores/threads")
     parser.add_argument("--storetmp", action="store_true", help="don't delete intermediate temporary files")
     parser.add_argument("--forceall", action="store_true", help="force snakemake to rerun everything")
@@ -58,6 +59,11 @@ def make_config_file(args):
         timelimit = "None"
     else:
         timelimit= args.timelimit
+
+    if args.plasmid_metadata==None:
+        metadata = "None"
+    else:
+        metadata= args.metadata
 
     profile = ""
     if args.profile!=None:
@@ -91,6 +97,7 @@ def make_config_file(args):
         config.write(f"bh_connectivity: {args.bh_connectivity}\n\n")
         config.write(f"bh_neighbours_edge_density: {args.bh_neighbours_edge_density}\n\n")
         config.write(f"small_subcommunity_size_threshold: {args.small_subcommunity_size_threshold}\n\n")
+        config.write(f"metadata: {metadata}\n\n")
         config.write(f"ilp_solver: {args.ilp_solver}\n\n")
         config.write(f"timelimit: {timelimit}\n\n")
         config.write(f"batch_size: {args.batch_size}\n\n")
