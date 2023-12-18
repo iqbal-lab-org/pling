@@ -125,8 +125,6 @@ def batchwise_ding(pairs, jaccard_distance, jaccards, integerisation, outputpath
             unimog = get_unimog(outputpath, integerisation, plasmid_to_community, batch, genome1, genome2)
             dist = compute_DCJ(unimog, entry1, entry2, timelimit, threads)
             dists.append(f"{genome1}\t{genome2}\t{dist}\n")
-        else:
-            dists.append(f"{genome1}\t{genome2}\n")
     with open(f"{outputpath}/tmp_files/dists_batchwise/batch_{batch}_dcj.tsv", "w") as f:
         for line in dists:
             f.write(line)

@@ -48,15 +48,6 @@ def jaccard_file(not_pairs, genome_index, smash_matrix, jaccardpath):
             j = genome_index[el[1]]
             f.write(f"{el[0]}\t{el[1]}\t{1-smash_matrix[i][j]}\n")
 
-def dcj_file(not_pairs, genomes, dcj_path):
-    dir = Path(os.path.dirname(dcj_path))
-    dir.mkdir(parents=True, exist_ok=True)
-    with open(dcj_path, "w") as f:
-        for el in not_pairs:
-            f.write(f"{el[0]}\t{el[1]}\n")
-        for genome in genomes:
-            f.write(f"{genome}\t{genome}\t0\n")
-
 def run_smash(genome_list, sig_path, matrixpath):
     try:
         subprocess.run(f"sourmash sketch dna --from-file {genome_list} -o {sig_path}", shell=True, check=True, capture_output=True)
@@ -100,8 +91,6 @@ def main():
 
     if args.sourmash:
         jaccard_file(not_pairs, genome_index, smash_matrix, args.jaccardpath)
-
-    dcj_file(not_pairs, genomes, args.dcj_path)
 
     number_of_batches = math.ceil(len(pairs)/args.batch_size)
     batches = {}
