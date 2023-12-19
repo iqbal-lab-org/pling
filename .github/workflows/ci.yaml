@@ -32,23 +32,13 @@ jobs:
             python=${{ matrix.python-version }}
             snakemake
             mamba
-            poetry
+            pandas
           init-shell: bash
           cache-environment: true
           post-cleanup: 'all'
-
-      - uses: eWaterCycle/setup-singularity@v7
-        with:
-          singularity-version: 3.7.1
-
-      - name: Install
-        shell: bash -el {0}
-        run: |
-          micromamba activate test-env
-          make install-ci
 
       - name: Test
         shell: bash -el {0}
         run: |
           micromamba activate test-env
-          make test
+          python -m unittest discover -s tests -t .
