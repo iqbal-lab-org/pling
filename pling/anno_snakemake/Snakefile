@@ -115,14 +115,6 @@ rule consolidation:
         outputpath = OUTPUTPATH,
         pling_root_dir = get_pling_root_dir()
     shell: """
-        # set conda env first in $PATH - TODO: keep this or manage in other way?
-        # this issue happens when running a pipeline and a conda env is already active but it is not the first
-        # in the $PATH that have python installed (let's call this env E).
-        # In this case, snakemake will activate the "../envs/integerise.yaml" env but the python in the $PATH is the one
-        # in E, which won't have the dependencies required to run the script below.
-        # This is the expected behaviour, is not a bug in conda or snakemake.
-        # For more details, see https://github.com/conda/conda/issues/9392#issuecomment-1291041085
-        PATH="$CONDA_PREFIX"/bin:$PATH  # quick fix for the issue described above
         python {params.pling_root_dir}/pling/anno_snakemake/consolidation.py {params.pafs} "{params.genomes}" {output.unimog} {output.map}
     """
 
@@ -159,14 +151,6 @@ if config.get("dedup", False):
             genomes = lambda wildcards: COMMUNITY_TO_PLASMID[wildcards.community],
             pling_root_dir = get_pling_root_dir()
         shell: """
-            # set conda env first in $PATH - TODO: keep this or manage in other way?
-            # this issue happens when running a pipeline and a conda env is already active but it is not the first
-            # in the $PATH that have python installed (let's call this env E).
-            # In this case, snakemake will activate the "../envs/integerise.yaml" env but the python in the $PATH is the one
-            # in E, which won't have the dependencies required to run the script below.
-            # This is the expected behaviour, is not a bug in conda or snakemake.
-            # For more details, see https://github.com/conda/conda/issues/9392#issuecomment-1291041085
-            PATH="$CONDA_PREFIX"/bin:$PATH  # quick fix for the issue described above
             python {params.pling_root_dir}/pling/anno_snakemake/multipartite.py \
                 {input.fasta} {input.unimog} {input.map} \
                 {params.pafs} {params.nucmer_threshold} "{params.genomes}" \
@@ -189,14 +173,6 @@ rule blocks:
         relabelled_dir = f"{OUTPUTPATH}/unimogs/relabelled/blocks",
         pling_root_dir = get_pling_root_dir()
     shell: """
-        # set conda env first in $PATH - TODO: keep this or manage in other way?
-        # this issue happens when running a pipeline and a conda env is already active but it is not the first
-        # in the $PATH that have python installed (let's call this env E).
-        # In this case, snakemake will activate the "../envs/integerise.yaml" env but the python in the $PATH is the one
-        # in E, which won't have the dependencies required to run the script below.
-        # This is the expected behaviour, is not a bug in conda or snakemake.
-        # For more details, see https://github.com/conda/conda/issues/9392#issuecomment-1291041085
-        PATH="$CONDA_PREFIX"/bin:$PATH  # quick fix for the issue described above
         python {params.pling_root_dir}/pling/anno_snakemake/blocks.py \
             {input} \
             "{params.genomes}" {params.relabelled_dir} \
