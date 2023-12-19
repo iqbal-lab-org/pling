@@ -41,7 +41,6 @@ rule get_batches:
     conda: "../envs/smash.yaml"
     shell:
         """
-        PATH="$CONDA_PREFIX"/bin:$PATH
         PYTHONPATH={params.pling_root_dir} python {params.pling_root_dir}/pling/batching/get_batches.py \
             --genomes_list {params.genomes_list} \
             --batch_size {params.batch_size} \

@@ -47,7 +47,6 @@ if config["ilp_solver"] == "GLPK":
         shadow: "shallow"
         shell:
                 """
-                PATH="$CONDA_PREFIX"/bin:$PATH  # quick fix for the issue described above
                 PYTHONPATH={params.pling_root_dir} python {params.pling_root_dir}/pling/dcj_snakemake/glpk_and_ding.py \
                         --batch {params.batch} \
                         --jaccard_tsv {input.jaccard_tsv} \
@@ -81,7 +80,6 @@ elif config["ilp_solver"] == "gurobi":
         shadow: "shallow"
         shell:
                 """
-                PATH="$CONDA_PREFIX"/bin:$PATH  # quick fix for the issue described above
                 PYTHONPATH={params.pling_root_dir} python {params.pling_root_dir}/pling/dcj_snakemake/gurobi_and_ding.py \
                         --batch {params.batch} \
                         --jaccard_tsv {input.jaccard_tsv} \
