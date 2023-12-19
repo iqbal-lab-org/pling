@@ -37,6 +37,10 @@ jobs:
           cache-environment: true
           post-cleanup: 'all'
 
+      - uses: eWaterCycle/setup-singularity@v7
+        with:
+          singularity-version: 3.7.1
+
       - name: Test
         shell: bash -el {0}
         run: |
