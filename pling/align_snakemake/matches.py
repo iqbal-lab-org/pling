@@ -246,6 +246,8 @@ class Matches:
                     self.sort(False)
                     i = self.list.index(current_match)
             i = i+1
+            if i>100000:
+                raise Exception("The resolve_overlaps function in matches.py has been stuck in the while loop for 100000 iterations! There is likely a bug, please raise an issue.")
         self.sort(True)
         i=0
         finished = False
@@ -254,7 +256,6 @@ class Matches:
             try:
                 overlap = self[i].rend-self[i+1].rstart
                 not_null = self[i].rstart!=self[i].rend and self[i+1].rstart!=self[i+1].rend
-                not_the_same = self[i].rstart!=self[i+1].rstart and self[i].rend!=self[i+1].rend #ignore multicopy
                 containment = self[i+1].rend<self[i].rend
             except IndexError:
                 finished = True
@@ -273,6 +274,8 @@ class Matches:
                     self.sort(True)
                     i = self.list.index(current_match)
             i = i+1
+            if i>100000:
+                raise Exception("The resolve_overlaps function in matches.py has been stuck in the while loop for 100000 iterations! There is likely a bug, please raise an issue.")
 
 testing = False
 if testing == True:
