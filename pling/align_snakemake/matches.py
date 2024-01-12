@@ -37,9 +37,7 @@ class Match:
 
     def projection(self, coord, ref_bool): #if ref_bool=True, project from reference to query, else query to reference
         if ref_bool:
-            print(self.indels)
             dist = coord - self.rstart
-            print(dist)
             for indel in self.indels:
                 if indel.rstart<=coord<indel.rend:
                     return indel.qstart
@@ -48,15 +46,12 @@ class Match:
                         dist += indel.len
                     elif indel.type == "DEL":
                         dist -= indel.len
-            print(dist)
             if self.strand == 1:
                 projected_coord = self.qstart + dist
             else:
                 projected_coord = self.qend - dist
         else:
-            print(self.indels)
             dist = coord - self.qstart
-            print(dist)
             for indel in self.indels:
                 if indel.qstart<=coord<indel.qend:
                     return indel.rstart
@@ -65,7 +60,6 @@ class Match:
                         dist += indel.len
                     elif indel.type == "DEL":
                         dist -= indel.len
-            print(dist)
             if self.strand == 1:
                 projected_coord = self.rstart + dist
             else:
@@ -155,7 +149,6 @@ class Matches:
         index = self.list.index(match)
         projected_start = match.projection(start,ref_bool)
         projected_end = match.projection(end,ref_bool)
-        print(projected_start, projected_end)
         if ref_bool:
             if match.strand == 1:
                 lhs_split = Match(match.rstart, start, match.qstart, projected_start, 1)
@@ -174,7 +167,6 @@ class Matches:
                 rhs_split = Match(projected_start, match.rend, match.qstart, start, -1 )
                 interval = Match(projected_end, projected_start, start, end, -1)
                 lhs_split = Match(match.rstart, projected_end, end, match.qend, -1)
-        print(lhs_split,interval,rhs_split)
         if lhs_split.rend != lhs_split.rstart or lhs_split.qend!=lhs_split.qstart:
             self[index] = lhs_split #add even if null interval bc otherwise will break the walk from left to right -- null interval from here will be removed later
             self.insert(index+1, interval)
@@ -232,8 +224,6 @@ class Matches:
         i=0
         finished = False
         while not finished:
-            print("query", i)
-            print(self)
             overlap = 0
             try:
                 overlap = self[i].qend-self[i+1].qstart
@@ -245,7 +235,6 @@ class Matches:
                 containment = False
             if not_null and overlap>overlap_threshold:
                 overlap_matches = self.find_opposite_overlaps(i, False)
-                print(overlap_matches[0])
                 contain_overlap_1 = self.contain_interval(overlap_matches[0].rstart, overlap_matches[0].rend, True)
                 for match in contain_overlap_1:
                     self.split_match(match, overlap_matches[0].rstart, overlap_matches[0].rend, True)
@@ -253,24 +242,20 @@ class Matches:
                 for match in contain_overlap_2:
                     self.split_match(match, overlap_matches[1].rstart, overlap_matches[1].rend, True)
                 if containment:
-                    print(self)
                     current_match = self[i]
-                    print(current_match)
                     self.sort(False)
                     i = self.list.index(current_match)
-                    print("contained")
             i = i+1
+            if i>100000:
+                raise Exception("The resolve_overlaps function in matches.py has been stuck in the while loop for 100000 iterations! There is likely a bug, please raise an issue.")
         self.sort(True)
         i=0
         finished = False
-        while not finished and i<50:
-            print("ref", i)
-            print(self)
+        while not finished:
             overlap = 0
             try:
                 overlap = self[i].rend-self[i+1].rstart
                 not_null = self[i].rstart!=self[i].rend and self[i+1].rstart!=self[i+1].rend
-                not_the_same = self[i].rstart!=self[i+1].rstart and self[i].rend!=self[i+1].rend #ignore multicopy
                 containment = self[i+1].rend<self[i].rend
             except IndexError:
                 finished = True
@@ -289,6 +274,8 @@ class Matches:
                     self.sort(True)
                     i = self.list.index(current_match)
             i = i+1
+            if i>100000:
+                raise Exception("The resolve_overlaps function in matches.py has been stuck in the while loop for 100000 iterations! There is likely a bug, please raise an issue.")
 
 testing = False
 if testing == True:

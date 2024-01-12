@@ -26,7 +26,6 @@ def batchwise_unimog(fastafiles, pairs, unimogpath, mappath, jaccardpath, identi
             unimogs.append(unimog)
             blocks = pd.concat([blocks_ref, blocks_query], ignore_index=True)
             batch_blocks[f"{genome_1}~{genome_2}"] = blocks
-        print(pair)
     with open(unimogpath, 'w') as f:
         for line in unimogs:
             f.write(line)
