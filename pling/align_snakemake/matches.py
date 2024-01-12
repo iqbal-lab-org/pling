@@ -151,12 +151,10 @@ class Matches:
                     matches.append(Match(interval.data[0], interval.data[1], interval.begin, interval.end, interval.data[2]))
         return matches
 
-    def split_match(self, match, start, end, interval_start, interval_end, ref_bool): #given an interval (start,end) on ref/query genome, split up the match (containing it)
+    def split_match(self, match, start, end, ref_bool): #given an interval (start,end) on ref/query genome, split up the match (containing it)
         index = self.list.index(match)
         projected_start = match.projection(start,ref_bool)
         projected_end = match.projection(end,ref_bool)
-        projected_start = interval_start
-        projected_end = interval_end
         print(projected_start, projected_end)
         if ref_bool:
             if match.strand == 1:
@@ -250,10 +248,10 @@ class Matches:
                 print(overlap_matches[0])
                 contain_overlap_1 = self.contain_interval(overlap_matches[0].rstart, overlap_matches[0].rend, True)
                 for match in contain_overlap_1:
-                    self.split_match(match, overlap_matches[0].rstart, overlap_matches[0].rend, self[i].qend, self[i+1].qstart, True)
+                    self.split_match(match, overlap_matches[0].rstart, overlap_matches[0].rend, True)
                 contain_overlap_2 = self.contain_interval(overlap_matches[1].rstart, overlap_matches[1].rend, True)
                 for match in contain_overlap_2:
-                    self.split_match(match, overlap_matches[1].rstart, overlap_matches[1].rend, self[i].qend, self[i+1].qstart, True)
+                    self.split_match(match, overlap_matches[1].rstart, overlap_matches[1].rend, True)
                 if containment:
                     print(self)
                     current_match = self[i]
@@ -282,10 +280,10 @@ class Matches:
                 overlap_matches = self.find_opposite_overlaps(i, True)
                 contain_overlap_1 = self.contain_interval(overlap_matches[0].qstart, overlap_matches[0].qend, False)
                 for match in contain_overlap_1:
-                    self.split_match(match, overlap_matches[0].qstart, overlap_matches[0].qend, self[i].rend, self[i+1].rstart, False)
+                    self.split_match(match, overlap_matches[0].qstart, overlap_matches[0].qend, False)
                 contain_overlap_2 = self.contain_interval(overlap_matches[1].qstart, overlap_matches[1].qend, False)
                 for match in contain_overlap_2:
-                    self.split_match(match, overlap_matches[1].qstart, overlap_matches[1].qend, self[i].rend, self[i+1].rstart, False)
+                    self.split_match(match, overlap_matches[1].qstart, overlap_matches[1].qend, False)
                 if containment:
                     current_match = self[i]
                     self.sort(True)
