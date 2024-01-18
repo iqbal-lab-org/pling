@@ -132,12 +132,13 @@ def integerise_plasmids(plasmid_1: Path, plasmid_2: Path, prefix: str, plasmid_1
         for indel in indels:
             if start_ref<=indel.rstart and end_ref>indel.rend and start_query<=indel.qstart and end_query>indel.qend:
                 match_indels.append(indel)
-        og_matches.append(Match(start_ref, end_ref, start_query, end_query, strand_query, match_indels))
+        if end_ref-start_ref>length_threshold and end_query-start_query>length_threshold:
+            og_matches.append(Match(start_ref, end_ref, start_query, end_query, strand_query, match_indels))
 
     matches = Matches(og_matches)
     coverage_ref = 0
     coverage_query = 0
-    no_matches_available = len_ref==-1
+    no_matches_available = len(og_matches)==0
     if no_matches_available:
         plasmid_1_unimogs = "1 )"
         plasmid_2_unimogs = "2 )"
@@ -147,6 +148,7 @@ def integerise_plasmids(plasmid_1: Path, plasmid_2: Path, prefix: str, plasmid_1
         overlap_threshold = 0
         coverage_ref = get_coverage(matches.reference)
         coverage_query = get_coverage(matches.query)
+        print(coverage_ref, coverage_query)
         matches.resolve_overlaps(overlap_threshold)
         ref_to_block, query_to_block, max_id = make_interval_tree_w_dups(matches.list, length_threshold)
         populate_interval_tree_with_unmatched_blocks(ref_to_block, len_ref, max_id+1, length_threshold)
@@ -175,7 +177,10 @@ testing = False
 if testing == True:
     #plasmid1 = "NZ_LT985234.1"
     #plasmid2 = "NZ_CP062902.1"
-    plasmid1 = "NZ_LR999867.1"
-    plasmid2 = "NZ_CP032890.1"
-    path = "/home/daria/Documents/projects/INC-plasmids/samples/fastas/incy"
+    #plasmid1 = "NZ_LR999867.1"
+    #plasmid2 = "NZ_CP032890.1"
+    plasmid1 = "cpe041_12"
+    plasmid2 = "cpe024_2"
+    #path = "/home/daria/Documents/projects/INC-plasmids/samples/fastas/incy"
+    path = "/home/daria/Documents/projects/addenbrookes/same_assembler"
     print(integerise_plasmids(f"{path}/{plasmid1}.fna", f"{path}/{plasmid2}.fna", f"{plasmid1}~{plasmid2}", plasmid1, plasmid2))
