@@ -148,7 +148,6 @@ def integerise_plasmids(plasmid_1: Path, plasmid_2: Path, prefix: str, plasmid_1
         overlap_threshold = 0
         coverage_ref = get_coverage(matches.reference)
         coverage_query = get_coverage(matches.query)
-        print(coverage_ref, coverage_query)
         matches.resolve_overlaps(overlap_threshold)
         ref_to_block, query_to_block, max_id = make_interval_tree_w_dups(matches.list, length_threshold)
         populate_interval_tree_with_unmatched_blocks(ref_to_block, len_ref, max_id+1, length_threshold)
