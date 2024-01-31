@@ -87,8 +87,8 @@ def integerise_plasmids(plasmid_1: Path, plasmid_2: Path, prefix: str, plasmid_1
     if len(show_snps_output)>1:
         for line in show_snps_output:
             split_line = line.split(b'\t')
-            rsub = split_line[1]
-            qsub = split_line[2]
+            rsub = str(split_line[1]).replace("b\'","").replace("\'","")
+            qsub = str(split_line[2]).replace("b\'","").replace("\'","")
             rstart = int(split_line[0])
             qstart = int(split_line[3])
             if rsub == ".":

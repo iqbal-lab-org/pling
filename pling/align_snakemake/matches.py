@@ -26,7 +26,7 @@ class Match:
 
     def __eq__(self, other):
         if type(other) is type(self):
-            return self.__dict__ == other.__dict__
+            return self.rstart == other.rstart and self.rend == other.rend and self.qstart == other.qstart and self.qend == other.qend
         return False
 
     def __hash__(self):
