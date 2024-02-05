@@ -57,9 +57,9 @@ class Match:
                     return indel.rstart
                 elif indel.qstart<coord:
                     if indel.type == "INS":
-                        dist += indel.len
-                    elif indel.type == "DEL":
                         dist -= indel.len
+                    elif indel.type == "DEL":
+                        dist += indel.len
             if self.strand == 1:
                 projected_coord = self.rstart + dist
             else:
