@@ -7,4 +7,5 @@ dependencies:
  - python =3.8
  - intervaltree =3.0.2
  - mummer =3.23
- - pandas
+ - pandas =1.5.3
+ - numpy =1.22.3
