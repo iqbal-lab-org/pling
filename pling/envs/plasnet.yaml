@@ -6,4 +6,4 @@ dependencies:
   - python =3.9
   - pip
   - pip:
-    - plasnet==0.4.1
+    - plasnet==0.5.0
