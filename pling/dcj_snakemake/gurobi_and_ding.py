@@ -102,8 +102,8 @@ def compute_DCJ(unimog, entry1, entry2, timelimit, threads):
     try:
         m = make_gurobi_model(unimog, entry1, entry2)
         if timelimit != None:
-            m.setParam('TimeLimit', timelimit)
-        m.setParam('Threads', threads)
+            m.setParam('TimeLimit', float(timelimit))
+        m.setParam('Threads', int(threads))
         m.update()
         m.optimize()
         dist = m.ObjVal
