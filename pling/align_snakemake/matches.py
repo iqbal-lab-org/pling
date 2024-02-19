@@ -9,11 +9,22 @@ class Indel:
         self.len = len
         self.rstart = rstart
         self.qstart = qstart
-        self.rend = rstart+len
-        self.qend = qstart+len
+        if type == "DEL":
+            self.rend = rstart+len+1
+            self.qend = qstart+1
+        elif type == "INS":
+            self.rend = rstart+1
+            self.qend = qstart+len+1
 
     def __str__(self):
         return f"({self.rstart}, {self.rend}, {self.qstart}, {self.qend}, {self.type})"
+
+    def increase_len(self, len_increase):
+        self.len += len_increase
+        if self.type == "DEL":
+            self.rend = self.rstart+self.len
+        elif self.type == "INS":
+            self.qend = self.qstart+self.len
 
 class Match:
     def __init__(self, rstart, rend, qstart, qend, strand, indels=[]):
@@ -67,8 +78,9 @@ class Match:
         return projected_coord
 
 class Matches:
-    def __init__(self, list_of_matches): #list_of_matches is a list of Match objects
+    def __init__(self, list_of_matches, indels): #list_of_matches is a list of Match objects
         self.list = list_of_matches
+        self.indels = indels
         self.reference = IntervalTree()
         self.query = IntervalTree()
         for match in self.list:
@@ -137,12 +149,20 @@ class Matches:
             interval_matches = list(self.reference[start:end])
             for interval in interval_matches:
                 if interval.begin <=start and interval.end >=end:
-                    matches.append(Match(interval.begin, interval.end, interval.data[0], interval.data[1], interval.data[2]))
+                    match_indels=[]
+                    for indel in self.indels:
+                        if interval.begin<=indel.rstart and interval.end>=indel.rend and interval.data[0]<=indel.qstart and interval.data[1]>=indel.qend:
+                            match_indels.append(indel)
+                    matches.append(Match(interval.begin, interval.end, interval.data[0], interval.data[1], interval.data[2], match_indels))
         else:
             interval_matches = list(self.query[start:end])
             for interval in interval_matches:
                 if interval.begin <=start and interval.end >=end:
-                    matches.append(Match(interval.data[0], interval.data[1], interval.begin, interval.end, interval.data[2]))
+                    match_indels=[]
+                    for indel in self.indels:
+                        if interval.data[0]<=indel.rstart and interval.data[1]>=indel.rend and interval.begin<=indel.qstart and interval.end>=indel.qend:
+                            match_indels.append(indel)
+                    matches.append(Match(interval.data[0], interval.data[1], interval.begin, interval.end, interval.data[2], match_indels))
         return matches
 
     def split_match(self, match, start, end, ref_bool): #given an interval (start,end) on ref/query genome, split up the match (containing it)
