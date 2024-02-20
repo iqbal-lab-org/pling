@@ -33,7 +33,6 @@ class Match:
         self.qstart = qstart
         self.qend = qend
         self.strand = strand
-        self.indels = indels
 
     def __eq__(self, other):
         if type(other) is type(self):
@@ -46,13 +45,13 @@ class Match:
     def __str__(self):
         return f"({self.rstart}, {self.rend}, {self.qstart}, {self.qend}, {self.strand})"
 
-    def projection(self, coord, ref_bool): #if ref_bool=True, project from reference to query, else query to reference
+    def projection(self, coord, indels, ref_bool): #if ref_bool=True, project from reference to query, else query to reference
         if ref_bool:
             dist = coord - self.rstart
-            for indel in self.indels:
+            for indel in indels:
                 if indel.rstart<=coord<indel.rend:
                     return indel.qstart
-                elif indel.rstart<coord:
+                elif self.rstart<=indel.rstart<coord:
                     if indel.type == "INS":
                         dist += indel.len
                     elif indel.type == "DEL":
@@ -63,10 +62,10 @@ class Match:
                 projected_coord = self.qend - dist
         else:
             dist = coord - self.qstart
-            for indel in self.indels:
+            for indel in indels:
                 if indel.qstart<=coord<indel.qend:
                     return indel.rstart
-                elif indel.qstart<coord:
+                elif self.qstart<=indel.qstart<coord:
                     if indel.type == "INS":
                         dist -= indel.len
                     elif indel.type == "DEL":
@@ -149,26 +148,18 @@ class Matches:
             interval_matches = list(self.reference[start:end])
             for interval in interval_matches:
                 if interval.begin <=start and interval.end >=end:
-                    match_indels=[]
-                    for indel in self.indels:
-                        if interval.begin<=indel.rstart and interval.end>=indel.rend and interval.data[0]<=indel.qstart and interval.data[1]>=indel.qend:
-                            match_indels.append(indel)
-                    matches.append(Match(interval.begin, interval.end, interval.data[0], interval.data[1], interval.data[2], match_indels))
+                    matches.append(Match(interval.begin, interval.end, interval.data[0], interval.data[1], interval.data[2]))
         else:
             interval_matches = list(self.query[start:end])
             for interval in interval_matches:
                 if interval.begin <=start and interval.end >=end:
-                    match_indels=[]
-                    for indel in self.indels:
-                        if interval.data[0]<=indel.rstart and interval.data[1]>=indel.rend and interval.begin<=indel.qstart and interval.end>=indel.qend:
-                            match_indels.append(indel)
-                    matches.append(Match(interval.data[0], interval.data[1], interval.begin, interval.end, interval.data[2], match_indels))
+                    matches.append(Match(interval.data[0], interval.data[1], interval.begin, interval.end, interval.data[2]))
         return matches
 
     def split_match(self, match, start, end, ref_bool): #given an interval (start,end) on ref/query genome, split up the match (containing it)
         index = self.list.index(match)
-        projected_start = match.projection(start,ref_bool)
-        projected_end = match.projection(end,ref_bool)
+        projected_start = match.projection(start, self.indels, ref_bool)
+        projected_end = match.projection(end, self.indels, ref_bool)
         if ref_bool:
             if match.strand == 1:
                 lhs_split = Match(match.rstart, start, match.qstart, projected_start, 1)
@@ -210,14 +201,14 @@ class Matches:
         if ref_bool:
             if rend_1>rend_2: #check for containment
                 rend_1 = self[i+1].rend
-            projected_rstart_2 = self[i].projection(rstart_2, ref_bool)
-            projected_rend_1 = self[i].projection(rend_1, ref_bool)
+            projected_rstart_2 = self[i].projection(rstart_2, self.indels, ref_bool)
+            projected_rend_1 = self[i].projection(rend_1, self.indels, ref_bool)
             if self[i].strand == 1:
                 overlaps.append(Match(rstart_2, rend_1, projected_rstart_2, projected_rend_1, 1))
             else:
                 overlaps.append(Match(rstart_2, rend_1, projected_rend_1, projected_rstart_2, -1))
-            projected_rend_1 = self[i+1].projection(rend_1,ref_bool)
-            projected_rstart_2 = self[i+1].projection(rstart_2, ref_bool)
+            projected_rend_1 = self[i+1].projection(rend_1, self.indels, ref_bool)
+            projected_rstart_2 = self[i+1].projection(rstart_2, self.indels, ref_bool)
             if self[i+1].strand == 1:
                 overlaps.append(Match(rstart_2, rend_1, projected_rstart_2, projected_rend_1, 1))
             else:
@@ -225,14 +216,14 @@ class Matches:
         else:
             if qend_1>qend_2:
                 qend_1 = self[i+1].qend
-            projected_qstart_2 = self[i].projection(qstart_2, ref_bool)
-            projected_qend_1 = self[i].projection(qend_1, ref_bool)
+            projected_qstart_2 = self[i].projection(qstart_2, self.indels, ref_bool)
+            projected_qend_1 = self[i].projection(qend_1, self.indels, ref_bool)
             if self[i].strand == 1:
                 overlaps.append(Match(projected_qstart_2, projected_qend_1, qstart_2, qend_1, 1))
             else:
                 overlaps.append(Match(projected_qend_1, projected_qstart_2, qstart_2, qend_1, -1))
-            projected_qend_1 = self[i+1].projection(qend_1,ref_bool)
-            projected_qstart_2 = self[i+1].projection(qstart_2, ref_bool)
+            projected_qend_1 = self[i+1].projection(qend_1, self.indels, ref_bool)
+            projected_qstart_2 = self[i+1].projection(qstart_2, self.indels, ref_bool)
             if self[i+1].strand == 1:
                 overlaps.append(Match(projected_qstart_2, projected_qend_1, qstart_2, qend_1, 1))
             else:

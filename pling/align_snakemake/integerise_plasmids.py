@@ -128,12 +128,8 @@ def integerise_plasmids(plasmid_1: Path, plasmid_2: Path, prefix: str, plasmid_1
         len_ref = int(split_line[7])
         len_query = int(split_line[8])
         strand_query = int(split_line[12])
-        match_indels = []
-        for indel in indels:
-            if start_ref<=indel.rstart and end_ref>=indel.rend and start_query<=indel.qstart and end_query>=indel.qend:
-                match_indels.append(indel)
         if end_ref-start_ref>length_threshold and end_query-start_query>length_threshold:
-            og_matches.append(Match(start_ref, end_ref, start_query, end_query, strand_query, match_indels))
+            og_matches.append(Match(start_ref, end_ref, start_query, end_query, strand_query))
 
     matches = Matches(og_matches, indels)
     coverage_ref = 0
