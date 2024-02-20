@@ -49,13 +49,14 @@ class Match:
         if ref_bool:
             dist = coord - self.rstart
             for indel in indels:
-                if indel.rstart<=coord<indel.rend:
-                    return indel.qstart
-                elif self.rstart<=indel.rstart<coord:
-                    if indel.type == "INS":
-                        dist += indel.len
-                    elif indel.type == "DEL":
-                        dist -= indel.len
+                if self.qstart<=indel.qstart and indel.qend<=self.qend:
+                    if self.rstart<=indel.rstart<=coord<indel.rend:
+                        return indel.qstart
+                    elif self.rstart<=indel.rstart<coord:
+                        if indel.type == "INS":
+                            dist += indel.len
+                        elif indel.type == "DEL":
+                            dist -= indel.len
             if self.strand == 1:
                 projected_coord = self.qstart + dist
             else:
@@ -63,13 +64,14 @@ class Match:
         else:
             dist = coord - self.qstart
             for indel in indels:
-                if indel.qstart<=coord<indel.qend:
-                    return indel.rstart
-                elif self.qstart<=indel.qstart<coord:
-                    if indel.type == "INS":
-                        dist -= indel.len
-                    elif indel.type == "DEL":
-                        dist += indel.len
+                if self.rstart<=indel.rstart and indel.rend<=self.rend:
+                    if indel.qstart<=coord<indel.qend and self.rstart<=indel.rstart:
+                        return indel.rstart
+                    elif self.qstart<=indel.qstart<coord:
+                        if indel.type == "INS":
+                            dist -= indel.len
+                        elif indel.type == "DEL":
+                            dist += indel.len
             if self.strand == 1:
                 projected_coord = self.rstart + dist
             else:
