@@ -10,11 +10,11 @@ class Indel:
         self.rstart = rstart
         self.qstart = qstart
         if type == "DEL":
-            self.rend = rstart+len+1
+            self.rend = rstart+len
             self.qend = qstart+1
         elif type == "INS":
             self.rend = rstart+1
-            self.qend = qstart+len+1
+            self.qend = qstart+len
 
     def __str__(self):
         return f"({self.rstart}, {self.rend}, {self.qstart}, {self.qend}, {self.type})"
@@ -45,11 +45,29 @@ class Match:
     def __str__(self):
         return f"({self.rstart}, {self.rend}, {self.qstart}, {self.qend}, {self.strand})"
 
+    def indel_intersect(self, indel):
+        return ((self.rstart<indel.rend<=self.rend) or (self.rstart<=indel.rstart<self.rend)) and ((self.qstart<indel.qend<=self.qend) or (self.qstart<=indel.qstart<self.qend))
+
+    def indel_at_rstart(self, indel):
+        return indel.rstart<=self.rstart<indel.rend<=self.rend and ((self.qstart<indel.qend<=self.qend) or (self.qstart<=indel.qstart<self.qend))
+
+    def indel_at_qstart(self, indel):
+        return indel.qstart<=self.qstart<indel.qend<=self.qend and ((self.rstart<indel.rend<=self.rend) or (self.rstart<=indel.rstart<self.rend))
+
+    def indel_at_rend(self, indel):
+        return self.rstart<=indel.rstart<self.rend<=indel.rend and ((self.qstart<indel.qend<=self.qend) or (self.qstart<=indel.qstart<self.qend))
+
+    def indel_at_qend(self, indel):
+        return self.qstart<=indel.qstart<self.qend<=indel.qend and ((self.rstart<indel.rend<=self.rend) or (self.rstart<=indel.rstart<self.rend))
+
+    def indel_strictly_contained(self, indel):
+        return (self.rstart<=indel.rstart<=indel.rend<=self.rend) and (self.qstart<=indel.qstart<=indel.qend<=self.qend)
+
     def projection(self, coord, indels, ref_bool): #if ref_bool=True, project from reference to query, else query to reference
         if ref_bool:
             dist = coord - self.rstart
             for indel in indels:
-                if self.qstart<=indel.qstart and indel.qend<=self.qend:
+                if self.indel_strictly_contained(indel):
                     if self.rstart<=indel.rstart<=coord<indel.rend:
                         return indel.qstart
                     elif self.rstart<=indel.rstart<coord:
@@ -57,6 +75,10 @@ class Match:
                             dist += indel.len
                         elif indel.type == "DEL":
                             dist -= indel.len
+            if self.rstart == coord:
+                dist = 0
+            elif self.rend == coord:
+                dist = self.qend-self.qstart
             if self.strand == 1:
                 projected_coord = self.qstart + dist
             else:
@@ -64,8 +86,8 @@ class Match:
         else:
             dist = coord - self.qstart
             for indel in indels:
-                if self.rstart<=indel.rstart and indel.rend<=self.rend:
-                    if indel.qstart<=coord<indel.qend and self.rstart<=indel.rstart:
+                if self.indel_strictly_contained(indel):
+                    if self.qstart<=indel.qstart<=coord<indel.qend:
                         return indel.rstart
                     elif self.qstart<=indel.qstart<coord:
                         if indel.type == "INS":
@@ -144,6 +166,42 @@ class Matches:
         purged = [el for el in self.list if el.rstart!=el.rend and el.qstart!=el.qend]
         self.list = purged
 
+    def remove_indels_from_ends(self):
+        for i in range(len(self.list)):
+            for indel in self.indels:
+                if self[i].indel_at_rstart(indel):
+                    rstart = indel.rend
+                    if self[i].strand == 1:
+                        qstart = indel.qend
+                        self[i] = Match(rstart, self[i].rend, qstart, self[i].qend, self[i].strand)
+                    else:
+                        qend = indel.qstart
+                        self[i] = Match(rstart, self[i].rend, self[i].qstart, qend, self[i].strand)
+                elif self[i].indel_at_qstart(indel):
+                    qstart = indel.qend
+                    if self[i].strand == 1:
+                        rstart = indel.rend
+                        self[i] = Match(rstart, self[i].rend, qstart, self[i].qend, self[i].strand)
+                    else:
+                        rend = indel.rstart
+                        self[i] = Match(self[i].rstart, rend, qstart, self[i].qend, self[i].strand)
+                elif self[i].indel_at_rend(indel):
+                    rend = indel.rstart
+                    if self[i].strand == 1:
+                        qend = indel.qend
+                        self[i] = Match(self[i].rstart, rend, self[i].qstart, qend, self[i].strand)
+                    else:
+                        qstart = indel.qend
+                        self[i] = Match(self[i].rstart, rend, qstart, self[i].qend, self[i].strand)
+                elif self[i].indel_at_qend(indel):
+                    qend = indel.qstart
+                    if self[i].strand == 1:
+                        rend = indel.rend
+                        self[i] = Match(self[i].rstart, rend, self[i].qstart, qend, self[i].strand)
+                    else:
+                        rstart = indel.rend
+                        self[i] = Match(rstart, self[i].rend, self[i].qstart, qend, self[i].strand)
+
     def contain_interval(self, start, end, ref_bool): #find in which matches interval (start, end) is contained in ref/query genome
         matches = []
         if ref_bool:
@@ -180,14 +238,14 @@ class Matches:
                 rhs_split = Match(projected_start, match.rend, match.qstart, start, -1 )
                 interval = Match(projected_end, projected_start, start, end, -1)
                 lhs_split = Match(match.rstart, projected_end, end, match.qend, -1)
-        if lhs_split.rend != lhs_split.rstart or lhs_split.qend!=lhs_split.qstart:
-            self[index] = lhs_split #add even if null interval bc otherwise will break the walk from left to right -- null interval from here will be removed later
+        if lhs_split.rend != lhs_split.rstart and lhs_split.qend!=lhs_split.qstart: #don't add interval
+            self[index] = lhs_split
             self.insert(index+1, interval)
-            if rhs_split.rend != rhs_split.rstart or rhs_split.qend!=rhs_split.qstart: #don't add null interval
+            if rhs_split.rend != rhs_split.rstart and rhs_split.qend!=rhs_split.qstart: #don't add null interval
                 self.insert(index+2, rhs_split)
         else:
-            self[index] = interval #add even if null interval bc otherwise will break the walk from left to right -- null interval from here will be removed later
-            if rhs_split.rend != rhs_split.rstart or rhs_split.qend!=rhs_split.qstart: #don't add null interval
+            self[index] = interval
+            if rhs_split.rend != rhs_split.rstart and rhs_split.qend!=rhs_split.qstart: #don't add null interval
                 self.insert(index+1, rhs_split)
 
     def find_opposite_overlaps(self, i, ref_bool):
@@ -233,6 +291,7 @@ class Matches:
         return overlaps
 
     def resolve_overlaps(self, overlap_threshold):
+        self.remove_indels_from_ends()
         self.sort(False)
         i=0
         finished = False

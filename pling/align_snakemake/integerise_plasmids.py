@@ -91,26 +91,31 @@ def integerise_plasmids(plasmid_1: Path, plasmid_2: Path, prefix: str, plasmid_1
             qsub = str(split_line[2]).replace("b\'","").replace("\'","")
             rstart = int(split_line[0])
             qstart = int(split_line[3])
-            if rsub == ".":
-                type = "INS"
-                try:
-                    extend_indel = indels[-1].rstart==rstart and indels[-1].qstart+indels[-1].len==qstart
-                except:
-                    extend_indel = False
-                if extend_indel:
-                    indels[-1].increase_len(1)
-                else:
-                    indels.append(Indel(rstart,qstart,1,type))
-            elif qsub == ".":
-                type = "DEL"
-                try:
-                    extend_indel = indels[-1].qstart==qstart and indels[-1].rstart+indels[-1].len==rstart
-                except:
-                    extend_indel = False
-                if extend_indel:
-                    indels[-1].increase_len(1)
-                else:
-                    indels.append(Indel(rstart,qstart,1,type))
+            try:
+                repeated_line = (indels[-1].rstart==rstart and indels[-1].qstart==qstart)
+            except:
+                repeated_line = False
+            if not repeated_line:
+                if rsub == ".":
+                    type = "INS"
+                    try:
+                        extend_indel = indels[-1].rstart==rstart and indels[-1].qstart+indels[-1].len==qstart
+                    except:
+                        extend_indel = False
+                    if extend_indel:
+                        indels[-1].increase_len(1)
+                    else:
+                        indels.append(Indel(rstart,qstart,1,type))
+                elif qsub == ".":
+                    type = "DEL"
+                    try:
+                        extend_indel = indels[-1].qstart==qstart and indels[-1].rstart+indels[-1].len==rstart
+                    except:
+                        extend_indel = False
+                    if extend_indel:
+                        indels[-1].increase_len(1)
+                    else:
+                        indels.append(Indel(rstart,qstart,1,type))
 
     len_ref = -1
     len_query = -1
