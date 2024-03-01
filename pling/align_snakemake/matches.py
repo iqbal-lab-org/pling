@@ -27,7 +27,9 @@ class Indel:
             self.qend = self.qstart+self.len
 
 class Match:
-    def __init__(self, rstart, rend, qstart, qend, strand, indels=[]):
+    def __init__(self, rstart, rend, qstart, qend, strand):
+        if rend<rstart or qend<qstart:
+            raise Exception(f"({rstart}, {rend}, {qstart}, {qend}, {strand}) is not a valid match! (start point greater than end point)")
         self.rstart = rstart
         self.rend = rend
         self.qstart = qstart
@@ -247,6 +249,8 @@ class Matches:
                 rhs_split = Match(match.rstart, start, projected_start, match.qend, -1 )
                 interval = Match(start, end, projected_end, projected_start, -1)
                 lhs_split = Match(end, match.rend, match.qstart, projected_end, -1)
+            if not lhs_split.qstart<=lhs_split.qend<=interval.qstart<=interval.qend<=rhs_split.qstart<=rhs_split.qend:
+                raise Exception("While splitting match order was broken.")
         else:
             if match.strand == 1:
                 lhs_split = Match(match.rstart, projected_start, match.qstart, start,  1)
@@ -256,6 +260,8 @@ class Matches:
                 rhs_split = Match(projected_start, match.rend, match.qstart, start, -1 )
                 interval = Match(projected_end, projected_start, start, end, -1)
                 lhs_split = Match(match.rstart, projected_end, end, match.qend, -1)
+            if not lhs_split.rstart<=lhs_split.rend<=interval.rstart<=interval.rend<=rhs_split.rstart<=rhs_split.rend:
+                raise Exception("While splitting match order was broken.")
         if lhs_split.rend != lhs_split.rstart and lhs_split.qend!=lhs_split.qstart: #don't add interval
             self[index] = lhs_split
             self.insert(index+1, interval)
@@ -309,6 +315,7 @@ class Matches:
         return overlaps
 
     def resolve_overlaps(self, overlap_threshold):
+        length = len(self.list)
         self.remove_indels_from_ends()
         self.sort(False)
         i=0
@@ -336,8 +343,8 @@ class Matches:
                     self.sort(False)
                     i = self.list.index(current_match)
             i = i+1
-            if i>100000:
-                raise Exception("The resolve_overlaps function in matches.py has been stuck in the while loop for 100000 iterations! There is likely a bug, please raise an issue.")
+            if i>length**3:
+                raise Exception(f"The resolve_overlaps function in matches.py has been stuck in the while loop for {length**3} iterations! There is likely a bug, please raise an issue.")
         self.sort(True)
         i=0
         finished = False
@@ -364,8 +371,8 @@ class Matches:
                     self.sort(True)
                     i = self.list.index(current_match)
             i = i+1
-            if i>100000:
-                raise Exception("The resolve_overlaps function in matches.py has been stuck in the while loop for 100000 iterations! There is likely a bug, please raise an issue.")
+            if i>length**3:
+                raise Exception(f"The resolve_overlaps function in matches.py has been stuck in the while loop for {length**3} iterations! There is likely a bug, please raise an issue.")
 
 testing = False
 if testing == True:
