@@ -76,6 +76,38 @@ def get_coverage(tree):
         coverage = coverage + (interval.end - interval.begin)
     return coverage
 
+def sort_and_update_indels(indels):
+    f_start = lambda indel: indel.qstart
+    f_end = lambda indel: indel.qend
+    indels = sorted(indels, key=f_start)
+    n = len(indels)
+    i=0
+    while i < n:
+        same_start_matches = [indels[i]]
+        same_start = True
+        j = i + 1
+        while same_start and j<n:
+            if indels[i].rstart==indels[j].rstart:
+                same_start_matches.append(indels[j])
+            else:
+                same_start = False
+            j = j+1
+        subsort = sorted(same_start_matches, key=f_end)
+        for k in range(len(subsort)):
+            indels[i+k] = subsort[k]
+        i = i+len(subsort)
+    updated_indels = [indels[0]]
+    for i in range(1, n):
+        if indels[i].type == "INS":
+            extend_indel = updated_indels[-1].rstart==indels[i].rstart and updated_indels[-1].qstart+updated_indels[-1].len==indels[i].qstart
+        else:
+            extend_indel = updated_indels[-1].qstart==indels[i].qstart and updated_indels[-1].rstart+updated_indels[-1].len==indels[i].rstart
+        if extend_indel:
+            updated_indels[-1].increase_len(indels[i].len)
+        else:
+            updated_indels.append(indels[i])
+    return updated_indels
+
 def integerise_plasmids(plasmid_1: Path, plasmid_2: Path, prefix: str, plasmid_1_name, plasmid_2_name, identity_threshold=80, length_threshold=200):
     subprocess.check_call(f"nucmer --diagdiff 20 --breaklen 500  --maxmatch -p {prefix} {plasmid_1} {plasmid_2} && delta-filter -1 {prefix}.delta > {prefix}.1delta", shell=True)
     show_coords_output = subprocess.check_output(f"show-coords -TrcldH -I {identity_threshold} {prefix}.1delta", shell=True).strip().split(b'\n')  # TODO: what about this threshold?
@@ -117,6 +149,8 @@ def integerise_plasmids(plasmid_1: Path, plasmid_2: Path, prefix: str, plasmid_1
                     else:
                         indels.append(Indel(rstart,qstart,1,type))
 
+    indels = sort_and_update_indels(indels)
+
     len_ref = -1
     len_query = -1
     og_matches = []
@@ -134,7 +168,7 @@ def integerise_plasmids(plasmid_1: Path, plasmid_2: Path, prefix: str, plasmid_1
         len_query = int(split_line[8])
         strand_query = int(split_line[12])
         if end_ref-start_ref>length_threshold and end_query-start_query>length_threshold:
-            og_matches.append(Match(start_ref, end_ref, start_query, end_query, strand_query))
+                og_matches.append(Match(start_ref, end_ref, start_query, end_query, strand_query))
 
     matches = Matches(og_matches, indels)
     coverage_ref = 0
