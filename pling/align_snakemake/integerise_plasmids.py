@@ -108,7 +108,7 @@ def sort_and_update_indels(indels):
             updated_indels.append(indels[i])
     return updated_indels
 
-def integerise_plasmids(plasmid_1: Path, plasmid_2: Path, prefix: str, plasmid_1_name, plasmid_2_name, identity_threshold=80, length_threshold=200):
+def integerise_plasmids(plasmid_1: Path, plasmid_2: Path, prefix: str, plasmid_1_name, plasmid_2_name, jaccard_threshold, identity_threshold=80, length_threshold=200):
     subprocess.check_call(f"nucmer --diagdiff 20 --breaklen 500  --maxmatch -p {prefix} {plasmid_1} {plasmid_2} && delta-filter -1 {prefix}.delta > {prefix}.1delta", shell=True)
     show_coords_output = subprocess.check_output(f"show-coords -TrcldH -I {identity_threshold} {prefix}.1delta", shell=True).strip().split(b'\n')  # TODO: what about this threshold?
     show_snps_output = subprocess.check_output(f"show-snps -TrH {prefix}.1delta", shell=True).strip().split(b'\n')
@@ -174,15 +174,16 @@ def integerise_plasmids(plasmid_1: Path, plasmid_2: Path, prefix: str, plasmid_1
     coverage_ref = 0
     coverage_query = 0
     no_matches_available = len(og_matches)==0
-    if no_matches_available:
-        plasmid_1_unimogs = "1 )"
-        plasmid_2_unimogs = "2 )"
-        blocks_ref = pd.DataFrame({"Plasmid":[], "Block_ID":[], "Start":[], "End":[]})
-        blocks_query = pd.DataFrame({"Plasmid":[], "Block_ID":[], "Start":[], "End":[]})
-    else:
-        overlap_threshold = 0
+    if not no_matches_available:
         coverage_ref = get_coverage(matches.reference)
         coverage_query = get_coverage(matches.query)
+    if len_ref>len_query:
+        jaccard_similarity = coverage_query/len_query
+    else:
+        jaccard_similarity = coverage_ref/len_ref
+    jaccard_distance = 1-jaccard_similarity
+
+    if jaccard_distance<=jaccard_threshold:
         matches.resolve_overlaps(overlap_threshold)
         ref_to_block, query_to_block, max_id = make_interval_tree_w_dups(matches.list, length_threshold)
         populate_interval_tree_with_unmatched_blocks(ref_to_block, len_ref, max_id+1, length_threshold)
@@ -191,18 +192,17 @@ def integerise_plasmids(plasmid_1: Path, plasmid_2: Path, prefix: str, plasmid_1
         plasmid_2_unimogs = get_unimog(query_to_block)
         blocks_ref = get_blocks(plasmid_1_name, ref_to_block)
         blocks_query = get_blocks(plasmid_2_name, query_to_block)
+    else:
+        plasmid_1_unimogs = "1 )"
+        plasmid_2_unimogs = "2 )"
+        blocks_ref = pd.DataFrame({"Plasmid":[], "Block_ID":[], "Start":[], "End":[]})
+        blocks_query = pd.DataFrame({"Plasmid":[], "Block_ID":[], "Start":[], "End":[]})
 
     for extension in [".1coords", ".1delta", ".delta", ".mcoords", ".mdelta", ".qdiff", ".rdiff", ".report", ".snps", ".unqry", ".unref"]:
         try:
             Path(prefix+extension).unlink()
         except:
             pass
-
-    if len_ref>len_query:
-        jaccard_similarity = coverage_query/len_query
-    else:
-        jaccard_similarity = coverage_ref/len_ref
-    jaccard_distance = 1-jaccard_similarity
 
     return plasmid_1_unimogs, plasmid_2_unimogs, jaccard_distance, blocks_ref, blocks_query
 

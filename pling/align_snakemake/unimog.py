@@ -5,13 +5,13 @@ import os
 from pathlib import Path
 from pling.utils import read_in_batch_pairs, get_fasta_file_info
 
-def unimogs_to_ilp_core(genome_1_fasta, genome_2_fasta, genome_1, genome_2, identity_threshold):
+def unimogs_to_ilp_core(genome_1_fasta, genome_2_fasta, genome_1, genome_2, jaccard_threshold, identity_threshold):
     plasmid_1_unimogs, plasmid_2_unimogs, jaccard_distance, blocks_ref, blocks_query = integerise_plasmids(genome_1_fasta, genome_2_fasta,
-                                                                f"{genome_1}~{genome_2}", genome_1, genome_2, identity_threshold)
+                                                                f"{genome_1}~{genome_2}", genome_1, genome_2, jaccard_threshold, identity_threshold)
     unimog = f">{genome_1}~{genome_2}:{genome_1}\n{plasmid_1_unimogs}\n>{genome_1}~{genome_2}:{genome_2}\n{plasmid_2_unimogs}\n"
     return unimog, jaccard_distance, blocks_ref, blocks_query
 
-def batchwise_unimog(fastafiles, pairs, unimogpath, mappath, jaccardpath, identity_threshold, jaccard_distance):
+def batchwise_unimog(fastafiles, pairs, unimogpath, mappath, jaccardpath, identity_threshold, jaccard_threshold):
     jaccards = []
     unimogs = []
     batch_blocks = {}
@@ -20,9 +20,9 @@ def batchwise_unimog(fastafiles, pairs, unimogpath, mappath, jaccardpath, identi
         genome_2 = pair[1]
         genome_1_fasta = fastafiles[genome_1]
         genome_2_fasta = fastafiles[genome_2]
-        unimog, jaccard, blocks_ref, blocks_query = unimogs_to_ilp_core(genome_1_fasta, genome_2_fasta, genome_1, genome_2, identity_threshold)
+        unimog, jaccard, blocks_ref, blocks_query = unimogs_to_ilp_core(genome_1_fasta, genome_2_fasta, genome_1, genome_2, jaccard_threshold, identity_threshold)
         jaccards.append(f"{genome_1}\t{genome_2}\t{jaccard}\n")
-        if jaccard<=jaccard_distance:
+        if jaccard<=jaccard_threshold:
             unimogs.append(unimog)
             blocks = pd.concat([blocks_ref, blocks_query], ignore_index=True)
             batch_blocks[f"{genome_1}~{genome_2}"] = blocks
