@@ -65,6 +65,24 @@ class Match:
 
     def projection(self, coord, indels, ref_bool): #if ref_bool=True, project from reference to query, else query to reference
         if ref_bool:
+            if coord == self.rstart and self.strand == 1:
+                return self.qstart
+            elif coord == self.rstart and self.strand == -1:
+                return self.qend
+            elif coord == self.rend and self.strand == 1:
+                return self.qend
+            elif coord == self.rend and self.strand == -1:
+                return self.qstart
+        else:
+            if coord == self.qstart and self.strand == 1:
+                return self.rstart
+            elif coord == self.qstart and self.strand == -1:
+                return self.rend
+            elif coord == self.qend and self.strand == 1:
+                return self.rend
+            elif coord == self.qend and self.strand == -1:
+                return self.rstart
+        if ref_bool:
             dist = coord - self.rstart
             for indel in indels:
                 if self.indel_strictly_contained(indel):
