@@ -167,7 +167,13 @@ def integerise_plasmids(plasmid_1: Path, plasmid_2: Path, prefix: str, plasmid_1
         len_ref = int(split_line[7])
         len_query = int(split_line[8])
         strand_query = int(split_line[12])
-        if end_ref-start_ref>length_threshold and end_query-start_query>length_threshold:
+        try:
+            not_repeat = not (abs(start_ref-og_matches[-1].rstart)<length_threshold/2 and abs(end_ref-og_matches[-1].rend)<length_threshold/2 and abs(start_query-og_matches[-1].qstart)<length_threshold/2 and abs(end_query-og_matches[-1].qend)<length_threshold/2)
+        except:
+            not_repeat = True
+        if end_ref-start_ref>length_threshold and end_query-start_query>length_threshold: #don't add match if it's too short
+            if not_repeat:
+            #don't add a match if it's just a slightly shifted repeat of the previous match
                 og_matches.append(Match(start_ref, end_ref, start_query, end_query, strand_query))
 
     matches = Matches(og_matches, indels)
