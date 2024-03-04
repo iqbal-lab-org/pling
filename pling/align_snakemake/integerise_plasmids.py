@@ -149,7 +149,8 @@ def integerise_plasmids(plasmid_1: Path, plasmid_2: Path, prefix: str, plasmid_1
                     else:
                         indels.append(Indel(rstart,qstart,1,type))
 
-    indels = sort_and_update_indels(indels)
+    if len(indels)>1:
+        indels = sort_and_update_indels(indels)
 
     len_ref = -1
     len_query = -1
