@@ -2,7 +2,6 @@ from intervaltree import IntervalTree, Interval
 from pathlib import Path
 import subprocess
 
-
 class Indel:
     def __init__(self, rstart, qstart, len, type):
         self.type = type
@@ -36,6 +35,9 @@ class Match:
         self.qend = qend
         self.strand = strand
 
+    def __setitem__(self, match):
+        self = match
+
     def __eq__(self, other):
         if type(other) is type(self):
             return self.rstart == other.rstart and self.rend == other.rend and self.qstart == other.qstart and self.qend == other.qend
@@ -51,19 +53,62 @@ class Match:
         return ((self.rstart<indel.rend<=self.rend) or (self.rstart<=indel.rstart<self.rend)) and ((self.qstart<indel.qend<=self.qend) or (self.qstart<=indel.qstart<self.qend))
 
     def indel_at_rstart(self, indel):
-        return indel.rstart<=self.rstart<indel.rend<=self.rend and ((self.qstart<indel.qend<=self.qend) or (self.qstart<=indel.qstart<self.qend))
+        return indel.rstart<=self.rstart<indel.rend<=self.rend and ((self.qstart<indel.qend<=self.qend) or (self.qstart<=indel.qstart<=self.qend))
 
     def indel_at_qstart(self, indel):
-        return indel.qstart<=self.qstart<indel.qend<=self.qend and ((self.rstart<indel.rend<=self.rend) or (self.rstart<=indel.rstart<self.rend))
+        return indel.qstart<=self.qstart<indel.qend<=self.qend and ((self.rstart<indel.rend<=self.rend) or (self.rstart<=indel.rstart<=self.rend))
 
     def indel_at_rend(self, indel):
-        return self.rstart<=indel.rstart<self.rend<=indel.rend and ((self.qstart<indel.qend<=self.qend) or (self.qstart<=indel.qstart<self.qend))
+        return self.rstart<=indel.rstart<self.rend<=indel.rend and ((self.qstart<indel.qend<=self.qend) or (self.qstart<=indel.qstart<=self.qend))
 
     def indel_at_qend(self, indel):
-        return self.qstart<=indel.qstart<self.qend<=indel.qend and ((self.rstart<indel.rend<=self.rend) or (self.rstart<=indel.rstart<self.rend))
+        return self.qstart<=indel.qstart<self.qend<=indel.qend and ((self.rstart<indel.rend<=self.rend) or (self.rstart<=indel.rstart<=self.rend))
 
     def indel_strictly_contained(self, indel):
         return (self.rstart<=indel.rstart<=indel.rend<=self.rend) and (self.qstart<=indel.qstart<=indel.qend<=self.qend)
+
+    def remove_indels_from_ends(self, indels):
+        edited_bool = False
+        for indel in indels:
+            if self.indel_at_rstart(indel):
+                edited_bool = True
+                rstart = indel.rend
+                if self.strand == 1:
+                    qstart = indel.qend
+                    edited = Match(rstart, self.rend, qstart, self.qend, self.strand)
+                else:
+                    qend = indel.qstart
+                    edited = Match(rstart, self.rend, self.qstart, qend, self.strand)
+            elif self.indel_at_qstart(indel):
+                edited_bool = True
+                qstart = indel.qend
+                if self.strand == 1:
+                    rstart = indel.rend
+                    edited = Match(rstart, self.rend, qstart, self.qend, self.strand)
+                else:
+                    rend = indel.rstart
+                    edited = Match(self.rstart, rend, qstart, self.qend, self.strand)
+            elif self.indel_at_rend(indel):
+                edited_bool = True
+                rend = indel.rstart
+                if self[i].strand == 1:
+                    qend = indel.qend
+                    edited = Match(self.rstart, rend, self.qstart, qend, self.strand)
+                else:
+                    qstart = indel.qend
+                    edited = Match(self.rstart, rend, qstart, self.qend, self.strand)
+            elif self.indel_at_qend(indel):
+                edited_bool = True
+                qend = indel.qstart
+                if self.strand == 1:
+                    rend = indel.rend
+                    edited = Match(self.rstart, rend, self.qstart, qend, self.strand)
+                else:
+                    rstart = indel.rend
+                    edited = Match(rstart, self.rend, self.qstart, qend, self.strand)
+        if not edited_bool:
+            edited = self
+        return edited
 
     def projection(self, coord, indels, ref_bool): #if ref_bool=True, project from reference to query, else query to reference
         if ref_bool:
@@ -95,10 +140,6 @@ class Match:
                             dist += indel.len
                         elif indel.type == "DEL":
                             dist -= indel.len
-            if self.rstart == coord:
-                dist = 0
-            elif self.rend == coord:
-                dist = self.qend-self.qstart
             if self.strand == 1:
                 projected_coord = self.qstart + dist
             else:
@@ -188,39 +229,7 @@ class Matches:
 
     def remove_indels_from_ends(self):
         for i in range(len(self.list)):
-            for indel in self.indels:
-                if self[i].indel_at_rstart(indel):
-                    rstart = indel.rend
-                    if self[i].strand == 1:
-                        qstart = indel.qend
-                        self[i] = Match(rstart, self[i].rend, qstart, self[i].qend, self[i].strand)
-                    else:
-                        qend = indel.qstart
-                        self[i] = Match(rstart, self[i].rend, self[i].qstart, qend, self[i].strand)
-                elif self[i].indel_at_qstart(indel):
-                    qstart = indel.qend
-                    if self[i].strand == 1:
-                        rstart = indel.rend
-                        self[i] = Match(rstart, self[i].rend, qstart, self[i].qend, self[i].strand)
-                    else:
-                        rend = indel.rstart
-                        self[i] = Match(self[i].rstart, rend, qstart, self[i].qend, self[i].strand)
-                elif self[i].indel_at_rend(indel):
-                    rend = indel.rstart
-                    if self[i].strand == 1:
-                        qend = indel.qend
-                        self[i] = Match(self[i].rstart, rend, self[i].qstart, qend, self[i].strand)
-                    else:
-                        qstart = indel.qend
-                        self[i] = Match(self[i].rstart, rend, qstart, self[i].qend, self[i].strand)
-                elif self[i].indel_at_qend(indel):
-                    qend = indel.qstart
-                    if self[i].strand == 1:
-                        rend = indel.rend
-                        self[i] = Match(self[i].rstart, rend, self[i].qstart, qend, self[i].strand)
-                    else:
-                        rstart = indel.rend
-                        self[i] = Match(rstart, self[i].rend, self[i].qstart, qend, self[i].strand)
+            self[i] = self[i].remove_indels_from_ends(self.indels)
 
     def contain_interval(self, start, end, ref_bool): #find in which matches interval (start, end) is contained in ref/query genome
         matches = []
@@ -263,13 +272,18 @@ class Matches:
             if not lhs_split.rstart<=lhs_split.rend<=interval.rstart<=interval.rend<=rhs_split.rstart<=rhs_split.rend:
                 raise Exception("While splitting match order was broken.")
         if lhs_split.rend != lhs_split.rstart and lhs_split.qend!=lhs_split.qstart: #don't add interval
+            lhs_split = lhs_split.remove_indels_from_ends(self.indels)
+            interval = interval.remove_indels_from_ends(self.indels)
             self[index] = lhs_split
             self.insert(index+1, interval)
             if rhs_split.rend != rhs_split.rstart and rhs_split.qend!=rhs_split.qstart: #don't add null interval
+                rhs_split = rhs_split.remove_indels_from_ends(self.indels)
                 self.insert(index+2, rhs_split)
         else:
+            interval = interval.remove_indels_from_ends(self.indels)
             self[index] = interval
             if rhs_split.rend != rhs_split.rstart and rhs_split.qend!=rhs_split.qstart: #don't add null interval
+                rhs_split = rhs_split.remove_indels_from_ends(self.indels)
                 self.insert(index+1, rhs_split)
 
     def find_opposite_overlaps(self, i, ref_bool):
