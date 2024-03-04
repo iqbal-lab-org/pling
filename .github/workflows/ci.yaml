@@ -33,7 +33,7 @@ jobs:
             snakemake
             mamba
             pandas
-          init-shell: bash
+          init-shell: none
           cache-environment: true
           post-cleanup: 'all'
 
