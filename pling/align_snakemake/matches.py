@@ -91,7 +91,7 @@ class Match:
             elif self.indel_at_rend(indel):
                 edited_bool = True
                 rend = indel.rstart
-                if self[i].strand == 1:
+                if self.strand == 1:
                     qend = indel.qend
                     edited = Match(self.rstart, rend, self.qstart, qend, self.strand)
                 else:
