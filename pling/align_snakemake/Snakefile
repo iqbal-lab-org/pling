@@ -16,14 +16,14 @@ include: "../common_rules/common_rules.smk"
 
 rule all:
     input:
-        seq_jaccard = f"{OUTPUTPATH}/jaccard/all_pairs_jaccard_distance.tsv",
-        communities = f"{OUTPUTPATH}/jaccard/jaccard_communities"
+        seq_containment = f"{OUTPUTPATH}/containment/all_pairs_containment_distance.tsv",
+        communities = f"{OUTPUTPATH}/containment/containment_communities"
 
 rule make_unimogs:
     input:
         batch_list=lambda wildcards: f"{OUTPUTPATH}/batches/batch_{wildcards.batch}.txt"
     output:
-        jaccard=f"{OUTPUTPATH}/tmp_files/jaccard_batchwise/batch_{{batch}}_jaccard.tsv",
+        containment=f"{OUTPUTPATH}/tmp_files/containment_batchwise/batch_{{batch}}_containment.tsv",
         unimog = f"{OUTPUTPATH}/unimogs/batch_{{batch}}_align.unimog",
         map = f"{OUTPUTPATH}/unimogs/batch_{{batch}}_map.txt"
     threads: config["make_unimogs_threads"]
@@ -34,7 +34,7 @@ rule make_unimogs:
         batch = lambda wildcards: wildcards.batch,
         outputpath = OUTPUTPATH,
         identity_threshold = config["identity_threshold"],
-        jaccard_distance = config["seq_jaccard_distance"],
+        containment_distance = config["seq_containment_distance"],
         pling_root_dir = get_pling_root_dir()
     conda: "../envs/integerise.yaml"
     shadow: "shallow"
@@ -44,9 +44,9 @@ rule make_unimogs:
             --genomes_list {params.genomes_list} \
             --batch {params.batch} \
             --identity_threshold {params.identity_threshold} \
-            --jaccard_distance {params.jaccard_distance} \
+            --containment_distance {params.containment_distance} \
             --outputpath {params.outputpath} \
-            --jaccard_output {output.jaccard} \
+            --containment_output {output.containment} \
             --unimog_output {output.unimog} \
             --map_output {output.map}
         """

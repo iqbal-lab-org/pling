@@ -18,16 +18,16 @@ include: "../common_rules/common_rules.smk"
 
 rule all:
     input:
-        communities = f"{OUTPUTPATH}/jaccard/jaccard_communities"
+        communities = f"{OUTPUTPATH}/containment/containment_communities"
 
-rule pairwise_seq_jaccard:
+rule pairwise_seq_containment:
     input:
         batch_list=lambda wildcards: f"{OUTPUTPATH}/batches/batch_{wildcards.batch}.txt"
     output:
-        jaccard=f"{OUTPUTPATH}/tmp_files/jaccard_batchwise/batch_{{batch}}_jaccard.tsv"
-    threads: config["pairwise_seq_jaccard_threads"]
+        containment=f"{OUTPUTPATH}/tmp_files/containment_batchwise/batch_{{batch}}_containment.tsv"
+    threads: config["pairwise_seq_containment_threads"]
     resources:
-        mem_mb=lambda wildcards, attempt: config["pairwise_seq_jaccard_mem"]*attempt
+        mem_mb=lambda wildcards, attempt: config["pairwise_seq_containment_mem"]*attempt
     conda: "../envs/integerise.yaml"
     params:
         genomes_list = config["genomes_list"],
@@ -37,10 +37,10 @@ rule pairwise_seq_jaccard:
         pling_root_dir = get_pling_root_dir()
     shadow: "shallow"
     shell: """
-        PYTHONPATH={params.pling_root_dir} python {params.pling_root_dir}/pling/jac_network_snakemake/seq_jaccard.py \
+        PYTHONPATH={params.pling_root_dir} python {params.pling_root_dir}/pling/jac_network_snakemake/seq_containment.py \
             --genomes_list {params.genomes_list} \
             --batch {params.batch} \
             --identity_threshold {params.identity_threshold} \
             --outputpath {params.outputpath} \
-            --jaccard_output {output.jaccard} \
+            --containment_output {output.containment} \
         """

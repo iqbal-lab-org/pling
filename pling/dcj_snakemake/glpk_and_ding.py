@@ -39,7 +39,7 @@ def dcj_dist(unimog, solution, genome1, genome2):
         raise e
     return dist
 
-def batchwise_ding(pairs, jaccard_distance, jaccards, integerisation, outputpath, batch, timelimit, snakefile_dir, plasmid_to_community):
+def batchwise_ding(pairs, containment_distance, containments, integerisation, outputpath, batch, timelimit, snakefile_dir, plasmid_to_community):
     dists = []
     for pair in pairs:
         genome1 = pair[0]
@@ -47,7 +47,7 @@ def batchwise_ding(pairs, jaccard_distance, jaccards, integerisation, outputpath
         lp = f"ding/ilp/{genome1}~{genome2}.lp"
         solution = f"ding/solutions/{genome1}~{genome2}.sol"
         entry1, entry2 = get_entries(integerisation, genome1, genome2)
-        if jaccards[(genome1,genome2)]<=jaccard_distance:
+        if containments[(genome1,genome2)]<=containment_distance:
             unimog = get_unimog(outputpath, integerisation, plasmid_to_community, batch, genome1, genome2)
             unimog_to_ilp(unimog, lp, entry1, entry2)
             ilp_GLPK(lp, solution, snakefile_dir, timelimit)
@@ -59,12 +59,12 @@ def batchwise_ding(pairs, jaccard_distance, jaccards, integerisation, outputpath
 
 def main():
     # Create the parser
-    parser = argparse.ArgumentParser(description="Process a pair of genomes and create unimogs, jaccard and sequence blocks output.")
+    parser = argparse.ArgumentParser(description="Process a pair of genomes and create unimogs, containment and sequence blocks output.")
 
     # Add the arguments
     parser.add_argument("--batch", required=True, help="Batch number")
-    parser.add_argument("--jaccard_tsv", required=True)
-    parser.add_argument("--jaccard_distance", required=True)
+    parser.add_argument("--containment_tsv", required=True)
+    parser.add_argument("--containment_distance", required=True)
     parser.add_argument("--outputpath", required=True, help="Path for general output directory")
     parser.add_argument("--communitypath", required=True)
     parser.add_argument("--integerisation", required=True, type=str)
@@ -81,7 +81,7 @@ def main():
         timelimit=f"--tmlim {args.timelimit}"
 
     pairs=read_in_batch_pairs(f"{args.outputpath}/batches/batch_{args.batch}.txt")
-    jaccards=get_jaccard_distances_for_batch(args.jaccard_tsv)
+    containments=get_containment_distances_for_batch(args.containment_tsv)
 
     output_dirs = [Path(f"ding/ilp"), Path(f"ding/solutions")]
     for dir in output_dirs:
@@ -92,7 +92,7 @@ def main():
     else:
         plasmid_to_community=None
 
-    batchwise_ding(pairs, float(args.jaccard_distance), jaccards, args.integerisation, args.outputpath, args.batch, timelimit, args.snakefile_dir, plasmid_to_community)
+    batchwise_ding(pairs, float(args.containment_distance), containments, args.integerisation, args.outputpath, args.batch, timelimit, args.snakefile_dir, plasmid_to_community)
 
 if __name__ == "__main__":
     main()

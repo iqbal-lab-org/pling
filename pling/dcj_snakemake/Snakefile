@@ -10,7 +10,7 @@ GENOMES = list(FASTAEXT.keys())
 OUTPUTPATH = config["output_dir"] #output directory will contain subdirectory with unimogs from integerisation pipeline, as well as placing all new output from current pipeline in subdirectories within it
 PREFIX = config["prefix"]
 INTEGERISATION = config["integerisation"]
-JACCARD_DISTANCE = config["seq_jaccard_distance"]
+CONTAINMENT_DISTANCE = config["seq_containment_distance"]
 COMMUNITIES = config["communities"]
 batch_size = config["batch_size"]
 dcj_threshold = config["dcj_dist_threshold"]
@@ -28,11 +28,11 @@ rule all:
 if config["ilp_solver"] == "GLPK":
     rule glpk_and_ding:
         input:
-            jaccard_tsv = lambda wildcards: f"{OUTPUTPATH}/tmp_files/jaccard_batchwise/batch_{wildcards.batch}_jaccard.tsv"
+            containment_tsv = lambda wildcards: f"{OUTPUTPATH}/tmp_files/containment_batchwise/batch_{wildcards.batch}_containment.tsv"
         output:
             f"{OUTPUTPATH}/tmp_files/dists_batchwise/batch_{{batch}}_dcj.tsv"
         params:
-            jaccard_distance=JACCARD_DISTANCE,
+            containment_distance=CONTAINMENT_DISTANCE,
             integerisation=INTEGERISATION,
             outputpath=OUTPUTPATH,
             communitypath=f"{COMMUNITIES}/objects/communities.txt",
@@ -49,8 +49,8 @@ if config["ilp_solver"] == "GLPK":
                 """
                 PYTHONPATH={params.pling_root_dir} python {params.pling_root_dir}/pling/dcj_snakemake/glpk_and_ding.py \
                         --batch {params.batch} \
-                        --jaccard_tsv {input.jaccard_tsv} \
-                        --jaccard_distance {params.jaccard_distance} \
+                        --containment_tsv {input.containment_tsv} \
+                        --containment_distance {params.containment_distance} \
                         --outputpath {params.outputpath} \
                         --communitypath {params.communitypath} \
                         --integerisation {params.integerisation} \
@@ -62,11 +62,11 @@ if config["ilp_solver"] == "GLPK":
 elif config["ilp_solver"] == "gurobi":
     rule gurobi_and_ding:
         input:
-            jaccard_tsv = lambda wildcards: f"{OUTPUTPATH}/tmp_files/jaccard_batchwise/batch_{wildcards.batch}_jaccard.tsv"
+            containment_tsv = lambda wildcards: f"{OUTPUTPATH}/tmp_files/containment_batchwise/batch_{wildcards.batch}_containment.tsv"
         output:
             f"{OUTPUTPATH}/tmp_files/dists_batchwise/batch_{{batch}}_dcj.tsv"
         params:
-            jaccard_distance=JACCARD_DISTANCE,
+            containment_distance=CONTAINMENT_DISTANCE,
             integerisation=INTEGERISATION,
             outputpath=OUTPUTPATH,
             communitypath=f"{COMMUNITIES}/objects/communities.txt",
@@ -82,8 +82,8 @@ elif config["ilp_solver"] == "gurobi":
                 """
                 PYTHONPATH={params.pling_root_dir} python {params.pling_root_dir}/pling/dcj_snakemake/gurobi_and_ding.py \
                         --batch {params.batch} \
-                        --jaccard_tsv {input.jaccard_tsv} \
-                        --jaccard_distance {params.jaccard_distance} \
+                        --containment_tsv {input.containment_tsv} \
+                        --containment_distance {params.containment_distance} \
                         --outputpath {params.outputpath} \
                         --communitypath {params.communitypath} \
                         --integerisation {params.integerisation} \

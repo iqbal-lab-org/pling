@@ -39,10 +39,10 @@ def get_pairs(genomes, smash, smash_matrix = None, smash_threshold = None):
             j=j+1
     return genome_pairs, not_pairs
 
-def jaccard_file(not_pairs, genome_index, smash_matrix, jaccardpath):
-    dir = Path(os.path.dirname(jaccardpath))
+def containment_file(not_pairs, genome_index, smash_matrix, containmentpath):
+    dir = Path(os.path.dirname(containmentpath))
     dir.mkdir(parents=True, exist_ok=True)
-    with open(jaccardpath, "w") as f:
+    with open(containmentpath, "w") as f:
         for el in not_pairs:
             i = genome_index[el[0]]
             j = genome_index[el[1]]
@@ -70,7 +70,7 @@ def main():
     parser.add_argument("--outputpath")
     parser.add_argument("--sourmash", action="store_true")
     parser.add_argument("--smash_threshold",type=float)
-    parser.add_argument("--jaccardpath")
+    parser.add_argument("--containmentpath")
     parser.add_argument("--dcj_path")
 
     args = parser.parse_args()
@@ -79,7 +79,7 @@ def main():
         sig_dir = Path(f"{args.outputpath}/sourmash")
         sig_dir.mkdir(parents=True, exist_ok=True)
         sig_path = sig_dir/"all_plasmids.sig"
-        matrixpath = sig_dir/"smash_jaccard_matrix"
+        matrixpath = sig_dir/"smash_containment_matrix"
         run_smash(args.genomes_list, sig_path, matrixpath)
         genomes, genome_index = get_labels(f"{matrixpath}.labels.txt")
         smash_matrix = np.load(matrixpath)
@@ -90,7 +90,7 @@ def main():
     pairs, not_pairs = get_pairs(genomes, args.sourmash, smash_matrix, args.smash_threshold)
 
     if args.sourmash:
-        jaccard_file(not_pairs, genome_index, smash_matrix, args.jaccardpath)
+        containment_file(not_pairs, genome_index, smash_matrix, args.containmentpath)
 
     number_of_batches = math.ceil(len(pairs)/args.batch_size)
     batches = {}

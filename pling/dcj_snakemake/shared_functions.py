@@ -7,14 +7,14 @@ def get_plasmid_to_community(communitypath):
                 plasmid_to_community[plasmid] = community_index
     return plasmid_to_community
 
-def get_jaccard_distances_for_batch(jaccard_tsv):
-    jaccards = {}
-    with open(jaccard_tsv, "r") as f:
+def get_containment_distances_for_batch(containment_tsv):
+    containments = {}
+    with open(containment_tsv, "r") as f:
         for line in f:
-            plasmid_1, plasmid_2, jaccard = line.strip().split("\t")
-            jaccard = float(jaccard)
-            jaccards[(plasmid_1,plasmid_2)] = jaccard
-    return jaccards
+            plasmid_1, plasmid_2, containment = line.strip().split("\t")
+            containment = float(containment)
+            containments[(plasmid_1,plasmid_2)] = containment
+    return containments
 
 def get_unimog(outputpath, integerisation, plasmid_to_community, batch, genome1, genome2):
     unimog = ""

@@ -108,7 +108,7 @@ def sort_and_update_indels(indels):
             updated_indels.append(indels[i])
     return updated_indels
 
-def integerise_plasmids(plasmid_1: Path, plasmid_2: Path, prefix: str, plasmid_1_name, plasmid_2_name, jaccard_threshold, identity_threshold=80, length_threshold=200):
+def integerise_plasmids(plasmid_1: Path, plasmid_2: Path, prefix: str, plasmid_1_name, plasmid_2_name, containment_threshold, identity_threshold=80, length_threshold=200):
     subprocess.check_call(f"nucmer --diagdiff 20 --breaklen 500  --maxmatch -p {prefix} {plasmid_1} {plasmid_2} && delta-filter -1 {prefix}.delta > {prefix}.1delta", shell=True)
     show_coords_output = subprocess.check_output(f"show-coords -TrcldH -I {identity_threshold} {prefix}.1delta", shell=True).strip().split(b'\n')  # TODO: what about this threshold?
     show_snps_output = subprocess.check_output(f"show-snps -TrH {prefix}.1delta", shell=True).strip().split(b'\n')
@@ -185,12 +185,12 @@ def integerise_plasmids(plasmid_1: Path, plasmid_2: Path, prefix: str, plasmid_1
         coverage_ref = get_coverage(matches.reference)
         coverage_query = get_coverage(matches.query)
     if len_ref>len_query:
-        jaccard_similarity = coverage_query/len_query
+        containment_similarity = coverage_query/len_query
     else:
-        jaccard_similarity = coverage_ref/len_ref
-    jaccard_distance = 1-jaccard_similarity
+        containment_similarity = coverage_ref/len_ref
+    containment_distance = 1-containment_similarity
 
-    if jaccard_distance<=jaccard_threshold:
+    if containment_distance<=containment_threshold:
         overlap_threshold = 0
         matches.resolve_overlaps(overlap_threshold)
         ref_to_block, query_to_block, max_id = make_interval_tree_w_dups(matches.list, length_threshold)
@@ -212,7 +212,7 @@ def integerise_plasmids(plasmid_1: Path, plasmid_2: Path, prefix: str, plasmid_1
         except:
             pass
 
-    return plasmid_1_unimogs, plasmid_2_unimogs, jaccard_distance, blocks_ref, blocks_query
+    return plasmid_1_unimogs, plasmid_2_unimogs, containment_distance, blocks_ref, blocks_query
 
 testing = False
 

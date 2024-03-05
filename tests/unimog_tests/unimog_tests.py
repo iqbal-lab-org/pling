@@ -15,12 +15,12 @@ def get_batch_num(filepath):
         num = int(f.readline().strip())
     return num
 
-def assert_jaccard(test, test_dir, integerisation):
-    assert_files_are_identical(f"{test_dir}/{test}/out/{integerisation}/jaccard/all_pairs_jaccard_distance.tsv",
-                               f"{test_dir}/{test}/truth/{integerisation}/jaccard/all_pairs_jaccard_distance.tsv")
-    assert_files_are_identical(f"{test_dir}/{test}/out/{integerisation}/jaccard/jaccard_communities/objects/communities.tsv",
+def assert_containment(test, test_dir, integerisation):
+    assert_files_are_identical(f"{test_dir}/{test}/out/{integerisation}/containment/all_pairs_containment_distance.tsv",
+                               f"{test_dir}/{test}/truth/{integerisation}/jaccard/all_pairs_containment_distance.tsv")
+    assert_files_are_identical(f"{test_dir}/{test}/out/{integerisation}/containment/containment_communities/objects/communities.tsv",
                                f"{test_dir}/{test}/truth/{integerisation}/jaccard/jaccard_communities/objects/communities.tsv")
-    assert_files_are_identical(f"{test_dir}/{test}/out/{integerisation}/jaccard/jaccard_communities/objects/communities.txt",
+    assert_files_are_identical(f"{test_dir}/{test}/out/{integerisation}/containment/containment_communities/objects/communities.txt",
                                f"{test_dir}/{test}/truth/{integerisation}/jaccard/jaccard_communities/objects/communities.txt")
 
 def assert_anno_unimogs(test, test_dir, community_num, dedup):
@@ -56,7 +56,7 @@ def assert_annotation(tests, test_dir, dedup_bool):
                          output_dir=f"{test_dir}/{test}/out/anno",
                          integerisation="anno",
                          bakta_db="tests/bakta_db/db-light",
-                         jaccard_distance=0.2,
+                         containment_distance=0.2,
                          dcj=4,
                          dedup=dedup_bool,
                          dedup_threshold=None,
@@ -78,10 +78,10 @@ def assert_annotation(tests, test_dir, dedup_bool):
                          sourmash_threshold=None)
         run_pling.pling(args)
 
-        #jaccard communities
-        assert_jaccard(test, test_dir, "anno")
+        #containment communities
+        assert_containment(test, test_dir, "anno")
         #unimogs
-        #community_num = get_num_communities(f"tests/{test}/truth/anno/jaccard/jaccard_communities.txt")
+        #community_num = get_num_communities(f"tests/{test}/truth/anno/containment/containment_communities.txt")
         #assert_anno_unimogs(test, community_num, dedup_bool)
         #DCJ distance matrix
         assert_files_are_identical(f"{test_dir}/{test}/out/anno/all_plasmids_distances.tsv",
@@ -112,7 +112,7 @@ class Test_Pling(TestCase):
                              output_dir=f"{self.toy_dir}/{test}/out/align",
                              integerisation="align",
                              bakta_db=None,
-                             jaccard_distance=0.2,
+                             containment_distance=0.2,
                              dcj=4,
                              dedup=None,
                              dedup_threshold=None,
@@ -134,8 +134,8 @@ class Test_Pling(TestCase):
                              sourmash_threshold=None)
             run_pling.pling(args)
 
-            #jaccard communities
-            assert_jaccard(test, self.toy_dir, "align")
+            #containment communities
+            assert_containment(test, self.toy_dir, "align")
             #unimogs
             batch_num = get_batch_num(f"{self.toy_dir}/{test}/out/align/batches/batching_info.txt")
             assert_align_unimogs(test, self.toy_dir, batch_num)
@@ -155,7 +155,7 @@ class Test_Pling(TestCase):
                              output_dir=f"{self.indel_dir}/{test}/out/align",
                              integerisation="align",
                              bakta_db=None,
-                             jaccard_distance=0.6,
+                             containment_distance=0.6,
                              dcj=4,
                              dedup=None,
                              dedup_threshold=None,
@@ -177,8 +177,8 @@ class Test_Pling(TestCase):
                              sourmash_threshold=None)
             run_pling.pling(args)
 
-            #jaccard communities
-            assert_jaccard(test, self.indel_dir, "align")
+            #containment communities
+            assert_containment(test, self.indel_dir, "align")
             #unimogs
             batch_num = 1
             assert_align_unimogs(test, self.indel_dir, batch_num)

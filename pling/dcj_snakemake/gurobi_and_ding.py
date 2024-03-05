@@ -115,13 +115,13 @@ def compute_DCJ(unimog, entry1, entry2, timelimit, threads):
         raise e
     return int(round(dist))
 
-def batchwise_ding(pairs, jaccard_distance, jaccards, integerisation, outputpath, batch, timelimit, threads, plasmid_to_community):
+def batchwise_ding(pairs, containment_distance, containments, integerisation, outputpath, batch, timelimit, threads, plasmid_to_community):
     dists = []
     for pair in pairs:
         genome1 = pair[0]
         genome2 = pair[1]
         entry1, entry2 = get_entries(integerisation, genome1, genome2)
-        if jaccards[(genome1,genome2)]<=jaccard_distance:
+        if containments[(genome1,genome2)]<=containment_distance:
             unimog = get_unimog(outputpath, integerisation, plasmid_to_community, batch, genome1, genome2)
             dist = compute_DCJ(unimog, entry1, entry2, timelimit, threads)
             dists.append(f"{genome1}\t{genome2}\t{dist}\n")
@@ -131,12 +131,12 @@ def batchwise_ding(pairs, jaccard_distance, jaccards, integerisation, outputpath
 
 def main():
     # Create the parser
-    parser = argparse.ArgumentParser(description="Process a pair of genomes and create unimogs, jaccard and sequence blocks output.")
+    parser = argparse.ArgumentParser(description="Process a pair of genomes and create unimogs, containment and sequence blocks output.")
 
     # Add the arguments
     parser.add_argument("--batch", required=True, help="Batch number")
-    parser.add_argument("--jaccard_tsv", required=True)
-    parser.add_argument("--jaccard_distance", required=True)
+    parser.add_argument("--containment_tsv", required=True)
+    parser.add_argument("--containment_distance", required=True)
     parser.add_argument("--outputpath", required=True, help="Path for general output directory")
     parser.add_argument("--communitypath", required=True)
     parser.add_argument("--integerisation", required=True, type=str)
@@ -147,14 +147,14 @@ def main():
     args = parser.parse_args()
 
     pairs=read_in_batch_pairs(f"{args.outputpath}/batches/batch_{args.batch}.txt")
-    jaccards=get_jaccard_distances_for_batch(args.jaccard_tsv)
+    containments=get_containment_distances_for_batch(args.containment_tsv)
 
     if args.integerisation=="anno":
         plasmid_to_community = get_plasmid_to_community(args.communitypath)
     else:
         plasmid_to_community=None
 
-    batchwise_ding(pairs, float(args.jaccard_distance), jaccards, args.integerisation, args.outputpath, args.batch, args.timelimit, args.threads, plasmid_to_community)
+    batchwise_ding(pairs, float(args.containment_distance), containments, args.integerisation, args.outputpath, args.batch, args.timelimit, args.threads, plasmid_to_community)
 
 if __name__ == "__main__":
     main()

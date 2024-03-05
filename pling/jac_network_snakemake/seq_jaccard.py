@@ -20,7 +20,7 @@ def get_coordinates(split_line, index):
     end+=1
     return start, end
 
-def get_sequence_jaccard_distance(plasmid_1: Path, plasmid_2: Path, prefix: str, identity_threshold=80) -> Tuple[str, str]:
+def get_sequence_containment_distance(plasmid_1: Path, plasmid_2: Path, prefix: str, identity_threshold=80) -> Tuple[str, str]:
     subprocess.check_call(f"perl -w $(which dnadiff) {plasmid_1} {plasmid_2} -p {prefix} 2>/dev/null", shell=True)
     show_coords_output = subprocess.check_output(f"show-coords -TrcldH -I {identity_threshold} {prefix}.1delta", shell=True).strip().split(b'\n')  # TODO: what about this threshold?
 
@@ -54,24 +54,24 @@ def get_sequence_jaccard_distance(plasmid_1: Path, plasmid_2: Path, prefix: str,
     coverage_query = get_coverage(query_to_block)
 
     if len_ref>len_query:
-        jaccard_similarity = coverage_query/len_query
+        containment_similarity = coverage_query/len_query
     else:
-        jaccard_similarity = coverage_ref/len_ref
+        containment_similarity = coverage_ref/len_ref
 
-    jaccard_distance = 1-jaccard_similarity
-    return jaccard_distance
+    containment_distance = 1-containment_similarity
+    return containment_distance
 
-def batchwise_jaccard(fastafiles, pairs, jaccardpath, identity_threshold):
-    jaccards = []
+def batchwise_containment(fastafiles, pairs, containmentpath, identity_threshold):
+    containments = []
     for pair in pairs:
         genome_1 = pair[0]
         genome_2 = pair[1]
         genome_1_fasta = fastafiles[genome_1]
         genome_2_fasta = fastafiles[genome_2]
-        jaccard_distance = get_sequence_jaccard_distance(genome_1_fasta, genome_2_fasta, f"{genome_1}~{genome_2}", identity_threshold)
-        jaccards.append(f"{genome_1}\t{genome_2}\t{jaccard_distance}\n")
-    with open(jaccardpath, 'w') as f:
-        for line in jaccards:
+        containment_distance = get_sequence_containment_distance(genome_1_fasta, genome_2_fasta, f"{genome_1}~{genome_2}", identity_threshold)
+        containments.append(f"{genome_1}\t{genome_2}\t{containment_distance}\n")
+    with open(containmentpath, 'w') as f:
+        for line in containments:
             f.write(line)
 
 
@@ -80,16 +80,16 @@ def main(args):
 
     pairs=read_in_batch_pairs(f"{args.outputpath}/batches/batch_{args.batch}.txt")
 
-    batchwise_jaccard(fastafiles, pairs, args.jaccard_output, args.identity_threshold)
+    batchwise_containment(fastafiles, pairs, args.containment_output, args.identity_threshold)
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description='Calculate Jaccard index for genome sequences.')
+    parser = argparse.ArgumentParser(description='Calculate containment index for genome sequences.')
 
     parser.add_argument("--genomes_list", required=True, help="Text file with list of all fasta filepaths")
     parser.add_argument("--batch", required=True, help="Batch number")
     parser.add_argument("--identity_threshold", required=True, type=float, help="Identity threshold for comparison")
     parser.add_argument("--outputpath", required=True, help="Path for general output directory")
-    parser.add_argument("--jaccard_output", required=True, help="Output path for Jaccard index results")
+    parser.add_argument("--containment_output", required=True, help="Output path for containment index results")
 
     args = parser.parse_args()
     main(args)

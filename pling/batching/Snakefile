@@ -33,7 +33,7 @@ rule get_batches:
         batch_size = config["batch_size"],
         sourmash = smash(),
         smash_threshold = config.get("sourmash_threshold", 1),
-        jaccardpath = f"{OUTPUTPATH}/tmp_files/jaccard_batchwise/not_pairs_jaccard_distance.tsv",
+        containmentpath = f"{OUTPUTPATH}/tmp_files/containment_batchwise/not_pairs_containment_distance.tsv",
         pling_root_dir = get_pling_root_dir()
     threads: get_batching_resources("threads")
     resources:
@@ -47,5 +47,5 @@ rule get_batches:
             --outputpath {params.outputpath} \
             {params.sourmash} \
             --smash_threshold {params.smash_threshold} \
-            --jaccardpath {params.jaccardpath}
+            --containmentpath {params.containmentpath}
         """

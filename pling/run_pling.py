@@ -18,11 +18,11 @@ def parse_args():
     parser.add_argument("output_dir", help="path to output directory")
     parser.add_argument("integerisation", choices=["anno", "align"], help="integerisation method: \"anno\" for annotation and \"align\" for alignment")
     parser.add_argument("-b","--bakta_db", help="path to bakta database, planned default is where bakta downloads it by default")
-    parser.add_argument("-j", "--jaccard-distance", default=0.6, help="threshold for initial jaccard network")
+    parser.add_argument("-c", "--containment_distance", default=0.6, help="threshold for initial containment network")
     parser.add_argument("-d", "--dcj", default=4, help="threshold for final DCJ-indel network")
     parser.add_argument("--dedup", action="store_true", help="whether or not the deduplicate when integerising from annotation")
     parser.add_argument("--dedup_threshold", default=98.5, help="threshold for separating paralogs in deduplication step (for integerisation from annotation)")
-    parser.add_argument("--identity", default=80, help="threshold for percentage of shared sequence between blocks (for integerisation from alignment and for jaccard calculation)")
+    parser.add_argument("--identity", default=80, help="threshold for percentage of shared sequence between blocks (for integerisation from alignment and for containment calculation)")
     parser.add_argument("--min_indel_size", default=200, help="minimum size for an indel to be treated as a block (for integerisation from alignment)")
     parser.add_argument("--bh_connectivity", default=10, help="minimum number of connections a plasmid need to be considered a blackhole plasmid")
     parser.add_argument("--bh_neighbours_edge_density", default=0.2, help="maximum number of edge density between blackhole plasmid neighbours to label the plasmid as blackhole")
@@ -85,10 +85,10 @@ def make_config_file(args):
         config.write(f"output_dir: {args.output_dir}\n\n")
         config.write(f"integerisation: {args.integerisation}\n\n")
         config.write(f"bakta_db: {args.bakta_db}\n\n")
-        config.write(f"seq_jaccard_distance: {args.jaccard_distance}\n\n")
+        config.write(f"seq_containment_distance: {args.containment_distance}\n\n")
         config.write(f"dcj_dist_threshold: {args.dcj}\n\n")
         config.write("prefix: all_plasmids\n\n")
-        config.write(f"communities: {args.output_dir}/jaccard/jaccard_communities\n\n")
+        config.write(f"communities: {args.output_dir}/containment/containment_communities\n\n")
         if args.dedup:
             config.write(f"dedup: {args.dedup}\n\n")
             config.write(f"dedup_threshold: {args.dedup_threshold}\n\n")
@@ -131,9 +131,9 @@ def pling(args):
     #integerisation
     if args.integerisation == "anno":
         try:
-            print("Building jaccard network...\n")
+            print("Building containment network...\n")
             subprocess.run(f"snakemake --snakefile {get_pling_path()}/jac_network_snakemake/Snakefile {snakemake_args}", shell=True, check=True, capture_output=True)
-            print("Completed jaccard network.\n")
+            print("Completed containment network.\n")
         except subprocess.CalledProcessError as e:
             print(e.stderr.decode())
             print(e)
@@ -148,9 +148,9 @@ def pling(args):
             raise e
     elif args.integerisation == "align":
         try:
-            print("Aligning, integerising, and building jaccard network...\n")
+            print("Aligning, integerising, and building containment network...\n")
             subprocess.run(f"snakemake --snakefile {get_pling_path()}/align_snakemake/Snakefile {snakemake_args}", shell=True, check=True, capture_output=True)
-            print("Completed integerisation and jaccard network.\n")
+            print("Completed integerisation and containment network.\n")
         except subprocess.CalledProcessError as e:
             print(e.stderr.decode())
             print(e)

@@ -17,28 +17,28 @@ rule create_genomes_tsv:
                 f.write(f"{genome}\n")
 localrules: create_genomes_tsv
 
-def get_not_pairs_jaccard_file():
+def get_not_pairs_containment_file():
     if config.get("sourmash", False):
-        return f"{OUTPUTPATH}/tmp_files/jaccard_batchwise/not_pairs_jaccard_distance.tsv"
+        return f"{OUTPUTPATH}/tmp_files/containment_batchwise/not_pairs_containment_distance.tsv"
     else:
         return ""
 
-rule cat_jaccard:
+rule cat_containment:
     input:
-        jaccards = expand(f"{OUTPUTPATH}/tmp_files/jaccard_batchwise/batch_{{batch}}_jaccard.tsv", batch=[str(i) for i in range(get_number_of_batches(OUTPUTPATH))])
+        containments = expand(f"{OUTPUTPATH}/tmp_files/containment_batchwise/batch_{{batch}}_containment.tsv", batch=[str(i) for i in range(get_number_of_batches(OUTPUTPATH))])
     output:
-        all_jaccard_distances = f"{OUTPUTPATH}/jaccard/all_pairs_jaccard_distance.tsv"
+        all_containment_distances = f"{OUTPUTPATH}/containment/all_pairs_containment_distance.tsv"
     params:
-        not_pairs = get_not_pairs_jaccard_file()
+        not_pairs = get_not_pairs_containment_file()
     threads: 1
     resources:
         mem_mb=lambda wildcards, attempt: 4000*attempt
     shell:
         """
-        cat <(echo -e "plasmid_1\tplasmid_2\tdistance") {input.jaccards} {params.not_pairs}> {output.all_jaccard_distances}
+        cat <(echo -e "plasmid_1\tplasmid_2\tdistance") {input.containments} {params.not_pairs}> {output.all_containment_distances}
         """
 
-localrules: cat_jaccard
+localrules: cat_containment
 
 def get_metadata(metadata):
     if metadata == "None":
@@ -48,27 +48,27 @@ def get_metadata(metadata):
 
 rule get_communities:
     input:
-        jaccard = f"{OUTPUTPATH}/jaccard/all_pairs_jaccard_distance.tsv",
+        containment = f"{OUTPUTPATH}/containment/all_pairs_containment_distance.tsv",
         genomes = rules.create_genomes_tsv.output.genomes_tsv
     output:
-        communities = directory(f"{OUTPUTPATH}/jaccard/jaccard_communities"),
+        communities = directory(f"{OUTPUTPATH}/containment/containment_communities"),
     threads: 1
     resources:
         mem_mb=lambda wildcards, attempt: config["get_communities_mem"]*attempt
     conda: "../envs/plasnet.yaml"
     params:
-        jaccard_distance=config["seq_jaccard_distance"],
+        containment_distance=config["seq_containment_distance"],
         bh_connectivity=config["bh_connectivity"],
         bh_neighbours_edge_density=config["bh_neighbours_edge_density"],
         metadata = get_metadata(config["metadata"])
     shell: """
         plasnet split \
-            --distance-threshold {params.jaccard_distance} \
+            --distance-threshold {params.containment_distance} \
             --bh-connectivity {params.bh_connectivity} \
             --bh-neighbours-edge-density {params.bh_neighbours_edge_density} \
             --output-plasmid-graph \
             {params.metadata} \
             {input.genomes} \
-            {input.jaccard} \
+            {input.containment} \
             {output.communities}
     """
