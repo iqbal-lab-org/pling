@@ -2,6 +2,9 @@ from intervaltree import IntervalTree, Interval
 from pathlib import Path
 import subprocess
 
+class MatchPointsError(Exception):
+    pass
+
 class Indel:
     def __init__(self, rstart, qstart, len, type):
         self.type = type
@@ -28,7 +31,7 @@ class Indel:
 class Match:
     def __init__(self, rstart, rend, qstart, qend, strand):
         if rend<rstart or qend<qstart:
-            raise Exception(f"({rstart}, {rend}, {qstart}, {qend}, {strand}) is not a valid match! (start point greater than end point)")
+            raise MatchPointsError(f"({rstart}, {rend}, {qstart}, {qend}, {strand}) is not a valid match! (start point greater than end point)")
         self.rstart = rstart
         self.rend = rend
         self.qstart = qstart
@@ -345,13 +348,16 @@ class Matches:
                 not_null = False
                 containment = False
             if not_null and overlap>overlap_threshold:
-                overlap_matches = self.find_opposite_overlaps(i, False)
-                contain_overlap_1 = self.contain_interval(overlap_matches[0].rstart, overlap_matches[0].rend, True)
-                for match in contain_overlap_1:
-                    self.split_match(match, overlap_matches[0].rstart, overlap_matches[0].rend, True)
-                contain_overlap_2 = self.contain_interval(overlap_matches[1].rstart, overlap_matches[1].rend, True)
-                for match in contain_overlap_2:
-                    self.split_match(match, overlap_matches[1].rstart, overlap_matches[1].rend, True)
+                try:
+                    overlap_matches = self.find_opposite_overlaps(i, False)
+                    contain_overlap_1 = self.contain_interval(overlap_matches[0].rstart, overlap_matches[0].rend, True)
+                    for match in contain_overlap_1:
+                        self.split_match(match, overlap_matches[0].rstart, overlap_matches[0].rend, True)
+                    contain_overlap_2 = self.contain_interval(overlap_matches[1].rstart, overlap_matches[1].rend, True)
+                    for match in contain_overlap_2:
+                        self.split_match(match, overlap_matches[1].rstart, overlap_matches[1].rend, True)
+                except MatchPointsError:
+                    return
                 if containment:
                     current_match = self[i]
                     self.sort(False)
@@ -373,13 +379,16 @@ class Matches:
                 not_null = False
                 containment = False
             if not_null and overlap>overlap_threshold:
-                overlap_matches = self.find_opposite_overlaps(i, True)
-                contain_overlap_1 = self.contain_interval(overlap_matches[0].qstart, overlap_matches[0].qend, False)
-                for match in contain_overlap_1:
-                    self.split_match(match, overlap_matches[0].qstart, overlap_matches[0].qend, False)
-                contain_overlap_2 = self.contain_interval(overlap_matches[1].qstart, overlap_matches[1].qend, False)
-                for match in contain_overlap_2:
-                    self.split_match(match, overlap_matches[1].qstart, overlap_matches[1].qend, False)
+                try:
+                    overlap_matches = self.find_opposite_overlaps(i, True)
+                    contain_overlap_1 = self.contain_interval(overlap_matches[0].qstart, overlap_matches[0].qend, False)
+                    for match in contain_overlap_1:
+                        self.split_match(match, overlap_matches[0].qstart, overlap_matches[0].qend, False)
+                    contain_overlap_2 = self.contain_interval(overlap_matches[1].qstart, overlap_matches[1].qend, False)
+                    for match in contain_overlap_2:
+                        self.split_match(match, overlap_matches[1].qstart, overlap_matches[1].qend, False)
+                except:
+                    return
                 if containment:
                     current_match = self[i]
                     self.sort(True)
