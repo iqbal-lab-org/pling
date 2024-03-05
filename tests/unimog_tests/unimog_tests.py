@@ -97,7 +97,7 @@ class Test_Pling(TestCase):
     def setUp(self):
         self.toy_tests = ["test_1"]
         self.toy_dir = "tests/unimog_tests/test_cases/toy_tests"
-        self.indel_tests = ["test_1","test_2","test_3","test_4","test_5","test_6","test_7","test_8",]
+        self.indel_tests = ["test_1","test_2","test_3","test_4","test_5","test_6","test_7","test_8","test_9"]
         self.indel_dir = "tests/unimog_tests/test_cases/indel_tests"
 
     '''

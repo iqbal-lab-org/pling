@@ -1,0 +1,2 @@
+tests/unimog_tests/test_cases/indel_tests/input/fastas/NZ_CP042975.1.fna
+tests/unimog_tests/test_cases/indel_tests/input/fastas/NZ_MT035874.1.fna
