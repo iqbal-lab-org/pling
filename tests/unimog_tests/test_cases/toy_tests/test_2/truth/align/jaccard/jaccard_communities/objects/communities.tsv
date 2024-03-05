@@ -1,0 +1,12 @@
+plasmid	community
+2_dup_3_dup	community_0
+reverse	community_0
+3_dup_w_inverse	community_0
+reference	community_0
+3_dup	community_0
+inversion	community_1
+del_rearrange	community_1
+inverse_block	community_1
+reference_2	community_1
+dup_and_inverse	community_1
+outlier	community_2

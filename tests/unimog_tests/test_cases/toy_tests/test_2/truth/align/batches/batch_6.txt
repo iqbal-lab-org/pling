@@ -1,0 +1,5 @@
+['inversion', '3_dup']
+['inversion', 'outlier']
+['inversion', '2_dup_3_dup']
+['inversion', '3_dup_w_inverse']
+['inversion', 'reference_2']

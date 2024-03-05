@@ -1,0 +1,8 @@
+	Plasmid	Block_ID	Start	End
+inversion~del_rearrange	inversion	4	1	1025
+	inversion	1	1025	1574
+	inversion	2	1594	3935
+	inversion	3	3958	4168
+	del_rearrange	2	1	2342
+	del_rearrange	-1	2365	2914
+	del_rearrange	3	2937	3147

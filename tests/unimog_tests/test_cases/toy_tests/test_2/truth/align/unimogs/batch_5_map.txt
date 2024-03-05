@@ -1,0 +1,8 @@
+	Plasmid	Block_ID	Start	End
+del_rearrange~reference_2	del_rearrange	1	1	2342
+	del_rearrange	2	2365	2914
+	del_rearrange	3	2937	3167
+	reference_2	2	1	550
+	reference_2	4	550	1574
+	reference_2	1	1574	3915
+	reference_2	3	3938	4168

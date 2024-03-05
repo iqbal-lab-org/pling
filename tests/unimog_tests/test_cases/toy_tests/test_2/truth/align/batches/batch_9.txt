@@ -1,0 +1,5 @@
+['inverse_block', 'reference']
+['inverse_block', 'reverse']
+['inverse_block', '3_dup']
+['inverse_block', 'outlier']
+['inverse_block', '2_dup_3_dup']

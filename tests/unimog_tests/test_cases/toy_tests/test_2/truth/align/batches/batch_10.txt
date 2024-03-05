@@ -1,0 +1,5 @@
+['inverse_block', '3_dup_w_inverse']
+['inverse_block', 'reference_2']
+['inverse_block', 'del_rearrange']
+['inverse_block', 'inversion']
+['inverse_block', 'dup_and_inverse']
