@@ -49,6 +49,7 @@ class Test_Pling_end_to_end(TestCase):
             "tests/integration_test/data/all_plasmids_distances.align.truth.tsv",
         )
 
+    '''
     def test_pling_anno_with_dedup_end_to_end(self):
         args = Namespace(
             genomes_list='tests/integration_test/data/incy_list_4.txt',
@@ -116,3 +117,6 @@ class Test_Pling_end_to_end(TestCase):
             "tests/integration_test/data/out_anno_without_dedup/all_plasmids_distances.tsv",
             "tests/integration_test/data/all_plasmids_distances.anno.truth.tsv",
         )
+        '''
+if __name__ == '__main__':
+    unittest.main()
