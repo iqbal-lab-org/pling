@@ -1,0 +1,5 @@
+	Plasmid	Block_ID	Start	End
+inversion~reference_2	inversion	1	11	1574
+	inversion	2	1594	4168
+	reference_2	-1	1	1564
+	reference_2	2	1574	4148

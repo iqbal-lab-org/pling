@@ -1,0 +1,4 @@
+>inversion~del_rearrange:inversion
+4 1 2 3 )
+>inversion~del_rearrange:del_rearrange
+2 -1 3 )

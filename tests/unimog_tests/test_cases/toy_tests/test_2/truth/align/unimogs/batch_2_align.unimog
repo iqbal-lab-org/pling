@@ -1,0 +1,16 @@
+>3_dup_w_inverse~reference:3_dup_w_inverse
+1 2 3 )
+>3_dup_w_inverse~reference:reference
+1 -2 )
+>3_dup_w_inverse~reverse:3_dup_w_inverse
+1 2 3 )
+>3_dup_w_inverse~reverse:reverse
+2 -1 )
+>3_dup_w_inverse~3_dup:3_dup_w_inverse
+1 2 3 )
+>3_dup_w_inverse~3_dup:3_dup
+1 -2 3 )
+>3_dup_w_inverse~2_dup_3_dup:3_dup_w_inverse
+1 2 3 )
+>3_dup_w_inverse~2_dup_3_dup:2_dup_3_dup
+1 4 -2 3 )

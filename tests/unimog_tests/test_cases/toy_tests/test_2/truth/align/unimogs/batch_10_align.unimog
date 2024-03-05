@@ -1,0 +1,16 @@
+>inverse_block~reference_2:inverse_block
+1 2 )
+>inverse_block~reference_2:reference_2
+1 -2 )
+>inverse_block~del_rearrange:inverse_block
+1 4 2 3 )
+>inverse_block~del_rearrange:del_rearrange
+-3 1 -2 )
+>inverse_block~inversion:inverse_block
+1 2 )
+>inverse_block~inversion:inversion
+-1 -2 )
+>inverse_block~dup_and_inverse:inverse_block
+1 2 )
+>inverse_block~dup_and_inverse:dup_and_inverse
+-1 3 -2 )

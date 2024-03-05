@@ -1,0 +1,4 @@
+>del_rearrange~reference_2:del_rearrange
+1 2 3 )
+>del_rearrange~reference_2:reference_2
+2 4 1 3 )

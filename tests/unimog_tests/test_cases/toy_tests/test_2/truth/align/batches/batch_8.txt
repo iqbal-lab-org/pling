@@ -1,0 +1,5 @@
+['dup_and_inverse', '2_dup_3_dup']
+['dup_and_inverse', '3_dup_w_inverse']
+['dup_and_inverse', 'reference_2']
+['dup_and_inverse', 'del_rearrange']
+['dup_and_inverse', 'inversion']

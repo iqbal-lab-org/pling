@@ -1,0 +1,6 @@
+tests/unimog_tests/test_cases/toy_tests/input/fastas/reference.fna
+tests/unimog_tests/test_cases/toy_tests/input/fastas/reverse.fna
+tests/unimog_tests/test_cases/toy_tests/input/fastas/3_dup.fna
+tests/unimog_tests/test_cases/toy_tests/input/fastas/2_dup_3_dup.fna
+tests/unimog_tests/test_cases/toy_tests/input/fastas/3_dup_w_inverse.fna
+tests/unimog_tests/test_cases/toy_tests/input/fastas/outlier.fna
