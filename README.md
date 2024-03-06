@@ -3,6 +3,11 @@ Pling is a software workflow for plasmid analysis using rearrangement distances.
 
 ## Dependancies
 
+- Python
+- Mamba
+- Snakemake
+- pandas
+
 ## Installation
 
 ## Basic Usage
@@ -19,7 +24,7 @@ for integerisation from annotation. For details on the difference between intege
 
 ## Description and Output
 
-Pling runs via the python script 'run_pling.py', which creates a config file and runs three snakemake workflows in succession. It starts by calculating containment distances and transforming nucleotide sequences into integer sequences (integerisation, details below), then calculates DCJ-Indel distances, and finally uses these to build a network and cluster on it. The outputs are:
+Pling runs via the python script `run_pling.py`, which creates a config file and runs three snakemake workflows in succession. It starts by calculating containment distances and transforming nucleotide sequences into integer sequences (integerisation, details below), then calculates DCJ-Indel distances, and finally uses these to build a network and cluster on it. The outputs are:
 
 - **Containment network:**
 - **Integer sequences:**
