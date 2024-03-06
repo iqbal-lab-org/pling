@@ -1,0 +1,306 @@
+html {
+    width: 100%;
+    height: 100%;
+}
+
+body {
+    font: 20px helvetica neue, helvetica, arial, sans-serif;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    color: white;
+}
+
+.cy_main {
+  width: 80%;
+  height: 100%;
+}
+
+.config {
+  width: 20%;
+  height: 100%;
+  position: absolute;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  background: #cccccc;
+  box-sizing: border-box;
+  padding: 1em;
+  color: #2b2b2b;
+  transition-property: opacity;
+  transition-duration: 250ms;
+  transition-timing-function: ease-out;
+  overflow: auto;
+  z-index: 1;
+}
+
+.param {
+  margin-bottom: 1em;
+}
+
+.preamble {
+  margin-bottom: 2em;
+}
+
+p {
+  margin: 0.5em 0;
+  font-size: 0.8em;
+}
+
+.param button {
+  width: 3em;
+  margin-right: 0.25em;
+}
+
+a,
+a:hover {
+  color: #62daea;
+}
+
+.label {
+  display: inline-block;
+}
+
+.slider {
+  display: block;
+}
+
+.config-toggle {
+  position: absolute;
+  right: 0;
+  top: 0;
+  padding: 1em;
+  margin: 0.2em;
+  cursor: pointer;
+  color: lightgray;
+  z-index: 9999999;
+}
+
+.config-closed .config {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.config-closed #cy {
+  right: 0;
+}
+
+@media (max-width: 600px){
+  #cy {
+    right: 0;
+  }
+}
+
+.modal {
+    display: inline-block !important;
+    max-height: 80%;
+    overflow: scroll;
+}
+
+
+.custom-menu-item {
+    border-bottom-color: maroon !important;
+}
+
+.custom-menu-item {
+    border-top-left-radius: 5px !important;
+    border-top-right-radius: 5px !important;
+}
+
+.custom-menu-item {
+    border-bottom-left-radius: 5px !important;
+    border-bottom-right-radius: 5px !important;
+}
+
+.custom-context-menu {
+    border-color: maroon !important;
+    border-radius: 5px !important;
+}
+
+.font_size_images {
+  height: 1em;
+  width: 1em;
+}
+
+.code {
+  font-family: "Courier New", Courier, monospace
+}
+
+
+/*
+* select width
+*/
+select {
+  width: 250px;
+  overflow: auto;
+}
+
+
+/*
+* invisible divs
+*/
+.invisible {
+    visibility: hidden;
+    position: absolute;
+    top: -9999px;
+}
+
+
+.logos{
+    background-color: white;
+    overflow:hidden;
+    width: 230px;
+}
+
+.nodeAnnotationTable{
+  width: 430px;
+  height: 300px;
+  overflow:   hidden;
+}
+
+/*
+* DIVS LAYOUT DEFINITIONS
+*/
+.pane-south ,
+.pane-north ,
+.pane-east {
+  overflow:   hidden;
+}
+
+.pane-east {
+  overflow-y:scroll;
+  overflow-x:scroll;
+}
+
+.resizer-south-dragging ,
+.resizer-south,
+.resizer-north-dragging ,
+.resizer-north
+{ background: url(../resources/D1E6FC_40x100_textures_10_dots_medium_90.png) repeat-x center; }
+
+.resizer-east-dragging ,
+.resizer-east-open  { background: url(../resources/D1E6FC_40x100_textures_10_dots_medium_90.png) repeat-y center; }
+
+.resizer-dragging-limit { background: #FF3300 !important; }
+
+
+/*
+* SIMPLE TOGGLER BUTTONS (used on Outer Layout North/South only)
+*/
+
+.toggler-south-closed     { background: url(../resources/go-up-on.gif) no-repeat center bottom; }
+.toggler-south-open       { background: url(../resources/toggle-dn.gif) no-repeat center top; }
+.toggler-north-closed     { background: url(../resources/go-dn-on.gif) no-repeat center bottom; }
+.toggler-north-open       { background: url(../resources/toggle-up.gif) no-repeat center top; }
+.toggler-east-closed      { background: url(../resources/go-lt-on.gif) no-repeat center right; }
+.toggler-east-open        { background: url(../resources/toggle-rt.gif) no-repeat center left; }
+
+/*
+* extJS-STYLE RESIZER/SLIDER-BAR (CLOSED)
+*/
+.resizer-east-closed {
+  background: #D1E6FC url(../resources/D1E6FC_40x100_textures_10_dots_medium_90.png) 0 0 repeat;
+  border-top: 1px solid lightgray;
+  border-bottom: 1px solid lightgray;
+}
+.resizer-east-closed:hover {
+  background: #D1E6FC;
+}
+.resizer-south-closed,
+.resizer-north-closed {
+  background: #D1E6FC url(../resources/D1E6FC_40x100_textures_10_dots_medium_90.png) 0 0 repeat;
+  border-top: 1px solid lightgray;
+  border-bottom: 1px solid lightgray;
+}
+.resizer-south-closed:hover,
+.resizer-north-closed:hover {
+  background: #D1E6FC;
+}
+
+
+/*
+ *  extJS-STYLE TOGGLE & PIN BUTTONS
+ *
+ *  these 'extra buttons' are INSIDE the east/west panes
+ */
+
+/* CUSTOM pin/close buttons */
+span.button-pin ,
+span.button-close {
+  position: absolute;
+  top:    0;
+  width:    20px;
+  height:   20px;
+  z-index:  2;
+  display:  block;
+  cursor:   pointer;
+}
+span.button-close-east  { right: 0; }
+span.button-pin-east  { left:  1px; }
+
+/* CUSTOM close-buttons */
+span.button-close-east      { background: url(../resources/go-rt-off.gif) no-repeat center; }
+span.button-close-east:hover  { background: url(../resources/go-rt-on.gif)  no-repeat center; }
+span.button-close-south      { background: url(../resources/go-dn-off.gif) no-repeat center; }
+span.button-close-south:hover  { background: url(../resources/go-dn-on.gif)  no-repeat center; }
+span.button-close-north      { background: url(../resources/go-up-off.gif) no-repeat center; }
+span.button-close-north:hover  { background: url(../resources/go-up-on.gif)  no-repeat center; }
+
+/* STANDARD toggler-buttons - when the east/west panes are 'closed' */
+.toggler-east-closed    { background: url(../resources/go-lt-off.gif) no-repeat center; }
+.toggler-east-closed:hover  { background: url(../resources/go-lt-on.gif)  no-repeat center; }
+.toggler-south-closed    { background: url(../resources/go-up-off.gif) no-repeat center; }
+.toggler-south-closed:hover  { background: url(../resources/go-up-on.gif)  no-repeat center; }
+.toggler-north-closed    { background: url(../resources/go-dn-off.gif) no-repeat center; }
+.toggler-north-closed:hover  { background: url(../resources/go-dn-on.gif)  no-repeat center; }
+
+
+
+
+/*logos positioning*/
+#logoContainer {
+    position: absolute;
+    top: 0px;
+    right: 0px;
+}
+.logo {
+    position: relative;
+    float:right;
+    max-height: 75px;
+    margin-left: 20px;
+}
+.small_logo {
+  position: relative;
+  float:left;
+  max-height: 50px;
+  margin-left: 10px;
+}
+
+.statImage {
+    max-width: 50%;
+    height: auto;
+    width: auto\9; /* ie8 */
+}
+
+.scrollable {
+  overflow:   hidden;
+}
+
+.circle_with_border {
+    background-color: white;
+    border:5px solid black;
+    height:15px;
+    width:15px;
+    border-radius:50%;
+    -moz-border-radius:50%;
+    -webkit-border-radius:50%;
+}
+
+.circle_without_border {
+    background-color: white;
+    height:20px;
+    width:20px;
+    border-radius:50%;
+    -moz-border-radius:50%;
+    -webkit-border-radius:50%;
+}

@@ -17,7 +17,7 @@ def get_batch_num(filepath):
 
 def assert_containment(test, test_dir, integerisation):
     assert_files_are_identical(f"{test_dir}/{test}/out/{integerisation}/containment/all_pairs_containment_distance.tsv",
-                               f"{test_dir}/{test}/truth/{integerisation}/jaccard/all_pairs_containment_distance.tsv")
+                               f"{test_dir}/{test}/truth/{integerisation}/jaccard/all_pairs_jaccard_distance.tsv")
     assert_files_are_identical(f"{test_dir}/{test}/out/{integerisation}/containment/containment_communities/objects/communities.tsv",
                                f"{test_dir}/{test}/truth/{integerisation}/jaccard/jaccard_communities/objects/communities.tsv")
     assert_files_are_identical(f"{test_dir}/{test}/out/{integerisation}/containment/containment_communities/objects/communities.txt",
@@ -97,7 +97,7 @@ class Test_Pling(TestCase):
     def setUp(self):
         self.toy_tests = ["test_1"]
         self.toy_dir = "tests/unimog_tests/test_cases/toy_tests"
-        self.indel_tests = ["test_1","test_2","test_3","test_4","test_5","test_6","test_7","test_8","test_9"]
+        self.indel_tests = ["test_1","test_2","test_3","test_4","test_5","test_6","test_7","test_8","test_9", "test_10"]
         self.indel_dir = "tests/unimog_tests/test_cases/indel_tests"
 
     '''

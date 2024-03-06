@@ -2,6 +2,8 @@ from intervaltree import IntervalTree, Interval
 from pathlib import Path
 import subprocess
 
+#REMEMBER: ALL INTERVALS IN INDELS AND MATCHES ARE ***OPEN*** ENDED (bc of IntervalTree)
+
 class MatchPointsError(Exception):
     pass
 
@@ -56,19 +58,19 @@ class Match:
         return ((self.rstart<indel.rend<=self.rend) or (self.rstart<=indel.rstart<self.rend)) and ((self.qstart<indel.qend<=self.qend) or (self.qstart<=indel.qstart<self.qend))
 
     def indel_at_rstart(self, indel):
-        return indel.rstart<=self.rstart<indel.rend<=self.rend and ((self.qstart<indel.qend<=self.qend) or (self.qstart<=indel.qstart<=self.qend))
+        return indel.rstart<=self.rstart<indel.rend<=self.rend and ((self.qstart<indel.qend<=self.qend) or (self.qstart<=indel.qstart<self.qend))
 
     def indel_at_qstart(self, indel):
-        return indel.qstart<=self.qstart<indel.qend<=self.qend and ((self.rstart<indel.rend<=self.rend) or (self.rstart<=indel.rstart<=self.rend))
+        return indel.qstart<=self.qstart<indel.qend<=self.qend and ((self.rstart<indel.rend<=self.rend) or (self.rstart<=indel.rstart<self.rend))
 
     def indel_at_rend(self, indel):
-        return self.rstart<=indel.rstart<self.rend<=indel.rend and ((self.qstart<indel.qend<=self.qend) or (self.qstart<=indel.qstart<=self.qend))
+        return self.rstart<=indel.rstart<self.rend<=indel.rend and ((self.qstart<indel.qend<=self.qend) or (self.qstart<=indel.qstart<self.qend))
 
     def indel_at_qend(self, indel):
-        return self.qstart<=indel.qstart<self.qend<=indel.qend and ((self.rstart<indel.rend<=self.rend) or (self.rstart<=indel.rstart<=self.rend))
+        return self.qstart<=indel.qstart<self.qend<=indel.qend and ((self.rstart<indel.rend<=self.rend) or (self.rstart<=indel.rstart<self.rend))
 
     def indel_strictly_contained(self, indel):
-        return (self.rstart<=indel.rstart<=indel.rend<=self.rend) and (self.qstart<=indel.qstart<=indel.qend<=self.qend)
+        return (self.rstart<=indel.rstart<=indel.rend<self.rend) and (self.qstart<=indel.qstart<=indel.qend<self.qend)
 
     def remove_indels_from_ends(self, indels):
         edited_bool = False
