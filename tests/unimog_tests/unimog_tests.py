@@ -17,11 +17,11 @@ def get_batch_num(filepath):
 
 def assert_containment(test, test_dir, integerisation):
     assert_files_are_identical(f"{test_dir}/{test}/out/{integerisation}/containment/all_pairs_containment_distance.tsv",
-                               f"{test_dir}/{test}/truth/{integerisation}/jaccard/all_pairs_jaccard_distance.tsv")
+                               f"{test_dir}/{test}/truth/{integerisation}/containment/all_pairs_containment_distance.tsv")
     assert_files_are_identical(f"{test_dir}/{test}/out/{integerisation}/containment/containment_communities/objects/communities.tsv",
-                               f"{test_dir}/{test}/truth/{integerisation}/jaccard/jaccard_communities/objects/communities.tsv")
+                               f"{test_dir}/{test}/truth/{integerisation}/containment/containment_communities/objects/communities.tsv")
     assert_files_are_identical(f"{test_dir}/{test}/out/{integerisation}/containment/containment_communities/objects/communities.txt",
-                               f"{test_dir}/{test}/truth/{integerisation}/jaccard/jaccard_communities/objects/communities.txt")
+                               f"{test_dir}/{test}/truth/{integerisation}/containment/containment_communities/objects/communities.txt")
 
 def assert_anno_unimogs(test, test_dir, community_num, dedup):
     for community in range(community_num):

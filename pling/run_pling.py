@@ -21,7 +21,7 @@ def parse_args():
                              " Note that recommended method is integerisation from alignment.")
     parser.add_argument("--containment_distance", default=0.5, help="Threshold for initial containment network.")
     parser.add_argument("--dcj", default=4, help="Threshold for final DCJ-Indel network.")
-    parser.add_argument("--batch_size", default = 50, help="How many pairs of genomes to run together in one job (for integerisation from alignment and DCJ calculation steps).")
+    parser.add_argument("--batch_size", default = 50, help="How many pairs of genomes to run together in one go (for integerisation from alignment and DCJ calculation steps).")
     parser.add_argument("--sourmash", action="store_true", help="Run sourmash as first filter on which pairs to calculate DCJ on. Recommended for large and very diverse datasets.")
     parser.add_argument("--sourmash_threshold", default=0.85, help="Threshold for filtering with sourmash.")
     parser.add_argument("--identity", default=80, help="Threshold for percentage of shared sequence between blocks (for integerisation from alignment and for containment calculation).")
@@ -172,8 +172,7 @@ def pling(args):
 
 
     #delete intermediary files
-    if not args.storetmp:
-        shutil.rmtree(tmp_dir)
+    shutil.rmtree(tmp_dir)
 
 
 def main():

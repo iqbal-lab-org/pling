@@ -7,6 +7,9 @@ import subprocess
 class MatchPointsError(Exception):
     pass
 
+class MatchesOrderError(Exception):
+    pass
+
 class Indel:
     def __init__(self, rstart, qstart, len, type):
         self.type = type
@@ -228,6 +231,18 @@ class Matches:
                 self.list[i+k] = subsort[k]
             i = i+len(subsort)
 
+    def sorted_by_ref(self):
+        for i in range(1, len(self.list)):
+            if self[i-1].rstart>self[i].rstart or self[i-1].rend>self[i].rend:
+                return False
+        return True
+
+    def sorted_by_query(self):
+        for i in range(1, len(self.list)):
+            if self[i-1].qstart>self[i].qstart or self[i-1].qend>self[i].qend:
+                return False
+        return True
+
     def purge_null_intervals(self):
         purged = [el for el in self.list if el.rstart!=el.rend and el.qstart!=el.qend]
         self.list = purged
@@ -264,7 +279,7 @@ class Matches:
                 interval = Match(start, end, projected_end, projected_start, -1)
                 lhs_split = Match(end, match.rend, match.qstart, projected_end, -1)
             if not lhs_split.qstart<=lhs_split.qend<=interval.qstart<=interval.qend<=rhs_split.qstart<=rhs_split.qend:
-                raise Exception("While splitting match order was broken.")
+                raise MatchesOrderError("While splitting match order was broken.")
         else:
             if match.strand == 1:
                 lhs_split = Match(match.rstart, projected_start, match.qstart, start,  1)
@@ -275,7 +290,7 @@ class Matches:
                 interval = Match(projected_end, projected_start, start, end, -1)
                 lhs_split = Match(match.rstart, projected_end, end, match.qend, -1)
             if not lhs_split.rstart<=lhs_split.rend<=interval.rstart<=interval.rend<=rhs_split.rstart<=rhs_split.rend:
-                raise Exception("While splitting match order was broken.")
+                raise MatchesOrderError("While splitting match order was broken.")
         if lhs_split.rend != lhs_split.rstart and lhs_split.qend!=lhs_split.qstart: #don't add interval
             lhs_split = lhs_split.remove_indels_from_ends(self.indels)
             interval = interval.remove_indels_from_ends(self.indels)
@@ -339,7 +354,10 @@ class Matches:
         self.sort(False)
         i=0
         finished = False
+        old_version = self
         while not finished:
+            if i>length**3:
+                raise Exception(f"The resolve_overlaps function in matches.py has been stuck in the while loop for {length**3} iterations! There is likely a bug, please raise an issue.")
             overlap = 0
             try:
                 overlap = self[i].qend-self[i+1].qstart
@@ -360,17 +378,26 @@ class Matches:
                         self.split_match(match, overlap_matches[1].rstart, overlap_matches[1].rend, True)
                 except MatchPointsError:
                     return
+                except MatchOrderError:
+                    return
                 if containment:
                     current_match = self[i]
                     self.sort(False)
                     i = self.list.index(current_match)
             i = i+1
-            if i>length**3:
-                raise Exception(f"The resolve_overlaps function in matches.py has been stuck in the while loop for {length**3} iterations! There is likely a bug, please raise an issue.")
+            if i % 5 == 0:
+                if not self.sorted_by_query():
+                    self = old_version
+                    return
+                else:
+                    old_version = self
+
         self.sort(True)
         i=0
         finished = False
         while not finished:
+            if i>length**3:
+                raise Exception(f"The resolve_overlaps function in matches.py has been stuck in the while loop for {length**3} iterations! There is likely a bug, please raise an issue.")
             overlap = 0
             try:
                 overlap = self[i].rend-self[i+1].rstart
@@ -396,8 +423,12 @@ class Matches:
                     self.sort(True)
                     i = self.list.index(current_match)
             i = i+1
-            if i>length**3:
-                raise Exception(f"The resolve_overlaps function in matches.py has been stuck in the while loop for {length**3} iterations! There is likely a bug, please raise an issue.")
+            if i % 5 == 0:
+                if not self.sorted_by_query():
+                    self = old_version
+                    return
+                else:
+                    old_version = self
 
 testing = False
 if testing == True:
