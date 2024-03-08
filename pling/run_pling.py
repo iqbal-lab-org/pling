@@ -27,8 +27,8 @@ def parse_args():
     parser.add_argument("--sourmash_threshold", default=0.85, help="Threshold for filtering with sourmash.")
     parser.add_argument("--identity", default=80, help="Threshold for percentage of shared sequence between blocks (for integerisation from alignment and for containment calculation).")
     parser.add_argument("--min_indel_size", default=200, help="Minimum size for an indel to be treated as a block (for integerisation from alignment).")
-    parser.add_argument("--bh_connectivity", default=10, help="Minimum number of connections a plasmid need to be considered a blackhole plasmid.")
-    parser.add_argument("--bh_neighbours_edge_density", default=0.2, help="Maximum number of edge density between blackhole plasmid neighbours to label the plasmid as blackhole.")
+    parser.add_argument("--bh_connectivity", default=10, help="Minimum number of connections a plasmid need to be considered a hub plasmid.")
+    parser.add_argument("--bh_neighbours_edge_density", default=0.2, help="Maximum number of edge density between hub plasmid neighbours to label the plasmid as hub.")
     parser.add_argument("--small_subcommunity_size_threshold", default=4, help="Communities with size up to this parameter will be joined to neighbouring larger subcommunities.")
     parser.add_argument("--plasmid_metadata", help="Metadata to add beside plasmid ID on the visualisation graph. Must be a tsv with a single column, with data in the same order as in genomes_list.")
     parser.add_argument("--ilp_solver", choices=["GLPK", "gurobi"], default="GLPK",
