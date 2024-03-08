@@ -73,9 +73,9 @@ optional arguments:
   --min_indel_size MIN_INDEL_SIZE
                         Minimum size for an indel to be treated as a block (for integerisation from alignment). (default: 200)
   --bh_connectivity BH_CONNECTIVITY
-                        Minimum number of connections a plasmid need to be considered a blackhole plasmid. (default: 10)
+                        Minimum number of connections a plasmid need to be considered a hub plasmid. (default: 10)
   --bh_neighbours_edge_density BH_NEIGHBOURS_EDGE_DENSITY
-                        Maximum number of edge density between blackhole plasmid neighbours to label the plasmid as blackhole. (default: 0.2)
+                        Maximum number of edge density between hub plasmid neighbours to label the plasmid as hub. (default: 0.2)
   --small_subcommunity_size_threshold SMALL_SUBCOMMUNITY_SIZE_THRESHOLD
                         Communities with size up to this parameter will be joined to neighbouring larger subcommunities. (default: 4)
   --plasmid_metadata PLASMID_METADATA
@@ -103,12 +103,12 @@ optional arguments:
 
 **Integerisation from alignment parameters:** `--identity` and `--min_indel_size` control how blocks of sequence are selected during integerisation. For a block of sequence to qualify as shared, its sequence similarity must at least be the value of `--identity`. Blocks of sequence that are not shared between plasmids are assigned an integer if they are greater than the value of `--min_indel_size`. Any blocks of sequence less than the value of `--min_indel_size` are discarded.
 
-**Clustering parameters:** 
+**Clustering parameters:** `--bh_connectivity` and `--bh_neighbour_density` both determine how a hub plasmid is defined. `--bh_connectivity` determines to how many plasmids a hub should at least be connected to, while `--bh_neighbour_density` determines how interconnected a hub's neighbours should be.
 
-**ILP solver:**
+**ILP solver:** Calculating the DCJ-Indel distances involves solving and integer linear problem (ILP), and Pling allows a choice between two ILP solvers for this: GLPK or gurobi. GLPK is free and bundled with Pling, but a bit slower. Gurobi is a commercial software, with a free academic license, and you must have a valid license and gurobi_cl in your PATH beforehand to run Pling with it. Both solvers output the same final result. Generally calculating DCJ-Indel is an NP-hard problem, which means in its worst case calculation will take a very long time. The `--timelimit` variable sets a time limit for how long the ILP solver takes with a pair, before giving up and outputting the most optimal result it has at that point. However our experience is that when running with integers from alignment, the DCJ-Indel calculation is very quick.
 
-**Snakemake arguments:** 
+**Snakemake arguments:** Arguments `--cores`, `--profile` and `--forceall` are passed as are directly to snakemake. Please refer to snakemake documentation (https://snakemake.readthedocs.io/en/) for further information. Through `--resources` you can pass a path to a `resources.tsv` file, which will define number of threads and memory allocated for each rule in Pling's snakemake workflows. The format should be the same as the file found under `pling/resources.tsv`. If you use more than one thread in any rule, remember to set `--cores` to the maximum number of threads you'd like to use.
 
-**Integerisation from annotation parameters:**
+**Integerisation from annotation parameters:** As gene annotation is done via Bakta (https://github.com/oschwengers/bakta), the Bakta database must be downloaded beforehand and provided via `--bakta_db` to do integerisation from annotation. If a gene is duplicated multiple times across two plasmids for which you are calculating DCJ-Indel, rather than assigning one integer label to all the paralogs, you may want to match together paralogs that are more similar to each other than the other paralogs. This can speed up the DCJ-Indel claculation, and also provide a more realistic distance. We call this process "deduplication" and it can be controlled via the parameters `--dedup` and `--dedup_threshold`. Note that this approach is scarcely tested, and we have not yet identified appropriate thresholds, so use at your own risk.
 
 ## Citation
