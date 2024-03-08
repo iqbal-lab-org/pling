@@ -47,7 +47,7 @@ An important step in the workflow is transforming the nucleotide sequences into 
 ## Advanced Usage
 
 ```
-usage: run_pling.py [-h] [--containment_distance CONTAINMENT_DISTANCE] [--dcj DCJ] [--batch_size BATCH_SIZE] [--sourmash] [--sourmash_threshold SOURMASH_THRESHOLD] [--identity IDENTITY]
+usage: run_pling.py [-h] [--version] [--containment_distance CONTAINMENT_DISTANCE] [--dcj DCJ] [--batch_size BATCH_SIZE] [--sourmash] [--sourmash_threshold SOURMASH_THRESHOLD] [--identity IDENTITY]
                     [--min_indel_size MIN_INDEL_SIZE] [--bh_connectivity BH_CONNECTIVITY] [--bh_neighbours_edge_density BH_NEIGHBOURS_EDGE_DENSITY]
                     [--small_subcommunity_size_threshold SMALL_SUBCOMMUNITY_SIZE_THRESHOLD] [--plasmid_metadata PLASMID_METADATA] [--ilp_solver {GLPK,gurobi}] [--timelimit TIMELIMIT]
                     [--resources RESOURCES] [--cores CORES] [--profile PROFILE] [--forceall] [--dedup] [--dedup_threshold DEDUP_THRESHOLD] [--bakta_db BAKTA_DB]
@@ -60,48 +60,50 @@ positional arguments:
 
 optional arguments:
   -h, --help            show this help message and exit
+  --version             show program's version number and exit
   --containment_distance CONTAINMENT_DISTANCE
-                        Threshold for initial containment network.
-  --dcj DCJ             Threshold for final DCJ-Indel network.
+                        Threshold for initial containment network. (default: 0.5)
+  --dcj DCJ             Threshold for final DCJ-Indel network. (default: 4)
   --batch_size BATCH_SIZE
-                        How many pairs of genomes to run together in one go (for integerisation from alignment and DCJ calculation steps).
-  --sourmash            Run sourmash as first filter on which pairs to calculate DCJ on. Recommended for large and very diverse datasets.
+                        How many pairs of genomes to run together in one go (for integerisation from alignment and DCJ calculation steps). (default: 50)
+  --sourmash            Run sourmash as first filter on which pairs to calculate DCJ on. Recommended for large and very diverse datasets. (default: False)
   --sourmash_threshold SOURMASH_THRESHOLD
-                        Threshold for filtering with sourmash.
-  --identity IDENTITY   Threshold for percentage of shared sequence between blocks (for integerisation from alignment and for containment calculation).
+                        Threshold for filtering with sourmash. (default: 0.85)
+  --identity IDENTITY   Threshold for percentage of shared sequence between blocks (for integerisation from alignment and for containment calculation). (default: 80)
   --min_indel_size MIN_INDEL_SIZE
-                        Minimum size for an indel to be treated as a block (for integerisation from alignment).
+                        Minimum size for an indel to be treated as a block (for integerisation from alignment). (default: 200)
   --bh_connectivity BH_CONNECTIVITY
-                        Minimum number of connections a plasmid need to be considered a blackhole plasmid.
+                        Minimum number of connections a plasmid need to be considered a blackhole plasmid. (default: 10)
   --bh_neighbours_edge_density BH_NEIGHBOURS_EDGE_DENSITY
-                        Maximum number of edge density between blackhole plasmid neighbours to label the plasmid as blackhole.
+                        Maximum number of edge density between blackhole plasmid neighbours to label the plasmid as blackhole. (default: 0.2)
   --small_subcommunity_size_threshold SMALL_SUBCOMMUNITY_SIZE_THRESHOLD
-                        Communities with size up to this parameter will be joined to neighbouring larger subcommunities.
+                        Communities with size up to this parameter will be joined to neighbouring larger subcommunities. (default: 4)
   --plasmid_metadata PLASMID_METADATA
-                        Metadata to add beside plasmid ID on the visualisation graph. Must be a tsv with a single column, with data in the same order as in genomes_list.
+                        Metadata to add beside plasmid ID on the visualisation graph. Must be a tsv with a single column, with data in the same order as in genomes_list. (default: None)
   --ilp_solver {GLPK,gurobi}
                         ILP solver to use. Default is GLPK, which is slower but is bundled with pling and is free. If using gurobi, make sure you have a valid license and gurobi_cl is in your PATH.
+                        (default: GLPK)
   --timelimit TIMELIMIT
-                        Time limit in seconds for ILP solver.
+                        Time limit in seconds for ILP solver. (default: None)
   --resources RESOURCES
-                        tsv stating number of threads and memory to use for each rule.
-  --cores CORES         Total number of cores/threads. Put the maximum number of threads you request in the resources tsv here. (This argument is passed on to snakemake's --cores argument.)
-  --profile PROFILE     To run on a cluster with corresponding snakemake profile.
-  --forceall            Force snakemake to rerun everything.
-  --dedup               Whether or not to deduplicate (for integerisation from annotation).
+                        tsv stating number of threads and memory to use for each rule. (default: None)
+  --cores CORES         Total number of cores/threads. Put the maximum number of threads you request in the resources tsv here. (This argument is passed on to snakemake's --cores argument.) (default:
+                        1)
+  --profile PROFILE     To run on a cluster with corresponding snakemake profile. (default: None)
+  --forceall            Force snakemake to rerun everything. (default: False)
+  --dedup               Whether or not to deduplicate (for integerisation from annotation). (default: False)
   --dedup_threshold DEDUP_THRESHOLD
-                        Threshold for separating paralogs in deduplication step (for integerisation from annotation).
-  --bakta_db BAKTA_DB   Path to bakta database (required for integerisation from annotation).
-
+                        Threshold for separating paralogs in deduplication step (for integerisation from annotation). (default: 98.5)
+  --bakta_db BAKTA_DB   Path to bakta database (required for integerisation from annotation). (default: None)
 ```
 
-**Network thresholds:**
+**Network thresholds:** `--containment-distance` and `--dcj` control the thresholds at which edges are added to the continament and DCJ-Indel networks. If looking for recent transmissions, we recommend trying threshold 0.3 for the containment distance. If you want to try different DCJ-Indel thresholds with the same containment threshold, you can run Pling at different DCJ-Indel thresholds with the same output directory -- this will mean that only the DCJ-Indel network will be calculated anew, which will significantly reduce runtime. Changing the containment threshold will prompt Pling to rerun the whole workflow though, and so you should change the output directory if you don't want to lose previous results.
 
-**Batching:**
+**Batching:** `--batch_size`, `--sourmash` and `--sourmash_threshold` are all associated with the batching step in Pling, in which pairs of plasmids are assigned to a batch. Integerisation and DCJ-Indel calculation is then run per batch, as this improves runtime. If your dataset is in the 1000s, batch sizes of 200 or 250 tend to work well. If your dataset is in the order of the 100s or even less, the default batch size should work well enough. If you have a very large (>10k) and diverse dataset, you may want to prefilter which pairs of plasmids you calculate containment distances for and integerise, by first estimating containment distances with sourmash and discarding any too divergent pairs of plasmids early in the workflow. Note that currently the sourmash step is memory use heavy, so you may need to adjust resources. See 'Snakemake arguments' below for more information.
 
-**Integerisation from alignment parameters:**
+**Integerisation from alignment parameters:** `--identity` and `--min_indel_size` control how blocks of sequence are selected during integerisation. For a block of sequence to qualify as shared, its sequence similarity must at least be the value of `--identity`. Blocks of sequence that are not shared between plasmids are assigned an integer if they are greater than the value of `--min_indel_size`. Any blocks of sequence less than the value of `--min_indel_size` are discarded.
 
-**Clustering parameters:**
+**Clustering parameters:** 
 
 **ILP solver:**
 
