@@ -7,6 +7,7 @@ Pling is a software workflow for plasmid analysis using rearrangement distances,
 - Mamba
 - Snakemake >=7.25.4, <=7.32.4
 - pandas >=2.0
+- Optional: >=gurobi 10.0.1
 
 ## Installation
 
