@@ -81,39 +81,51 @@ class Match:
             if self.indel_at_rstart(indel):
                 edited_bool = True
                 rstart = indel.rend
-                if self.strand == 1:
-                    qstart = indel.qend
-                    edited = Match(rstart, self.rend, qstart, self.qend, self.strand)
-                else:
-                    qend = indel.qstart
-                    edited = Match(rstart, self.rend, self.qstart, qend, self.strand)
+                try:
+                    if self.strand == 1:
+                        qstart = indel.qend
+                        edited = Match(rstart, self.rend, qstart, self.qend, self.strand)
+                    else:
+                        qend = indel.qstart
+                        edited = Match(rstart, self.rend, self.qstart, qend, self.strand)
+                except:
+                    edited_bool = False
             elif self.indel_at_qstart(indel):
                 edited_bool = True
                 qstart = indel.qend
-                if self.strand == 1:
-                    rstart = indel.rend
-                    edited = Match(rstart, self.rend, qstart, self.qend, self.strand)
-                else:
-                    rend = indel.rstart
-                    edited = Match(self.rstart, rend, qstart, self.qend, self.strand)
+                try:
+                    if self.strand == 1:
+                        rstart = indel.rend
+                        edited = Match(rstart, self.rend, qstart, self.qend, self.strand)
+                    else:
+                        rend = indel.rstart
+                        edited = Match(self.rstart, rend, qstart, self.qend, self.strand)
+                except:
+                    edited_bool = False
             elif self.indel_at_rend(indel):
                 edited_bool = True
                 rend = indel.rstart
-                if self.strand == 1:
-                    qend = indel.qend
-                    edited = Match(self.rstart, rend, self.qstart, qend, self.strand)
-                else:
-                    qstart = indel.qend
-                    edited = Match(self.rstart, rend, qstart, self.qend, self.strand)
+                try:
+                    if self.strand == 1:
+                        qstart = indel.qend
+                        edited = Match(self.rstart, rend, self.qstart, qend, self.strand)
+                    else:
+                        qend = indel.qend
+                        edited = Match(self.rstart, rend, qstart, self.qend, self.strand)
+                except:
+                    edited_bool = False
             elif self.indel_at_qend(indel):
                 edited_bool = True
                 qend = indel.qstart
-                if self.strand == 1:
-                    rend = indel.rend
-                    edited = Match(self.rstart, rend, self.qstart, qend, self.strand)
-                else:
-                    rstart = indel.rend
-                    edited = Match(rstart, self.rend, self.qstart, qend, self.strand)
+                try:
+                    if self.strand == 1:
+                        rend = indel.rend
+                        edited = Match(self.rstart, rend, self.qstart, qend, self.strand)
+                    else:
+                        rstart = indel.rend
+                        edited = Match(rstart, self.rend, self.qstart, qend, self.strand)
+                except:
+                    edited_bool = False
         if not edited_bool:
             edited = self
         return edited
