@@ -3,10 +3,11 @@ Pling is a software workflow for plasmid analysis using rearrangement distances,
 
 ## Dependancies
 
-- Python
+- Python >=3.8, <=3.12
 - Mamba
-- Snakemake
-- pandas
+- Snakemake >=7.25.4, <=7.32.4
+- pandas >=2.0
+- Optional: gurobi >=10.0.1
 
 ## Installation
 
@@ -107,7 +108,7 @@ optional arguments:
 
 **ILP solver:** Calculating the DCJ-Indel distances involves solving and integer linear problem (ILP), and Pling allows a choice between two ILP solvers for this: GLPK or gurobi. GLPK is free and bundled with Pling, but a bit slower. Gurobi is a commercial software, with a free academic license, and you must have a valid license and gurobi_cl in your PATH beforehand to run Pling with it. Both solvers output the same final result. Generally calculating DCJ-Indel is an NP-hard problem, which means in its worst case calculation will take a very long time. The `--timelimit` variable sets a time limit for how long the ILP solver takes with a pair, before giving up and outputting the most optimal result it has at that point. However our experience is that when running with integers from alignment, the DCJ-Indel calculation is very quick.
 
-**Snakemake arguments:** Arguments `--cores`, `--profile` and `--forceall` are passed as are directly to snakemake. Please refer to snakemake documentation (https://snakemake.readthedocs.io/en/) for further information. Through `--resources` you can pass a path to a `resources.tsv` file, which will define number of threads and memory allocated for each rule in Pling's snakemake workflows. The format should be the same as the file found under `pling/resources.tsv`. If you use more than one thread in any rule, remember to set `--cores` to the maximum number of threads you'd like to use.
+**Snakemake arguments:** Arguments `--cores`, `--profile` and `--forceall` are passed as are directly to snakemake. Please refer to snakemake documentation (https://snakemake.readthedocs.io/en/v7.0.0/) for further information. Through `--resources` you can pass a path to a `resources.tsv` file, which will define number of threads and memory allocated for each rule in Pling's snakemake workflows. The format should be the same as the file found under `pling/resources.tsv`. If you use more than one thread in any rule, remember to set `--cores` to the maximum number of threads you'd like to use.
 
 **Integerisation from annotation parameters:** As gene annotation is done via Bakta (https://github.com/oschwengers/bakta), the Bakta database must be downloaded beforehand and provided via `--bakta_db` to do integerisation from annotation. If a gene is duplicated multiple times across two plasmids for which you are calculating DCJ-Indel, rather than assigning one integer label to all the paralogs, you may want to match together paralogs that are more similar to each other than the other paralogs. This can speed up the DCJ-Indel claculation, and also provide a more realistic distance. We call this process "deduplication" and it can be controlled via the parameters `--dedup` and `--dedup_threshold`. Note that this approach is scarcely tested, and we have not yet identified appropriate thresholds, so use at your own risk.
 
