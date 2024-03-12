@@ -10,11 +10,17 @@ import shutil
 import os
 import pandas as pd
 from pathlib import Path
+import subprocess
+
+def get_version():
+    output = subprocess.check_output("git describe", shell=True).strip()
+    output = output.decode("utf-8")
+    return output
 
 
 def parse_args():
     parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-    parser.add_argument('--version', action='version', version='pling 1.0.0')
+    parser.add_argument('--version', action='version', version=get_version())
     parser.add_argument("genomes_list", help="Path to list of fasta file paths.")
     parser.add_argument("output_dir", help="Path to output directory.")
     parser.add_argument("integerisation", choices=["anno", "align"],
