@@ -14,7 +14,8 @@ import subprocess
 
 def get_version():
     try:
-        output = subprocess.check_output("git describe --tags", shell=True).strip()
+        pling_dir = get_pling_path()
+        output = subprocess.check_output("git describe --tags", shell=True, cwd=pling_dir).strip()
         output = output.decode("utf-8")
     except:
         output = "Error getting version."
