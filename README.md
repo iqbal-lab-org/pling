@@ -3,6 +3,8 @@ Pling is a software workflow for plasmid analysis using rearrangement distances,
 
 ## Dependencies
 
+These need to be installed beforehand by the user. All other tool dependancies are handled internally by Pling.
+
 - Python >=3.8, <=3.12
 - Mamba
 - Snakemake >=7.25.4, <=7.32.4
