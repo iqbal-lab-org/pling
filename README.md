@@ -16,7 +16,7 @@ git clone https://github.com/iqbal-lab-org/pling.git
 ```
 
 ## Basic Usage
-Required input is a list of paths to fasta files `genomes_list` and a path to an output directory `output_dir`. If `pling_path` is the path to the directory to which you downloaded pling, then usage is
+Required input is a list of paths to fasta files `genomes_list` and a path to an output directory `output_dir`. All the genomes must be circular and complete. If `pling_path` is the path to the directory to which you downloaded pling, then usage is
 
 ```
 PYTHONPATH=<pling_path> python <pling_path>/pling/run_pling.py <genomes_list> <output_dir> align
