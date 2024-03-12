@@ -13,8 +13,11 @@ from pathlib import Path
 import subprocess
 
 def get_version():
-    output = subprocess.check_output("git describe", shell=True).strip()
-    output = output.decode("utf-8")
+    try:
+        output = subprocess.check_output("git describe --tags", shell=True).strip()
+        output = output.decode("utf-8")
+    except:
+        output = "Error getting version."
     return output
 
 
