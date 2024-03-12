@@ -120,6 +120,7 @@ Pling is not yet published.
 
 - DingII: Gitlab - https://gitlab.ub.uni-bielefeld.de/gi/dingiiofficial; DOI - https://doi.org/10.1007/978-3-030-45257-5_1
 - Snakemake 7: Homepage - https://snakemake.readthedocs.io/en/v7.0.0/; DOI - https://doi.org/10.12688/f1000research.29032.1
+- Mamba: Homepage - https://mamba.readthedocs.io/en/latest/index.html
 - GLPK: Homepage - https://www.gnu.org/software/glpk/
 - Gurobi: Homepage - https://www.gurobi.com/
 - MUMmer 3.0: Homepage - https://mummer.sourceforge.net/; DOI - https://doi.org/10.1186/gb-2004-5-2-r12
