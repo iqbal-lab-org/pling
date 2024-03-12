@@ -23,9 +23,9 @@ PYTHONPATH=<pling_path> python <pling_path>/pling/run_pling.py <genomes_list> <o
 ```
 for integerisation from alignment (recommended), and
 ```
-PYTHONPATH=<pling_path> python <pling_path>/pling/run_pling.py <genomes_list> <output_dir> anno
+PYTHONPATH=<pling_path> python <pling_path>/pling/run_pling.py <genomes_list> <output_dir> anno --bakta_db <bakta_db>
 ```
-for integerisation from annotation. For details on the difference between integerisation methods, please see below.
+for integerisation from annotation, in which `bakta_db` is a path to a Bakta database. For details on the difference between integerisation methods, please see below.
 
 ## Description and Output
 
@@ -113,3 +113,26 @@ optional arguments:
 **Integerisation from annotation parameters:** As gene annotation is done via Bakta (https://github.com/oschwengers/bakta), the Bakta database must be downloaded beforehand and provided via `--bakta_db` to do integerisation from annotation. If a gene is duplicated multiple times across two plasmids for which you are calculating DCJ-Indel, rather than assigning one integer label to all the paralogs, you may want to match together paralogs that are more similar to each other than the other paralogs. This can speed up the DCJ-Indel claculation, and also provide a more realistic distance. We call this process "deduplication" and it can be controlled via the parameters `--dedup` and `--dedup_threshold`. Note that this approach is scarcely tested, and we have not yet identified appropriate thresholds, so use at your own risk.
 
 ## Citation
+
+Pling is not yet published.
+
+## Used Tools
+
+- DingII: Gitlab - https://gitlab.ub.uni-bielefeld.de/gi/dingiiofficial; DOI - https://doi.org/10.1007/978-3-030-45257-5_1
+- Snakemake 7: Homepage - https://snakemake.readthedocs.io/en/v7.0.0/; DOI - https://doi.org/10.12688/f1000research.29032.1
+- GLPK: Homepage - https://www.gnu.org/software/glpk/
+- Gurobi: Homepage - https://www.gurobi.com/
+- MUMmer 3.0: Homepage - https://mummer.sourceforge.net/; DOI - https://doi.org/10.1186/gb-2004-5-2-r12
+- Sourmash: Github: https://github.com/sourmash-bio/sourmash; DOI - https://doi.org/10.21105/joss.00027
+- IntervalTree: Github - https://github.com/chaimleib/intervaltree
+- Plasnet: Github - https://github.com/leoisl/plasnet
+- NetworkX: Homepage - https://networkx.org/
+- Numpy: Homepage - https://numpy.org/; DOI - https://doi.org/10.1038/s41586-020-2649-2
+- pandas: Homepage - https://pandas.pydata.org/; DOI - https://zenodo.org/doi/10.5281/zenodo.3509134, https://doi.org/10.25080/Majora-92bf1922-00a
+- Biopython: Homepage - https://biopython.org/; DOI - https://doi.org/10.1093/bioinformatics/btp163
+- Pafpy: Github - https://github.com/mbhall88/pafpy
+- Pymummer: Github - https://github.com/sanger-pathogens/pymummer
+- Pyfastaq: Github - https://github.com/sanger-pathogens/Fastaq
+- Bakta: Github - https://github.com/oschwengers/bakta; DOI - https://doi.org/10.1099/mgen.0.000685
+- Panaroo: Github - https://github.com/gtonkinhill/panaroo; DOI - https://doi.org/10.1186/s13059-020-02090-4
+- Minimap2: Github - https://github.com/lh3/minimap2; DOI - https://doi.org/10.1093/bioinformatics/bty191
