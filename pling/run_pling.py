@@ -94,39 +94,6 @@ def make_config_file(args):
     tmp_dir.mkdir(parents=True, exist_ok=True)
 
     configfile = f"{args.output_dir}/tmp_files/config.yaml"
-    '''
-    with open(configfile, "w") as config:
-        config.write(f"genomes_list: {args.genomes_list}\n\n")
-        config.write(f"output_dir: {args.output_dir}\n\n")
-        config.write(f"integerisation: {args.integerisation}\n\n")
-        config.write(f"bakta_db: {args.bakta_db}\n\n")
-        config.write(f"seq_containment_distance: {args.containment_distance}\n\n")
-        config.write(f"dcj_dist_threshold: {args.dcj}\n\n")
-        config.write("prefix: all_plasmids\n\n")
-        config.write(f"communities: {args.output_dir}/containment/containment_communities\n\n")
-        if args.dedup:
-            config.write(f"dedup: {args.dedup}\n\n")
-            config.write(f"dedup_threshold: {args.dedup_threshold}\n\n")
-        config.write(f"identity_threshold: {args.identity}\n\n")
-        config.write(f"length_threshold: {args.min_indel_size}\n\n")
-        config.write(f"bh_connectivity: {args.bh_connectivity}\n\n")
-        config.write(f"bh_neighbours_edge_density: {args.bh_neighbours_edge_density}\n\n")
-        config.write(f"small_subcommunity_size_threshold: {args.small_subcommunity_size_threshold}\n\n")
-        config.write(f"metadata: {metadata}\n\n")
-        config.write(f"ilp_solver: {args.ilp_solver}\n\n")
-        config.write(f"timelimit: {timelimit}\n\n")
-        config.write(f"batch_size: {args.batch_size}\n\n")
-        if args.sourmash:
-            config.write(f"sourmash: {args.sourmash}\n\n")
-            config.write(f"sourmash_threshold: {args.sourmash_threshold}\n\n")
-        for row in resources.index:
-            rule = resources.loc[row, "Rule"]
-            threads = resources.loc[row, "Threads"]
-            mem =  resources.loc[row, "Mem"]
-            config.write(f"{rule}_threads: {threads}\n\n")
-            config.write(f"{rule}_mem: {mem}\n\n")
-    '''
-
     config_dict = {"genomes_list": str(args.genomes_list), "output_dir": str(args.output_dir), "integerisation": str(args.integerisation), "bakta_db": str(args.bakta_db), "seq_containment_distance": float(args.containment_distance), "dcj_dist_threshold": int(args.dcj), "prefix": "all_plasmids","communities": f"{args.output_dir}/containment/containment_communities", "identity_threshold": float(args.identity), "length_threshold": int(args.min_indel_size), "bh_connectivity": int(args.bh_connectivity), "bh_neighbours_edge_density": float(args.bh_neighbours_edge_density), "small_subcommunity_size_threshold": int(args.small_subcommunity_size_threshold),"metadata": metadata, "ilp_solver": str(args.ilp_solver), "timelimit": timelimit, "batch_size": int(args.batch_size)}
     if args.dedup:
         config_dict["dedup"] = str(args.dedup)
