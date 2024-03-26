@@ -11,6 +11,7 @@ import os
 import pandas as pd
 from pathlib import Path
 import subprocess
+import yaml
 
 def get_version():
     try:
@@ -93,6 +94,7 @@ def make_config_file(args):
     tmp_dir.mkdir(parents=True, exist_ok=True)
 
     configfile = f"{args.output_dir}/tmp_files/config.yaml"
+    '''
     with open(configfile, "w") as config:
         config.write(f"genomes_list: {args.genomes_list}\n\n")
         config.write(f"output_dir: {args.output_dir}\n\n")
@@ -123,6 +125,25 @@ def make_config_file(args):
             mem =  resources.loc[row, "Mem"]
             config.write(f"{rule}_threads: {threads}\n\n")
             config.write(f"{rule}_mem: {mem}\n\n")
+    '''
+
+    config_dict = {"genomes_list": str(args.genomes_list), "output_dir": str(args.output_dir), "integerisation": str(args.integerisation), "bakta_db": str(args.bakta_db), "seq_containment_distance": float(args.containment_distance), "dcj_dist_threshold": int(args.dcj), "prefix": "all_plasmids","communities": f"{args.output_dir}/containment/containment_communities", "identity_threshold": float(args.identity), "length_threshold": int(args.min_indel_size), "bh_connectivity": int(args.bh_connectivity), "bh_neighbours_edge_density": float(args.bh_neighbours_edge_density), "small_subcommunity_size_threshold": int(args.small_subcommunity_size_threshold),"metadata": metadata, "ilp_solver": str(args.ilp_solver), "timelimit": timelimit, "batch_size": int(args.batch_size)}
+    if args.dedup:
+        config_dict["dedup"] = str(args.dedup)
+        config_dict["dedup_threshold"] = str(args.dedup_threshold)
+    if args.sourmash:
+        config_dict["sourmash"] = str(args.sourmash)
+        config_dict["sourmash_threshold"] = str(args.sourmash_threshold)
+    for row in resources.index:
+        rule = resources.loc[row, "Rule"]
+        threads = resources.loc[row, "Threads"]
+        mem =  resources.loc[row, "Mem"]
+        if not pd.isna(threads):
+            config_dict[f"{rule}_threads"] = int(threads)
+        config_dict[f"{rule}_mem"] = int(mem)
+
+    with open(configfile, 'w') as config:
+        yaml.dump(config_dict, config)
 
     return configfile, tmp_dir, forceall, profile
 
