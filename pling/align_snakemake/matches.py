@@ -1,7 +1,7 @@
 from intervaltree import IntervalTree, Interval
 from pathlib import Path
 import subprocess
-import warning
+import warnings
 
 #REMEMBER: ALL INTERVALS IN INDELS AND MATCHES ARE ***OPEN*** ENDED (bc of IntervalTree)
 
