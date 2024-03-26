@@ -1,6 +1,7 @@
 from intervaltree import IntervalTree, Interval
 from pathlib import Path
 import subprocess
+import warning
 
 #REMEMBER: ALL INTERVALS IN INDELS AND MATCHES ARE ***OPEN*** ENDED (bc of IntervalTree)
 
@@ -390,8 +391,10 @@ class Matches:
                     for match in contain_overlap_2:
                         self.split_match(match, overlap_matches[1].rstart, overlap_matches[1].rend, True)
                 except MatchPointsError:
+                    warnings.warn("An invalid match was created while fixing overlaps. Overlap fixing is broken off, and the last version prior to the error is used for integerisation.")
                     return
                 except MatchOrderError:
+                    warnings.warn("The ordering of matches was broken. Overlap fixing is broken off, and the last version prior to the error is used for integerisation.")
                     return
                 if containment:
                     current_match = self[i]
@@ -401,6 +404,7 @@ class Matches:
             if i % 5 == 0:
                 if not self.sorted_by_query():
                     self = old_version
+                    warnings.warn("The ordering of matches was broken. Overlap fixing is broken off, and the version five iterations ago is used for integerisation.")
                     return
                 else:
                     old_version = self
@@ -429,7 +433,11 @@ class Matches:
                     contain_overlap_2 = self.contain_interval(overlap_matches[1].qstart, overlap_matches[1].qend, False)
                     for match in contain_overlap_2:
                         self.split_match(match, overlap_matches[1].qstart, overlap_matches[1].qend, False)
-                except:
+                except MatchPointsError:
+                    warnings.warn("An invalid match was created while fixing overlaps. Overlap fixing is broken off, and the last version prior to the error is used for integerisation.")
+                    return
+                except MatchOrderError:
+                    warnings.warn("The ordering of matches was broken. Overlap fixing is broken off, and the last version prior to the error is used for integerisation.")
                     return
                 if containment:
                     current_match = self[i]
@@ -439,6 +447,7 @@ class Matches:
             if i % 5 == 0:
                 if not self.sorted_by_query():
                     self = old_version
+                    warnings.warn("The ordering of matches was broken. Overlap fixing is broken off, and the version five iterations ago is used for integerisation.")
                     return
                 else:
                     old_version = self
