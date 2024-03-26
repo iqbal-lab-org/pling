@@ -367,9 +367,10 @@ class Matches:
         i=0
         finished = False
         old_version = self
+        breakoff = max(length**3, 1000)
         while not finished:
-            if i>length**3:
-                raise Exception(f"The resolve_overlaps function in matches.py has been stuck in the while loop for {length**3} iterations! There is likely a bug, please raise an issue.")
+            if i>breakoff:
+                raise Exception(f"The resolve_overlaps function in matches.py has been stuck in the while loop for {breakoff} iterations! There is likely a bug, please raise an issue.")
             overlap = 0
             try:
                 overlap = self[i].qend-self[i+1].qstart
@@ -408,8 +409,8 @@ class Matches:
         i=0
         finished = False
         while not finished:
-            if i>length**3:
-                raise Exception(f"The resolve_overlaps function in matches.py has been stuck in the while loop for {length**3} iterations! There is likely a bug, please raise an issue.")
+            if i>breakoff:
+                raise Exception(f"The resolve_overlaps function in matches.py has been stuck in the while loop for {breakoff} iterations! There is likely a bug, please raise an issue.")
             overlap = 0
             try:
                 overlap = self[i].rend-self[i+1].rstart
