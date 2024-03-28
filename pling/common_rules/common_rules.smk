@@ -35,7 +35,10 @@ rule cat_containment:
         mem_mb=lambda wildcards, attempt: 4000*attempt
     shell:
         """
-        cat <(echo -e "plasmid_1\tplasmid_2\tdistance") {input.containments} {params.not_pairs}> {output.all_containment_distances}
+        echo -e "plasmid_1\tplasmid_2\tdistance" > {output.all_containment_distances}
+        for file in {input.containments} {params.not_pairs}; do
+            cat "$file" >> {output.all_containment_distances}
+        done
         """
 
 localrules: cat_containment
