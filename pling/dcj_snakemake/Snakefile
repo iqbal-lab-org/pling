@@ -103,7 +103,10 @@ rule dcj_tsv:
         mem_mb=lambda wildcards, attempt: 4000*attempt
     shell:
         """
-        cat <(echo -e "plasmid_1\tplasmid_2\tdistance") {input.dists}> {output.tsv}
+        echo -e "plasmid_1\tplasmid_2\tdistance" > {output.tsv}
+        for file in {input.dists}; do
+            cat "$file" >> {output.tsv}
+        done
         """
 
 rule build_DCJ_graph:
