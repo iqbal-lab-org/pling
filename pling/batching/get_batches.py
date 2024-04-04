@@ -6,11 +6,15 @@ import subprocess
 from pathlib import Path
 from pling.utils import get_fasta_file_info
 
-def write_batch_file(output_dir, batches, batch):
+def write_batch_files(output_dir, number_of_batches, batch_size, pairs):
     output_dir = Path(output_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
-    with open(f"{output_dir}/batch_{batch}.txt","w") as batch_list:
-        batch_list.write("\n".join([str(el) for el in batches[str(batch)]]))
+    batches = {}
+    for i in range(number_of_batches-1):
+        with open(f"{output_dir}/batch_{i}.txt","w") as batch_list:
+            batch_list.write("\n".join([str(pairs[j]) for j in range(i*batch_size, (i+1)*batch_size)]))
+    with open(f"{output_dir}/batch_{number_of_batches-1}.txt","w") as batch_list:
+        batch_list.write("\n".join([str(pairs[j]) for j in range((number_of_batches-1)*batch_size, len(pairs))]))
 
 def get_labels(filepath):
     fastafiles, fastaext, fastapath = get_fasta_file_info(filepath)
@@ -82,7 +86,7 @@ def main():
         matrixpath = sig_dir/"smash_containment_matrix"
         run_smash(args.genomes_list, sig_path, matrixpath)
         genomes, genome_index = get_labels(f"{matrixpath}.labels.txt")
-        smash_matrix = np.load(matrixpath)
+        smash_matrix = np.load(matrixpath, mmap_mode='r')
     else:
         genomes, genome_index = get_labels(args.genomes_list)
         smash_matrix = None
@@ -93,12 +97,7 @@ def main():
         containment_file(not_pairs, genome_index, smash_matrix, args.containmentpath)
 
     number_of_batches = math.ceil(len(pairs)/args.batch_size)
-    batches = {}
-    for i in range(number_of_batches-1):
-        batches[str(i)] = [pairs[j] for j in range(i*args.batch_size, (i+1)*args.batch_size)]
-        write_batch_file(f"{args.outputpath}/batches", batches, str(i))
-    batches[str(number_of_batches-1)] = [pairs[j] for j in range((number_of_batches-1)*args.batch_size, len(pairs))]
-    write_batch_file(f"{args.outputpath}/batches", batches, str(number_of_batches-1))
+    write_batch_files(f"{args.outputpath}/batches", number_of_batches, args.batch_size, pairs)
 
     with open(f"{args.outputpath}/batches/batching_info.txt", "w") as f:
         f.write(f"{args.batch_size}\n{number_of_batches}")
