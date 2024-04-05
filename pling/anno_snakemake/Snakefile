@@ -74,8 +74,8 @@ rule gen_minimap_input:
         align_dir=f"{OUTPUTPATH}/annotation/{{community}}/panaroo/aligned_gene_sequences"
     output:
         f"{OUTPUTPATH}/tmp_files/minimap/{{community}}/input/{{genome}}.fna"
-    container:
-        "docker://quay.io/biocontainers/biopython:1.78"
+    conda:
+        "../envs/minimap_input.yaml"
     threads: 1
     resources:
         mem_mb = lambda wildcards, attempt: attempt * 4000
