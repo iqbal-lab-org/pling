@@ -33,13 +33,13 @@ rule cat_containment:
     threads: 1
     resources:
         mem_mb=lambda wildcards, attempt: 4000*attempt
-    shell:
-        """
-        echo -e "plasmid_1\tplasmid_2\tdistance" > {output.all_containment_distances}
-        for file in {input.containments} {params.not_pairs}; do
-            cat "$file" >> {output.all_containment_distances}
-        done
-        """
+    run:
+        with open(output.all_containment_distances, "w") as contain_out:
+            contain_out.write("plasmid_1\tplasmid_2\tdistance\n")
+            for file in input.containments:
+                with open(file, "r") as f:
+                    to_cat = f.read()
+                contain_out.write(to_cat)
 
 localrules: cat_containment
 

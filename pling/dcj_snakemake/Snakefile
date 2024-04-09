@@ -101,13 +101,13 @@ rule dcj_tsv:
     threads: 1
     resources:
         mem_mb=lambda wildcards, attempt: 4000*attempt
-    shell:
-        """
-        echo -e "plasmid_1\tplasmid_2\tdistance" > {output.tsv}
-        for file in {input.dists}; do
-            cat "$file" >> {output.tsv}
-        done
-        """
+    run:
+        with open(output.tsv, "w") as dcj_out:
+            dcj_out.write("plasmid_1\tplasmid_2\tdistance\n")
+            for file in input.dists:
+                with open(file, "r") as f:
+                    to_cat = f.read()
+                dcj_out.write(to_cat)
 
 rule build_DCJ_graph:
     input:
