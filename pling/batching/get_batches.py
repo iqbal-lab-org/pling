@@ -5,22 +5,12 @@ import numpy as np
 import subprocess
 from pathlib import Path
 from pling.utils import get_fasta_file_info
-
-def write_batch_files(output_dir, number_of_batches, batch_size, pairs):
-    output_dir = Path(output_dir)
-    output_dir.mkdir(parents=True, exist_ok=True)
-    batches = {}
-    for i in range(number_of_batches-1):
-        with open(f"{output_dir}/batch_{i}.txt","w") as batch_list:
-            batch_list.write("\n".join([str(pairs[j]) for j in range(i*batch_size, (i+1)*batch_size)]))
-    with open(f"{output_dir}/batch_{number_of_batches-1}.txt","w") as batch_list:
-        batch_list.write("\n".join([str(pairs[j]) for j in range((number_of_batches-1)*batch_size, len(pairs))]))
+import itertools
 
 def get_labels(filepath):
     fastafiles, fastaext, fastapath = get_fasta_file_info(filepath)
     genomes = list(fastaext.keys())
-    genome_index = {genome:i for i, genome in enumerate(genomes)}
-    return genomes, genome_index
+    return genomes
 
 def append_pair(smash, smash_threshold, smash_matrix, i, j):
     if not smash:
@@ -28,20 +18,32 @@ def append_pair(smash, smash_threshold, smash_matrix, i, j):
     else:
         return (1-smash_matrix[i][j]<=smash_threshold)
 
-def get_pairs(genomes, smash, smash_matrix = None, smash_threshold = None):
-    genome_pairs=[]
-    not_pairs=[]
+def get_pairs(genomes, batch_size, output_dir, containmentpath, smash, smash_matrix = None, smash_threshold = None):
+    output_dir = Path(output_dir)
+    output_dir.mkdir(parents=True, exist_ok=True)
     n = len(genomes)
-    for i in range(n):
-        j=0
-        while j<i:
-            append = append_pair(smash, smash_threshold, smash_matrix, i, j)
-            if append:
-                genome_pairs.append([genomes[i], genomes[j]])
-            else:
-                not_pairs.append([genomes[i], genomes[j]])
-            j=j+1
-    return genome_pairs, not_pairs
+    iter = 0
+    batch = -1
+    if smash:
+        dir = Path(os.path.dirname(containmentpath))
+        dir.mkdir(parents=True, exist_ok=True)
+        contain_file = open(containmentpath, "w")
+    for i,j in itertools.combinations(range(n), 2):
+        append = append_pair(smash, smash_threshold, smash_matrix, i, j)
+        if append:
+            if iter%batch_size==0:
+                if iter!=0:
+                    batch_file.close()
+                batch = batch+1
+                batch_file = open(f"{output_dir}/batch_{batch}.txt","w")
+            batch_file.write(str([genomes[i], genomes[j]])+"\n")
+            iter = iter+1
+        elif smash:
+            contain_file.write(f"{genomes[i]}\t{genomes[j]}\t{1-smash_matrix[i][j]}\n")
+    if smash:
+        contain_file.close()
+    batch_file.close()
+    return iter
 
 def containment_file(not_pairs, genome_index, smash_matrix, containmentpath):
     dir = Path(os.path.dirname(containmentpath))
@@ -85,19 +87,14 @@ def main():
         sig_path = sig_dir/"all_plasmids.sig"
         matrixpath = sig_dir/"smash_containment_matrix"
         run_smash(args.genomes_list, sig_path, matrixpath)
-        genomes, genome_index = get_labels(f"{matrixpath}.labels.txt")
+        genomes = get_labels(f"{matrixpath}.labels.txt")
         smash_matrix = np.load(matrixpath, mmap_mode='r')
     else:
         genomes, genome_index = get_labels(args.genomes_list)
         smash_matrix = None
 
-    pairs, not_pairs = get_pairs(genomes, args.sourmash, smash_matrix, args.smash_threshold)
-
-    if args.sourmash:
-        containment_file(not_pairs, genome_index, smash_matrix, args.containmentpath)
-
-    number_of_batches = math.ceil(len(pairs)/args.batch_size)
-    write_batch_files(f"{args.outputpath}/batches", number_of_batches, args.batch_size, pairs)
+    len_pairs = get_pairs(genomes, args.batch_size, f"{args.outputpath}/batches", args.containmentpath, args.sourmash, smash_matrix, args.smash_threshold)
+    number_of_batches = math.ceil(len_pairs/args.batch_size)
 
     with open(f"{args.outputpath}/batches/batching_info.txt", "w") as f:
         f.write(f"{args.batch_size}\n{number_of_batches}")
