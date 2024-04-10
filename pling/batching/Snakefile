@@ -33,7 +33,7 @@ rule get_batches:
         batch_size = config["batch_size"],
         sourmash = smash(),
         smash_threshold = config.get("sourmash_threshold", 1),
-        containmentpath = f"{OUTPUTPATH}/tmp_files/containment_batchwise/not_pairs_containment_distance.tsv",
+        containmentpath = f"{OUTPUTPATH}/containment/not_pairs_containment_distance.tsv",
         pling_root_dir = get_pling_root_dir()
     threads: get_batching_resources("threads")
     resources:
