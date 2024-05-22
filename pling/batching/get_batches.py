@@ -90,7 +90,7 @@ def main():
         genomes = get_labels(f"{matrixpath}.labels.txt")
         smash_matrix = np.load(matrixpath, mmap_mode='r')
     else:
-        genomes, genome_index = get_labels(args.genomes_list)
+        genomes = get_labels(args.genomes_list)
         smash_matrix = None
 
     len_pairs = get_pairs(genomes, args.batch_size, f"{args.outputpath}/batches", args.containmentpath, args.sourmash, smash_matrix, args.smash_threshold)
