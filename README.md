@@ -68,7 +68,7 @@ optional arguments:
                         Threshold for initial containment network. (default: 0.5)
   --dcj DCJ             Threshold for final DCJ-Indel network. (default: 4)
   --batch_size BATCH_SIZE
-                        How many pairs of genomes to run together in one go (for integerisation from alignment and DCJ calculation steps). (default: 50)
+                        How many pairs of genomes to run together in one go (for integerisation from alignment and DCJ calculation steps). (default: 200)
   --sourmash            Run sourmash as first filter on which pairs to calculate DCJ on. Recommended for large and very diverse datasets. (default: False)
   --sourmash_threshold SOURMASH_THRESHOLD
                         Threshold for filtering with sourmash. (default: 0.85)
