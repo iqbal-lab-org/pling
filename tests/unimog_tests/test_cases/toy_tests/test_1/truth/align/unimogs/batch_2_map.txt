@@ -1,1 +1,14 @@
 	Plasmid	Block_ID	Start	End
+3_dup~3_dup_w_inverse	3_dup	1	1	563
+	3_dup	2	563	2019
+	3_dup	3	2019	2931
+	3_dup_w_inverse	1	1	563
+	3_dup_w_inverse	-2	563	2019
+	3_dup_w_inverse	3	2019	2931
+2_dup_3_dup~3_dup_w_inverse	2_dup_3_dup	1	1	563
+	2_dup_3_dup	4	563	1018
+	2_dup_3_dup	2	1018	2474
+	2_dup_3_dup	3	2474	3386
+	3_dup_w_inverse	1	1	563
+	3_dup_w_inverse	-2	563	2019
+	3_dup_w_inverse	3	2019	2931
