@@ -115,14 +115,14 @@ def compute_DCJ(unimog, entry1, entry2, timelimit, threads):
         raise e
     return int(round(dist))
 
-def batchwise_ding(pairs, containment_distance, containments, integerisation, outputpath, batch, timelimit, threads, plasmid_to_community):
+def batchwise_ding(pairs, containment_distance, containments, integerisation, outputpath, batch, timelimit, threads, plasmid_to_community,unimog_path=None):
     dists = []
     for pair in pairs:
         genome1 = pair[0]
         genome2 = pair[1]
         entry1, entry2 = get_entries(integerisation, genome1, genome2)
         if containments[(genome1,genome2)]<=containment_distance:
-            unimog = get_unimog(outputpath, integerisation, plasmid_to_community, batch, genome1, genome2)
+            unimog = get_unimog(outputpath, integerisation, plasmid_to_community, batch, genome1, genome2, unimog_path)
             dist = compute_DCJ(unimog, entry1, entry2, timelimit, threads)
             dists.append(f"{genome1}\t{genome2}\t{dist}\n")
     with open(f"{outputpath}/tmp_files/dists_batchwise/batch_{batch}_dcj.tsv", "w") as f:
@@ -142,6 +142,7 @@ def main():
     parser.add_argument("--integerisation", required=True, type=str)
     parser.add_argument("--threads", required=True, type=int)
     parser.add_argument("--timelimit")
+    parser.add_argument("--unimog")
 
     # Parse the arguments
     args = parser.parse_args()
@@ -154,7 +155,10 @@ def main():
     else:
         plasmid_to_community=None
 
-    batchwise_ding(pairs, float(args.containment_distance), containments, args.integerisation, args.outputpath, args.batch, args.timelimit, args.threads, plasmid_to_community)
+    if args.integerisation=="skip":
+        batchwise_ding(pairs, float(args.containment_distance), containments, args.integerisation, args.outputpath, args.batch, args.timelimit, args.threads, plasmid_to_community, args.unimog)
+    else:
+        batchwise_ding(pairs, float(args.containment_distance), containments, args.integerisation, args.outputpath, args.batch, args.timelimit, args.threads, plasmid_to_community)
 
 if __name__ == "__main__":
     main()
