@@ -28,9 +28,10 @@ def parse_args():
     parser.add_argument('--version', action='version', version=get_version())
     parser.add_argument("genomes_list", help="Path to list of fasta file paths.")
     parser.add_argument("output_dir", help="Path to output directory.")
-    parser.add_argument("integerisation", choices=["anno", "align"],
-                        help="Integerisation method: \"anno\" for annotation and \"align\" for alignment."
+    parser.add_argument("integerisation", choices=["anno", "align", "skip"],
+                        help="Integerisation method: \"anno\" for annotation \"align\" for alignment, \"skip\" to skip integerisation altogether. Make sure to input a unimog file if skipping integerisation."
                              " Note that recommended method is integerisation from alignment.")
+    parser.add_argument("--unimog", help="Path to unimog file. Required input if skipping integerisation.")
     parser.add_argument("--containment_distance", default=0.5, help="Threshold for initial containment network.")
     parser.add_argument("--dcj", default=4, help="Threshold for final DCJ-Indel network.")
     parser.add_argument("--batch_size", default = 200, help="How many pairs of genomes to run together in one go (for integerisation from alignment and DCJ calculation steps).")
@@ -101,6 +102,8 @@ def make_config_file(args):
     if args.sourmash:
         config_dict["sourmash"] = str(args.sourmash)
         config_dict["sourmash_threshold"] = str(args.sourmash_threshold)
+    if args.unimog!=None:
+        config_dict["unimog"] = args.unimog
     for row in resources.index:
         rule = resources.loc[row, "Rule"]
         threads = resources.loc[row, "Threads"]
@@ -152,6 +155,17 @@ def pling(args):
             print("Aligning, integerising, and building containment network...\n")
             subprocess.run(f"snakemake --snakefile {get_pling_path()}/align_snakemake/Snakefile {snakemake_args}", shell=True, check=True, capture_output=True)
             print("Completed integerisation and containment network.\n")
+        except subprocess.CalledProcessError as e:
+            print(e.stderr.decode())
+            print(e)
+            raise e
+    elif args.integerisation == "skip":
+        if args.unimog==None:
+            raise Exception("Skipping integerisation but there is no unimog file provided!")
+        try:
+            print("Building containment network...\n")
+            subprocess.run(f"snakemake --snakefile {get_pling_path()}/jac_network_snakemake/Snakefile {snakemake_args}", shell=True, check=True, capture_output=True)
+            print("Completed containment network.\n")
         except subprocess.CalledProcessError as e:
             print(e.stderr.decode())
             print(e)
