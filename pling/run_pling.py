@@ -28,9 +28,8 @@ def parse_args():
     parser.add_argument('--version', action='version', version=get_version())
     parser.add_argument("genomes_list", help="Path to list of fasta file paths.")
     parser.add_argument("output_dir", help="Path to output directory.")
-    parser.add_argument("integerisation", choices=["anno", "align"],
-                        help="Integerisation method: \"anno\" for annotation and \"align\" for alignment."
-                             " Note that recommended method is integerisation from alignment.")
+    parser.add_argument("integerisation", choices=["align"],
+                        help="Integerisation method: \"align\" for alignment.")
     parser.add_argument("--containment_distance", default=0.5, help="Threshold for initial containment network.")
     parser.add_argument("--dcj", default=4, help="Threshold for final DCJ-Indel network.")
     parser.add_argument("--batch_size", default = 200, help="How many pairs of genomes to run together in one go (for integerisation from alignment and DCJ calculation steps).")
@@ -51,9 +50,6 @@ def parse_args():
     parser.add_argument("--profile", help="To run on a cluster with corresponding snakemake profile.")
     #parser.add_argument("--storetmp", action="store_true", help="Don't delete intermediate temporary files.")
     parser.add_argument("--forceall", action="store_true", help="Force snakemake to rerun everything.")
-    parser.add_argument("--dedup", action="store_true", help="Whether or not to deduplicate (for integerisation from annotation).")
-    parser.add_argument("--dedup_threshold", default=98.5, help="Threshold for separating paralogs in deduplication step (for integerisation from annotation).")
-    parser.add_argument("--bakta_db", help="Path to bakta database (required for integerisation from annotation).")
 
     args = parser.parse_args()
     return args
