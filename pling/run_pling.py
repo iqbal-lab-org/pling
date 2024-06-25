@@ -113,7 +113,7 @@ def make_config_file(args):
 def pling(args):
     configfile, tmp_dir, forceall, profile = make_config_file(args)
 
-    snakemake_args = f"--configfile {configfile} --cores {args.cores} --use-conda --rerun-incomplete --nolock {profile} {forceall}"
+    snakemake_args = f"--configfile {configfile} --cores {args.cores} --rerun-incomplete --nolock {profile} {forceall}"
 
     #batching
     try:
