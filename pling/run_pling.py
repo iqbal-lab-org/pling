@@ -34,6 +34,8 @@ def parse_args():
     parser.add_argument("--unimog", help="Path to unimog file. Required input if skipping integerisation.")
     parser.add_argument("--containment_distance", default=0.5, help="Threshold for initial containment network.")
     parser.add_argument("--dcj", default=4, help="Threshold for final DCJ-Indel network.")
+    parser.add_argument("--regions", action="store_true", help="Cluster regions rather than complete genomes. Assumes regions are taken from circular plasmids.")
+    parser.add_argument("--topology", help="File stating whether plasmids are circular or linear. Must be a tsv with two columns, one with plasmid IDs under \"plasmid\" and one with \"linear\" or \"circular\" as entries under \"topology\". Without this file, pling will asume all plasmids are circular.")
     parser.add_argument("--batch_size", default = 200, help="How many pairs of genomes to run together in one go (for integerisation from alignment and DCJ calculation steps).")
     parser.add_argument("--sourmash", action="store_true", help="Run sourmash as first filter on which pairs to calculate DCJ on. Recommended for large and very diverse datasets.")
     parser.add_argument("--sourmash_threshold", default=0.85, help="Threshold for filtering with sourmash.")
@@ -80,6 +82,11 @@ def make_config_file(args):
     else:
         metadata= args.metadata
 
+    if args.topology==None:
+        topology = "None"
+    else:
+        topology= args.topology
+
     profile = ""
     if args.profile!=None:
         profile = f"--profile {args.profile}"
@@ -95,13 +102,15 @@ def make_config_file(args):
     tmp_dir.mkdir(parents=True, exist_ok=True)
 
     configfile = f"{args.output_dir}/tmp_files/config.yaml"
-    config_dict = {"genomes_list": str(args.genomes_list), "output_dir": str(args.output_dir), "integerisation": str(args.integerisation), "bakta_db": str(args.bakta_db), "seq_containment_distance": float(args.containment_distance), "dcj_dist_threshold": int(args.dcj), "prefix": "all_plasmids","communities": f"{args.output_dir}/containment/containment_communities", "identity_threshold": float(args.identity), "length_threshold": int(args.min_indel_size), "bh_connectivity": int(args.bh_connectivity), "bh_neighbours_edge_density": float(args.bh_neighbours_edge_density), "small_subcommunity_size_threshold": int(args.small_subcommunity_size_threshold),"metadata": metadata, "ilp_solver": str(args.ilp_solver), "timelimit": timelimit, "batch_size": int(args.batch_size)}
+    config_dict = {"genomes_list": str(args.genomes_list), "output_dir": str(args.output_dir), "integerisation": str(args.integerisation), "bakta_db": str(args.bakta_db), "seq_containment_distance": float(args.containment_distance), "dcj_dist_threshold": int(args.dcj), "prefix": "all_plasmids","communities": f"{args.output_dir}/containment/containment_communities", "identity_threshold": float(args.identity), "length_threshold": int(args.min_indel_size), "bh_connectivity": int(args.bh_connectivity), "bh_neighbours_edge_density": float(args.bh_neighbours_edge_density), "small_subcommunity_size_threshold": int(args.small_subcommunity_size_threshold),"metadata": metadata, "ilp_solver": str(args.ilp_solver), "timelimit": timelimit, "batch_size": int(args.batch_size), "topology": topology}
     if args.dedup:
         config_dict["dedup"] = str(args.dedup)
         config_dict["dedup_threshold"] = str(args.dedup_threshold)
     if args.sourmash:
         config_dict["sourmash"] = str(args.sourmash)
         config_dict["sourmash_threshold"] = str(args.sourmash_threshold)
+    if args.regions:
+        config_dict["regions"] = str(args.regions)
     if args.unimog!=None:
         config_dict["unimog"] = args.unimog
     for row in resources.index:

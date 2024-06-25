@@ -12,6 +12,18 @@ FASTAFILES = [el[0] for el in pd.read_csv(config["genomes_list"], header=None).v
 FASTAEXT = {os.path.splitext(os.path.basename(el))[0]:os.path.splitext(os.path.basename(el))[1] for el in FASTAFILES}
 GENOMES = list(FASTAEXT.keys())
 
+def get_regions():
+    if config.get("regions", False):
+        return "--regions"
+    else:
+        return ""
+
+def get_topology(topology):
+    if config["topology"]=="None":
+        return ""
+    else:
+        return f"--topology {topology}"
+
 include: "../common_rules/common_rules.smk"
 
 rule all:
@@ -35,7 +47,9 @@ rule make_unimogs:
         outputpath = OUTPUTPATH,
         identity_threshold = config["identity_threshold"],
         containment_distance = config["seq_containment_distance"],
-        pling_root_dir = get_pling_root_dir()
+        pling_root_dir = get_pling_root_dir(),
+        regions = get_regions(),
+        topology = get_topology(config["topology"])
     conda: "../envs/integerise.yaml"
     shadow: "shallow"
     shell:
@@ -48,5 +62,7 @@ rule make_unimogs:
             --outputpath {params.outputpath} \
             --containment_output {output.containment} \
             --unimog_output {output.unimog} \
-            --map_output {output.map}
+            --map_output {output.map} \
+            {params.regions} \
+            {params.topology}
         """
