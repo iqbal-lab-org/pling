@@ -12,6 +12,7 @@ import pandas as pd
 from pathlib import Path
 import subprocess
 import yaml
+from pling import __version__
 
 def get_version():
     try:
@@ -25,7 +26,7 @@ def get_version():
 
 def parse_args():
     parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-    parser.add_argument('--version', action='version', version=get_version())
+    parser.add_argument('--version', action='version', version=__version__)
     parser.add_argument("genomes_list", help="Path to list of fasta file paths.")
     parser.add_argument("output_dir", help="Path to output directory.")
     parser.add_argument("integerisation", choices=["align"],
@@ -90,10 +91,7 @@ def make_config_file(args):
     tmp_dir.mkdir(parents=True, exist_ok=True)
 
     configfile = f"{args.output_dir}/tmp_files/config.yaml"
-    config_dict = {"genomes_list": str(args.genomes_list), "output_dir": str(args.output_dir), "integerisation": str(args.integerisation), "bakta_db": str(args.bakta_db), "seq_containment_distance": float(args.containment_distance), "dcj_dist_threshold": int(args.dcj), "prefix": "all_plasmids","communities": f"{args.output_dir}/containment/containment_communities", "identity_threshold": float(args.identity), "length_threshold": int(args.min_indel_size), "bh_connectivity": int(args.bh_connectivity), "bh_neighbours_edge_density": float(args.bh_neighbours_edge_density), "small_subcommunity_size_threshold": int(args.small_subcommunity_size_threshold),"metadata": metadata, "ilp_solver": str(args.ilp_solver), "timelimit": timelimit, "batch_size": int(args.batch_size)}
-    if args.dedup:
-        config_dict["dedup"] = str(args.dedup)
-        config_dict["dedup_threshold"] = str(args.dedup_threshold)
+    config_dict = {"genomes_list": str(args.genomes_list), "output_dir": str(args.output_dir), "integerisation": str(args.integerisation), "seq_containment_distance": float(args.containment_distance), "dcj_dist_threshold": int(args.dcj), "prefix": "all_plasmids","communities": f"{args.output_dir}/containment/containment_communities", "identity_threshold": float(args.identity), "length_threshold": int(args.min_indel_size), "bh_connectivity": int(args.bh_connectivity), "bh_neighbours_edge_density": float(args.bh_neighbours_edge_density), "small_subcommunity_size_threshold": int(args.small_subcommunity_size_threshold),"metadata": metadata, "ilp_solver": str(args.ilp_solver), "timelimit": timelimit, "batch_size": int(args.batch_size)}
     if args.sourmash:
         config_dict["sourmash"] = str(args.sourmash)
         config_dict["sourmash_threshold"] = str(args.sourmash_threshold)
