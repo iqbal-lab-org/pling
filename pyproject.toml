@@ -15,13 +15,6 @@ pling = 'pling.run_pling:main'
 
 [tool.poetry.dependencies]
 python = ">=3.9,<3.12"
-pulp = "2.7.0"
-sourmash = "^4.4.0"
-snakemake = "^7.32.4"
-pandas = "^2.0.3"
-numpy = "^1.26.0"
-intervaltree = "^3.0.2"
-gurobipy = "^10.0.1"
 plasnet = "^0.5.1"
 dingII = { git = "https://github.com/leoisl/dingiiofficial_wrapper", branch = "pypi_conda" }
 
