@@ -21,6 +21,13 @@ def get_timelimit(timelimit):
     else:
         return f"--timelimit {timelimit}"
 
+def get_unimog():
+    if config.get("unimog", False):
+        unimog = config["unimog"]
+        return f"--unimog {unimog}"
+    else:
+        return ""
+
 rule all:
     input:
         dcj_graph_outdir = f"{OUTPUTPATH}/dcj_thresh_{dcj_threshold}_graph"
@@ -39,7 +46,8 @@ if config["ilp_solver"] == "GLPK":
             batch=lambda wildcards: wildcards.batch,
             timelimit=get_timelimit(config["timelimit"]),
             snakefile_dir=os.path.dirname(sys.argv[sys.argv.index("--snakefile")+1]),
-            pling_root_dir = get_pling_root_dir()
+            pling_root_dir = get_pling_root_dir(),
+            unimog = get_unimog()
         threads: 1 #no multithreading available for GLPK
         resources:
             mem_mb = lambda wildcards, attempt: attempt * config["ilp_mem"]
@@ -56,7 +64,8 @@ if config["ilp_solver"] == "GLPK":
                         --integerisation {params.integerisation} \
                         {params.timelimit} \
                         --threads {threads} \
-                        --snakefile_dir {params.snakefile_dir}
+                        --snakefile_dir {params.snakefile_dir} \
+                        {params.unimog}
                 """
 
 elif config["ilp_solver"] == "gurobi":
@@ -72,7 +81,8 @@ elif config["ilp_solver"] == "gurobi":
             communitypath=f"{COMMUNITIES}/objects/communities.txt",
             batch=lambda wildcards: wildcards.batch,
             timelimit=get_timelimit(config["timelimit"]),
-            pling_root_dir = get_pling_root_dir()
+            pling_root_dir = get_pling_root_dir(),
+            unimog = get_unimog()
         threads: config["ilp_threads"]
         resources:
             mem_mb = lambda wildcards, attempt: attempt * config["ilp_mem"]
@@ -89,6 +99,7 @@ elif config["ilp_solver"] == "gurobi":
                         --integerisation {params.integerisation} \
                         {params.timelimit} \
                         --threads {threads} \
+                        {params.unimog}
                 """
 else:
     raise Exception("Not a valid ILP solver!")

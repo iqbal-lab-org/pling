@@ -5,7 +5,7 @@ Pling is a software workflow for plasmid analysis using rearrangement distances,
 
 These need to be installed beforehand by the user. All other tool dependancies are handled internally by Pling.
 
-- Python >=3.8, <=3.12
+- Python >=3.8, <3.12
 - Mamba
 - Snakemake >=7.25.4, <=7.32.4
 - pandas >=2.0
@@ -18,16 +18,17 @@ git clone https://github.com/iqbal-lab-org/pling.git
 ```
 
 ## Basic Usage
-Required input is a list of paths to fasta files `genomes_list` and a path to an output directory `output_dir`. All the genomes must be circular and complete. If `pling_path` is the path to the directory to which you downloaded pling, then usage is
+Required input is a text file of a list of paths to fasta files `genomes_list` and a path to an output directory `output_dir`. All the genomes must be circular and complete. If you have all your genomes in one directory, you can navigate to that directory and generate `genomes_list` by running
 
 ```
-PYTHONPATH=<pling_path> python <pling_path>/pling/run_pling.py <genomes_list> <output_dir> align
+ls -d -1 $PWD/*.fasta > input.txt
 ```
-for integerisation from alignment (recommended), and
+
+The if `pling_path` is the path to the directory to which you downloaded pling, then usage is
+
 ```
-PYTHONPATH=<pling_path> python <pling_path>/pling/run_pling.py <genomes_list> <output_dir> anno --bakta_db <bakta_db>
+PYTHONPATH=pling_path python pling_path/pling/run_pling.py input.txt output_dir align
 ```
-for integerisation from annotation, in which `bakta_db` is a path to a Bakta database. For details on the difference between integerisation methods, please see below.
 
 ## Description and Output
 

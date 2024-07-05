@@ -39,7 +39,7 @@ def dcj_dist(unimog, solution, genome1, genome2):
         raise e
     return dist
 
-def batchwise_ding(pairs, containment_distance, containments, integerisation, outputpath, batch, timelimit, snakefile_dir, plasmid_to_community):
+def batchwise_ding(pairs, containment_distance, containments, integerisation, outputpath, batch, timelimit, snakefile_dir, plasmid_to_community, unimog_path=None):
     dists = []
     for pair in pairs:
         genome1 = pair[0]
@@ -48,7 +48,7 @@ def batchwise_ding(pairs, containment_distance, containments, integerisation, ou
         solution = f"ding/solutions/{genome1}~{genome2}.sol"
         entry1, entry2 = get_entries(integerisation, genome1, genome2)
         if containments[(genome1,genome2)]<=containment_distance:
-            unimog = get_unimog(outputpath, integerisation, plasmid_to_community, batch, genome1, genome2)
+            unimog = get_unimog(outputpath, integerisation, plasmid_to_community, batch, genome1, genome2, unimog_path)
             unimog_to_ilp(unimog, lp, entry1, entry2)
             ilp_GLPK(lp, solution, snakefile_dir, timelimit)
             dist = dcj_dist(unimog, solution, entry1, entry2)
@@ -71,6 +71,7 @@ def main():
     parser.add_argument("--threads")
     parser.add_argument("--timelimit")
     parser.add_argument("--snakefile_dir", required=True)
+    parser.add_argument("--unimog")
 
     # Parse the arguments
     args = parser.parse_args()
@@ -92,7 +93,10 @@ def main():
     else:
         plasmid_to_community=None
 
-    batchwise_ding(pairs, float(args.containment_distance), containments, args.integerisation, args.outputpath, args.batch, timelimit, args.snakefile_dir, plasmid_to_community)
+    if args.integerisation=="skip":
+        batchwise_ding(pairs, float(args.containment_distance), containments, args.integerisation, args.outputpath, args.batch, timelimit, args.snakefile_dir, plasmid_to_community, args.unimog)
+    else:
+        batchwise_ding(pairs, float(args.containment_distance), containments, args.integerisation, args.outputpath, args.batch, timelimit, args.snakefile_dir, plasmid_to_community)
 
 if __name__ == "__main__":
     main()
