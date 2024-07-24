@@ -43,7 +43,6 @@ rule make_unimogs:
         mem_mb=lambda wildcards, attempt: config["make_unimogs_mem"]*attempt
     params:
         genomes_list = config["genomes_list"],
-        batch = lambda wildcards: wildcards.batch,
         outputpath = OUTPUTPATH,
         identity_threshold = config["identity_threshold"],
         containment_distance = config["seq_containment_distance"],
@@ -56,7 +55,7 @@ rule make_unimogs:
         """
         PYTHONPATH={params.pling_root_dir} python {params.pling_root_dir}/pling/align_snakemake/unimog.py \
             --genomes_list {params.genomes_list} \
-            --batch {params.batch} \
+            --batch {input.batch_list} \
             --identity_threshold {params.identity_threshold} \
             --containment_distance {params.containment_distance} \
             --outputpath {params.outputpath} \

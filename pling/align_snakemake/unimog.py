@@ -53,7 +53,7 @@ def main():
 
     # Add the arguments
     parser.add_argument("--genomes_list", required=True, help="Text file with list of all fasta filepaths")
-    parser.add_argument("--batch", required=True, help="Batch number")
+    parser.add_argument("--batch", required=True, help="Batch list path")
     parser.add_argument("--identity_threshold", required=True, type=float, help="Identity threshold for comparison")
     parser.add_argument("--containment_distance", required=True, type=float, help="containment distance threshold value")
     parser.add_argument("--outputpath", required=True, help="Path for general output directory")
@@ -68,10 +68,9 @@ def main():
 
     fastafiles, fastaext, fastapath = get_fasta_file_info(args.genomes_list)
 
-    pairs=read_in_batch_pairs(f"{args.outputpath}/batches/batch_{args.batch}.txt")
+    pairs=read_in_batch_pairs(args.batch)
     batch=list({el[0] for el in pairs}.union({el[1] for el in pairs}))
 
-    print(args.regions)
     if args.regions:
         topologies = {plasmid:"region" for plasmid in batch}
     elif args.topology:
