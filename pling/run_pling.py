@@ -111,8 +111,10 @@ def make_config_file(args):
         config_dict["sourmash_threshold"] = str(args.sourmash_threshold)
     if args.regions:
         config_dict["regions"] = str(args.regions)
-    if args.unimog!=None:
+    if args.unimog!=None and args.integerisation=="skip":
         config_dict["unimog"] = args.unimog
+    elif args.unimog==None and args.integerisation=="skip":
+        raise Exception("Selected to skip integerisation, but missing unimog file as input!")
     for row in resources.index:
         rule = resources.loc[row, "Rule"]
         threads = resources.loc[row, "Threads"]

@@ -1,4 +1,3 @@
-import argparse
 from pling.utils import read_in_batch_pairs
 from pathlib import Path
 from dingII.dingII_generate import *
@@ -6,7 +5,6 @@ from dingII.ilp_util_adj import *
 from dingII.dingII_util import *
 import gurobipy as gp
 from gurobipy import GRB
-from shared_functions import *
 
 #modified function from ding to not take parser Namespace object as input
 def read_unimog(unimog, genome1, genome2):
@@ -114,51 +112,3 @@ def compute_DCJ(unimog, entry1, entry2, timelimit, threads):
         print('Encountered an attribute error')
         raise e
     return int(round(dist))
-
-def batchwise_ding(pairs, containment_distance, containments, integerisation, outputpath, batch, timelimit, threads, plasmid_to_community,unimog_path=None):
-    dists = []
-    for pair in pairs:
-        genome1 = pair[0]
-        genome2 = pair[1]
-        entry1, entry2 = get_entries(integerisation, genome1, genome2)
-        if containments[(genome1,genome2)]<=containment_distance:
-            unimog = get_unimog(outputpath, integerisation, plasmid_to_community, batch, genome1, genome2, unimog_path)
-            dist = compute_DCJ(unimog, entry1, entry2, timelimit, threads)
-            dists.append(f"{genome1}\t{genome2}\t{dist}\n")
-    with open(f"{outputpath}/tmp_files/dists_batchwise/batch_{batch}_dcj.tsv", "w") as f:
-        for line in dists:
-            f.write(line)
-
-def main():
-    # Create the parser
-    parser = argparse.ArgumentParser(description="Process a pair of genomes and create unimogs, containment and sequence blocks output.")
-
-    # Add the arguments
-    parser.add_argument("--batch", required=True, help="Batch number")
-    parser.add_argument("--containment_tsv", required=True)
-    parser.add_argument("--containment_distance", required=True)
-    parser.add_argument("--outputpath", required=True, help="Path for general output directory")
-    parser.add_argument("--communitypath", required=True)
-    parser.add_argument("--integerisation", required=True, type=str)
-    parser.add_argument("--threads", required=True, type=int)
-    parser.add_argument("--timelimit")
-    parser.add_argument("--unimog")
-
-    # Parse the arguments
-    args = parser.parse_args()
-
-    pairs=read_in_batch_pairs(f"{args.outputpath}/batches/batch_{args.batch}.txt")
-    containments=get_containment_distances_for_batch(args.containment_tsv)
-
-    if args.integerisation=="anno":
-        plasmid_to_community = get_plasmid_to_community(args.communitypath)
-    else:
-        plasmid_to_community=None
-
-    if args.integerisation=="skip":
-        batchwise_ding(pairs, float(args.containment_distance), containments, args.integerisation, args.outputpath, args.batch, args.timelimit, args.threads, plasmid_to_community, args.unimog)
-    else:
-        batchwise_ding(pairs, float(args.containment_distance), containments, args.integerisation, args.outputpath, args.batch, args.timelimit, args.threads, plasmid_to_community)
-
-if __name__ == "__main__":
-    main()
