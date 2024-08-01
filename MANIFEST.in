@@ -1,0 +1,6 @@
+include pling/resources.tsv
+include pling/align_snakemake/Snakefile
+include pling/batching/Snakefile
+include pling/dcj_snakemake/Snakefile
+include pling/common_rules/common_rules.smk
+include pling/jac_network_snakemake/Snakefile

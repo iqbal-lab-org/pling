@@ -43,7 +43,6 @@ if config["ilp_solver"] == "GLPK":
         threads: 1 #no multithreading available for GLPK
         resources:
             mem_mb = lambda wildcards, attempt: attempt * config["ilp_mem"]
-        conda: "../envs/ding_and_glpk.yaml"
         shadow: "shallow"
         shell:
                 """
@@ -76,7 +75,6 @@ elif config["ilp_solver"] == "gurobi":
         threads: config["ilp_threads"]
         resources:
             mem_mb = lambda wildcards, attempt: attempt * config["ilp_mem"]
-        conda: "../envs/ding_and_glpk.yaml"
         shadow: "shallow"
         shell:
                 """
@@ -118,7 +116,6 @@ rule build_DCJ_graph:
     threads: 1
     resources:
         mem_mb=lambda wildcards, attempt: config["build_DCJ_graph_mem"]*attempt
-    conda: "../envs/plasnet.yaml"
     params:
         dcj_dist_threshold=config["dcj_dist_threshold"],
         small_subcommunity_size_threshold = config["small_subcommunity_size_threshold"] #Communities with size up to this parameter will be joined to neighbouring larger subcommunities

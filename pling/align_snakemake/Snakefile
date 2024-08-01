@@ -36,7 +36,6 @@ rule make_unimogs:
         identity_threshold = config["identity_threshold"],
         containment_distance = config["seq_containment_distance"],
         pling_root_dir = get_pling_root_dir()
-    conda: "../envs/integerise.yaml"
     shadow: "shallow"
     shell:
         """

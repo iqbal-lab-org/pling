@@ -28,7 +28,6 @@ rule pairwise_seq_containment:
     threads: config["pairwise_seq_containment_threads"]
     resources:
         mem_mb=lambda wildcards, attempt: config["pairwise_seq_containment_mem"]*attempt
-    conda: "../envs/integerise.yaml"
     params:
         genomes_list = config["genomes_list"],
         batch = lambda wildcards: wildcards.batch,
