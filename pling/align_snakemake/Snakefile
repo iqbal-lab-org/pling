@@ -49,7 +49,6 @@ rule make_unimogs:
         pling_root_dir = get_pling_root_dir(),
         regions = get_regions(),
         topology = get_topology(config["topology"])
-    conda: "../envs/integerise.yaml"
     shadow: "shallow"
     shell:
         """

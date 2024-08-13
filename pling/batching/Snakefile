@@ -38,7 +38,6 @@ rule get_batches:
     threads: get_batching_resources("threads")
     resources:
         mem_mb=lambda wildcards, attempt: get_batching_resources("mem")*attempt
-    conda: "../envs/smash.yaml"
     shell:
         """
         PYTHONPATH={params.pling_root_dir} python {params.pling_root_dir}/pling/batching/get_batches.py \

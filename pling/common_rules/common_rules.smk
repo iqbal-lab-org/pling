@@ -50,7 +50,6 @@ rule get_communities:
     threads: 1
     resources:
         mem_mb=lambda wildcards, attempt: config["get_communities_mem"]*attempt
-    conda: "../envs/plasnet.yaml"
     params:
         containment_distance=config["seq_containment_distance"],
         bh_connectivity=config["bh_connectivity"],
