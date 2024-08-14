@@ -67,7 +67,7 @@ rule panaroo:
     params:
         files = lambda wildcards: [f"{OUTPUTPATH}/annotation/{wildcards.community}/bakta/{genome}/{genome}.gff3" for genome in COMMUNITY_TO_PLASMID[wildcards.community]]
     shell:
-        "panaroo -i {params.files} -o {output.pangenome} --clean-mode moderate -a pan --merge_paralogs -t {threads}"
+        "panaroo -i {params.files} -o {output.pangenome} --clean-mode moderate -a pan --merge_paralogs -t {threads} --remove-invalid-genes"
 
 rule gen_minimap_input:
     input:

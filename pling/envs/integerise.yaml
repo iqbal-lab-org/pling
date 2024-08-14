@@ -2,7 +2,6 @@ name: integerise
 channels:
   - conda-forge
   - bioconda
-  - defaults
 dependencies:
  - python =3.8
  - intervaltree =3.0.2
