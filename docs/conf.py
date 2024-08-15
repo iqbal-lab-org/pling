@@ -21,6 +21,8 @@ project = "pling"
 copyright = "2024, Daria Frolova"
 author = "Daria Frolova"
 
+release = '2.0'
+version = '2.0.0'
 
 # -- General configuration ---------------------------------------------------
 # -- General configuration
