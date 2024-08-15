@@ -14,25 +14,13 @@ import subprocess
 import yaml
 from pling import __version__
 
-def get_version():
-    try:
-        pling_dir = get_pling_path()
-        output = subprocess.check_output("git describe --tags", shell=True, cwd=pling_dir).strip()
-        output = output.decode("utf-8").split('-')[0]
-    except:
-        output = "Error getting version."
-    return output
-
-
 def parse_args():
     parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument('--version', action='version', version=__version__)
     parser.add_argument("genomes_list", help="Path to list of fasta file paths.")
     parser.add_argument("output_dir", help="Path to output directory.")
-    parser.add_argument("integerisation", choices=["align"],
-                        help="Integerisation method: \"align\" for alignment.")
     parser.add_argument("integerisation", choices=["align", "skip"],
-                        help="Integerisation method: \"align\" for alignment, \"skip\" to skip integerisation altogether. Make sure to input a unimog file if skipping integerisation."
+                        help="Integerisation method: \"align\" for alignment, \"skip\" to skip integerisation altogether. Make sure to input a unimog file if skipping integerisation.")
     parser.add_argument("--unimog", help="Path to unimog file. Required input if skipping integerisation.")
     parser.add_argument("--containment_distance", default=0.5, help="Threshold for initial containment network.")
     parser.add_argument("--dcj", default=4, help="Threshold for final DCJ-Indel network.")
