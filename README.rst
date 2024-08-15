@@ -1,7 +1,9 @@
-# Pling!
+Pling!
+======
 Pling is a software workflow for plasmid analysis using rearrangement distances, specifically the Double Cut and Join Indel (DCJ-Indel) distance. By intelligently combining containment distance (shared content as fraction of the smaller) and DCJ-indel distance ("how far apart evolutionarily" in a structural sense), and by preventing shared mobile elements from clouding the issue, it infers clusters of related plasmids.
 
-## Dependencies
+Dependencies
+------------
 
 These need to be installed beforehand by the user. All other tool dependancies are handled internally by Pling.
 
@@ -11,13 +13,16 @@ These need to be installed beforehand by the user. All other tool dependancies a
 - pandas >=2.0
 - Optional: gurobi >=10.0.1
 
-## Installation
+Installation
+------------
 
 ```
 git clone https://github.com/iqbal-lab-org/pling.git
 ```
 
-## Basic Usage
+Basic Usage
+-----------
+
 Required input is a text file of a list of paths to fasta files `genomes_list` and a path to an output directory `output_dir`. All the genomes must be circular and complete. If you have all your genomes in one directory, you can navigate to that directory and generate `genomes_list` by running
 
 ```
@@ -30,7 +35,8 @@ The if `pling_path` is the path to the directory to which you downloaded pling, 
 PYTHONPATH=pling_path python pling_path/pling/run_pling.py input.txt output_dir align
 ```
 
-## Description and Output
+Description and Output
+----------------------
 
 Pling runs via the python script `run_pling.py`, which creates a config file and runs three snakemake workflows in succession. It starts by calculating containment distances and transforming nucleotide sequences into integer sequences (integerisation, details below), then calculates DCJ-Indel distances, and finally uses these to build a network and cluster on it. The outputs are:
 
@@ -40,7 +46,8 @@ Pling runs via the python script `run_pling.py`, which creates a config file and
 - **DCJ-Indel subcommunities:** Pling identifies plasmid subcommunities by constructing a DCJ-Indel network, and then clustering on this network. The DCJ-Indel network is a subnetwork of the containment network initially built. Edges are kept if a pair of plasmids fulfil the DCJ-Indel distance threshold. Hub plasmids are isolated in the DCJ-Indel network, with no edges connecting to them (even if they fulfil the DCJ-Indel threshold). On this network Pling clusters using asynchronous label propagation community detection algorithm. Plasmid clusters are labelled by containment community and DCJ-Indel subcommunity, e.g. `community_2_subcommunity_13`, and plasmid to subcommunity assignments are found in `dcj_thresh_4_graph/objects/typing.tsv`. The DCJ-Indel distances are in file `all_plasmid_distances.tsv` (note that the DCJ-Indel distance is only calculated between plasmids which fulfil the containment threshold, so not all pairs of plasmids will be in the file).
 - **Visualisations:** Alongside the distances and clustering, Pling outputs network visualisations to aid in further analysis. These can be useful to look if you want to spot interesting relationships between plasmids, e.g. plasmid fusions. They include visualisations of the full containment network and each containment network individually, found under `containment/containment_communities/visualisations`. All nodes are coloured black, but the edges are labelled by containment distance. Additionally, under `dcj_thresh_4_graph/communities` are visualisations of each plasmid community, where nodes are coloured by subcommunity assignment and edges are labelled with both containment distance and DCJ-Indel distance. Finally, under `dcj_thresh_4_graph/subcommunities` are visualisations of each plasmid subcommunity, where nodes all have the same colour, and edges are labelled by containment distance and DCJ-Indel distance. These subcommunity visualisations don't include edges that don't fulfil the DCJ-Indel threshold, but the others do.
 
-## Integerisation
+Integerisation
+--------------
 
 An important step in the workflow is transforming the nucleotide sequences into integer sequences (integerisation), as this is necessary to calculate the DCJ-Indel distances. There are two approaches to this:
 
@@ -48,7 +55,8 @@ An important step in the workflow is transforming the nucleotide sequences into 
 
 **Annotation:** integers correspond to genes (or conserved blocks of genes). Pangenomes are calculate per plasmid containment community (using panaroo), and this is used for integer assignment. As plasmid communities can be very diverse, panaroo can fail to run on them (this can be somewhat mediated by choosing a stricter containment threshold). Furthermore, gene annotation and pangenome calculation carry a runtime cost, and we have encountered runtime issues with the DCJ-Indel distance calculations as well. If you really want to try this approach, the dataset shouldn't too big and you should know beforehand that there is some similarity between all the plasmids in the dataset. This approach is experimental and we cannot guarantee it will work.
 
-## Advanced Usage
+Advanced Usage
+--------------
 
 ```
 usage: run_pling.py [-h] [--version] [--containment_distance CONTAINMENT_DISTANCE] [--dcj DCJ] [--batch_size BATCH_SIZE] [--sourmash] [--sourmash_threshold SOURMASH_THRESHOLD] [--identity IDENTITY]
@@ -115,11 +123,13 @@ optional arguments:
 
 **Integerisation from annotation parameters:** As gene annotation is done via Bakta (https://github.com/oschwengers/bakta), the Bakta database must be downloaded beforehand and provided via `--bakta_db` to do integerisation from annotation. If a gene is duplicated multiple times across two plasmids for which you are calculating DCJ-Indel, rather than assigning one integer label to all the paralogs, you may want to match together paralogs that are more similar to each other than the other paralogs. This can speed up the DCJ-Indel claculation, and also provide a more realistic distance. We call this process "deduplication" and it can be controlled via the parameters `--dedup` and `--dedup_threshold`. Note that this approach is scarcely tested, and we have not yet identified appropriate thresholds, so use at your own risk.
 
-## Citation
+Citation
+--------
 
 Pling is not yet published.
 
-## Used Tools
+Used Tools
+----------
 
 - DingII: Gitlab - https://gitlab.ub.uni-bielefeld.de/gi/dingiiofficial; DOI - https://doi.org/10.1007/978-3-030-45257-5_1
 - Snakemake 7: Homepage - https://snakemake.readthedocs.io/en/v7.0.0/; DOI - https://doi.org/10.12688/f1000research.29032.1
