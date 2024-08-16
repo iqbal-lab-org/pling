@@ -32,7 +32,7 @@ jobs:
             python=${{ matrix.python-version }}
             snakemake=7.32.4
             pandas
-            sourmash=4.4.0
+            sourmash
             numpy
             intervaltree=3.0.2
             mummer=3.23
