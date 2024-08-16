@@ -215,7 +215,12 @@ def integerise_plasmids(plasmid_1: Path, plasmid_2: Path, prefix: str, plasmid_1
         containment_similarity = coverage_ref/len_ref
     containment_distance = 1-containment_similarity
 
-    if containment_distance<=containment_threshold:
+    if containment_distance==1 or containment_distance>containment_threshold:
+        plasmid_1_unimogs = "1 )"
+        plasmid_2_unimogs = "2 )"
+        blocks_ref = pd.DataFrame({"Plasmid":[], "Block_ID":[], "Start":[], "End":[]})
+        blocks_query = pd.DataFrame({"Plasmid":[], "Block_ID":[], "Start":[], "End":[]})
+    else:
         overlap_threshold = 0
         matches.resolve_overlaps(overlap_threshold)
         ref_to_block, query_to_block, max_id = make_interval_tree_w_dups(matches.list, length_threshold)
@@ -227,11 +232,6 @@ def integerise_plasmids(plasmid_1: Path, plasmid_2: Path, prefix: str, plasmid_1
         plasmid_2_unimogs = get_unimog(query_to_block, max_id, topology_2)
         blocks_ref = get_blocks(plasmid_1_name, ref_to_block)
         blocks_query = get_blocks(plasmid_2_name, query_to_block)
-    else:
-        plasmid_1_unimogs = "1 )"
-        plasmid_2_unimogs = "2 )"
-        blocks_ref = pd.DataFrame({"Plasmid":[], "Block_ID":[], "Start":[], "End":[]})
-        blocks_query = pd.DataFrame({"Plasmid":[], "Block_ID":[], "Start":[], "End":[]})
 
     for extension in [".1coords", ".1delta", ".delta", ".mcoords", ".mdelta", ".qdiff", ".rdiff", ".report", ".snps", ".unqry", ".unref"]:
         try:
