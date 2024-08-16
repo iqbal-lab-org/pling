@@ -1,0 +1,8 @@
+Installation
+============
+
+Conda
+-----
+
+From source
+-----------
