@@ -31,7 +31,7 @@ and then finally install pling with::
 Installing optional dependancies
 --------------------------------
 
-By default, the DCJ-Indel distances are calculated with the open source solver GLPK. Optionally, pling can use Gurobi for its calculations, but this dependancy is not included in the usual pling installation. This is because Gurobi is a commercial software which requires a license, which is free for academic purposes. Information on obtaining this license can be found here: <https://www.gurobi.com/academia/academic-program-and-licenses/>. Gurobi can then be installed via conda as follows::
+By default, the DCJ-Indel distances are calculated with the open source solver GLPK. Optionally, pling can use Gurobi for its calculations, but this dependancy is not included in the usual pling installation. This is because Gurobi is a commercial software which requires a license, which is free for academic purposes. Information on obtaining this license can be found here: https://www.gurobi.com/academia/academic-program-and-licenses/. Gurobi can then be installed via conda as follows::
 
 	conda config --add channels https://conda.anaconda.org/gurobi
 	conda install gurobi=10.0.1
