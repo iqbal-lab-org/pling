@@ -30,9 +30,15 @@ jobs:
               - defaults
           create-args: >-
             python=${{ matrix.python-version }}
-            snakemake
-            mamba
+            snakemake=7.32.4
             pandas
+            sourmash=4.4.0
+            numpy
+            intervaltree=3.0.2
+            mummer=3.23
+            glpk=5.0
+            plasnet
+            dingII
           init-shell: bash
           cache-environment: true
           post-cleanup: 'all'
@@ -45,4 +51,5 @@ jobs:
         shell: bash -el {0}
         run: |
           micromamba activate test-env
+          python -m pip install .
           PYTHONPATH="." python -m unittest discover -s tests -t .
