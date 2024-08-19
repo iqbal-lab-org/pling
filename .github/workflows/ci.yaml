@@ -34,10 +34,10 @@ jobs:
             pandas
             numpy
             intervaltree
-            mummer =3.23
-            glpk =5.0
-            gurobi =10.0.1
-            snakemake =7.32.4
+            mummer=3.23
+            glpk=5.0
+            gurobi=10.0.1
+            snakemake=7.32.4
             plasnet
             dingII
           init-shell: bash
