@@ -30,13 +30,13 @@ jobs:
               - defaults
           create-args: >-
             python=${{ matrix.python-version }}
-            sourmash ~=4.4.0
+            sourmash >=4.4.0, <5.0
             pandas >=1.5.3
             numpy >=1.26.0
             intervaltree >=3.0.2
-            mummer ~=3.23
-            glpk ~=5.0
-            gurobi ~=10.0.1
+            mummer ==3.23
+            glpk ==5.0
+            gurobi ==10.0.1
             snakemake >=7.25.4, <=7.32.4
             plasnet >=0.5.1
             dingII
