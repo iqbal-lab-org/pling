@@ -50,6 +50,7 @@ jobs:
       - name: Test
         shell: bash -el {0}
         run: |
+          micromamba deactivate
           micromamba activate test-env
           python -m pip install .
           PYTHONPATH="." python -m unittest discover -s tests -t .
