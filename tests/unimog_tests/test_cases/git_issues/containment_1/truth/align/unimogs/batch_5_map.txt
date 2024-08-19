@@ -1,0 +1,16 @@
+	Plasmid	Block_ID	Start	End
+3_dup~dup_and_inverse	3_dup	1	1	550
+	3_dup	3	550	1033
+	3_dup	2	1033	2029
+	3_dup	4	2029	2931
+	dup_and_inverse	-2	1	997
+	dup_and_inverse	-1	1025	1574
+	dup_and_inverse	5	1574	6532
+3_dup~inverse_block	3_dup	1	1	550
+	3_dup	3	550	1033
+	3_dup	2	1033	2029
+	3_dup	4	2029	2931
+	inverse_block	1	1	550
+	inverse_block	2	578	1574
+	inverse_block	5	1574	4168
+outlier~2_dup_3_dupoutlier~3_dup_w_inverseoutlier~reference_2

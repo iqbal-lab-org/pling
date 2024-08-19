@@ -1,0 +1,20 @@
+>del_rearrange~dup_and_inverse:del_rearrange
+1 2 3 )
+>del_rearrange~dup_and_inverse:dup_and_inverse
+4 -2 1 5 3 )
+>del_rearrange~inverse_block:del_rearrange
+1 2 3 )
+>del_rearrange~inverse_block:inverse_block
+2 4 -3 -1 )
+>inversion~dup_and_inverse:inversion
+1 2 3 )
+>inversion~dup_and_inverse:dup_and_inverse
+1 2 2 3 )
+>inversion~inverse_block:inversion
+1 2 )
+>inversion~inverse_block:inverse_block
+-1 -2 )
+>dup_and_inverse~inverse_block:dup_and_inverse
+1 3 2 )
+>dup_and_inverse~inverse_block:inverse_block
+-1 -2 )

@@ -1,0 +1,15 @@
+3_dup_w_inverse	outlier	1.0
+3_dup_w_inverse	del_rearrange	1.0
+reference_2	outlier	1.0
+reverse	outlier	1.0
+reverse	del_rearrange	1.0
+outlier	reference	1.0
+outlier	dup_and_inverse	1.0
+outlier	inversion	1.0
+outlier	3_dup	1.0
+outlier	del_rearrange	1.0
+outlier	2_dup_3_dup	1.0
+outlier	inverse_block	1.0
+reference	del_rearrange	1.0
+3_dup	del_rearrange	1.0
+del_rearrange	2_dup_3_dup	1.0

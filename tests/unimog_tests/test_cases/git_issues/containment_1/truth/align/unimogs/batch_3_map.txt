@@ -1,0 +1,25 @@
+	Plasmid	Block_ID	Start	End
+reverse~del_rearrange	reverse	2	1	1457
+	reverse	1	1457	2029
+	del_rearrange	3	1	2365
+	del_rearrange	-1	2365	2937
+	del_rearrange	4	2937	3167
+reverse~inversion	reverse	1	1	997
+	reverse	3	997	1480
+	reverse	2	1480	2029
+	inversion	1	1	997
+	inversion	2	1025	1574
+	inversion	4	1574	4168
+reverse~dup_and_inverse	reverse	1	1	997
+	reverse	3	997	1480
+	reverse	2	1480	2029
+	dup_and_inverse	1	1	997
+	dup_and_inverse	2	1025	1574
+	dup_and_inverse	4	1574	6532
+reverse~inverse_block	reverse	1	1	997
+	reverse	3	997	1480
+	reverse	2	1480	2029
+	inverse_block	-2	1	550
+	inverse_block	-1	578	1574
+	inverse_block	4	1574	4168
+3_dup~outlier

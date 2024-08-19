@@ -1,0 +1,3 @@
+tests/unimog_tests/test_cases/git_issues/input/fastas/genome_1.fna
+tests/unimog_tests/test_cases/git_issues/input/fastas/genome_4.fna
+tests/unimog_tests/test_cases/git_issues/input/fastas/genome_8.fna

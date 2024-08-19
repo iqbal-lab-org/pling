@@ -1,0 +1,20 @@
+>outlier~del_rearrange:outlier
+1 )
+>outlier~del_rearrange:del_rearrange
+2 )
+>outlier~inversion:outlier
+1 )
+>outlier~inversion:inversion
+2 )
+>outlier~dup_and_inverse:outlier
+1 )
+>outlier~dup_and_inverse:dup_and_inverse
+2 )
+>outlier~inverse_block:outlier
+1 )
+>outlier~inverse_block:inverse_block
+2 )
+>2_dup_3_dup~3_dup_w_inverse:2_dup_3_dup
+1 4 2 3 )
+>2_dup_3_dup~3_dup_w_inverse:3_dup_w_inverse
+1 -2 3 )

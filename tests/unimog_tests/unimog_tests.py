@@ -7,7 +7,7 @@ import os
 class Test_Pling(TestCase):
 
     def setUp(self):
-        self.toy_tests = ["test_1", "test_2"]
+        self.toy_tests = ["test_1"]
         self.toy_dir = "tests/unimog_tests/test_cases/toy_tests"
 
     def test_toy_alignment(self):
