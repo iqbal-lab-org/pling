@@ -3,6 +3,15 @@ from pling.utils import read_in_batch_pairs
 from pathlib import Path
 from glpk_and_ding import *
 
+def import_module(module, name):
+    import importlib
+    try:
+        module = importlib.import_module(module)
+        return module if name is None else getattr(module, name)
+    except ImportError as e:
+        msg = f"Missing optional dependency gurobi!"
+        raise ValueError(msg) from e
+
 def get_plasmid_to_community(communitypath):
     plasmid_to_community = {}
     with open(communitypath) as communities_fh:
@@ -42,6 +51,7 @@ def get_entries(integerisation, genome_1, genome_2):
         return genome_1, genome_2
 
 def gurobi_flow(pairs, containment_distance, containments, integerisation, outputpath, batch, timelimit, threads, plasmid_to_community):
+    compute_DCJ = import_module("gurobi_and_ding", "compute_DCJ")
     dists = []
     for pair in pairs:
         genome1 = pair[0]
@@ -117,9 +127,6 @@ def main():
         plasmid_to_community = get_plasmid_to_community(args.communitypath)
     else:
         plasmid_to_community=None
-
-    if args.ilp_solver == "gurobi":
-        from gurobi_and_ding import *
 
     batchwise_ding(pairs, float(args.containment_distance), containments, args.integerisation, args.outputpath, args.distpath, args.batch, args.timelimit, args.threads, args.snakefile_dir, plasmid_to_community, args.unimog, args.ilp_solver)
 
