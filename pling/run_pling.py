@@ -139,25 +139,7 @@ def pling(args):
         print(e)
         raise e
 
-    #integerisation
-    if args.integerisation == "anno":
-        try:
-            print("Building containment network...\n")
-            subprocess.run(f"snakemake --snakefile {get_pling_path()}/jac_network_snakemake/Snakefile {snakemake_args}", shell=True, check=True, capture_output=True)
-            print("Completed containment network.\n")
-        except subprocess.CalledProcessError as e:
-            print(e.stderr.decode())
-            print(e)
-            raise e
-        try:
-            print("Annotating and integerising...\n")
-            subprocess.run(f"snakemake --snakefile {get_pling_path()}/anno_snakemake/Snakefile {snakemake_args}", shell=True, check=True, capture_output=True)
-            print("Completed integerisation.\n")
-        except subprocess.CalledProcessError as e:
-            print(e.stderr.decode())
-            print(e)
-            raise e
-    elif args.integerisation == "align":
+    if args.integerisation == "align":
         try:
             print("Aligning, integerising, and building containment network...\n")
             subprocess.run(f"snakemake --snakefile {get_pling_path()}/align_snakemake/Snakefile {snakemake_args}", shell=True, check=True, capture_output=True)
