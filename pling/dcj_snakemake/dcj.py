@@ -33,9 +33,6 @@ def get_containment_distances_for_batch(containment_tsv):
 def get_unimog(outputpath, integerisation, plasmid_to_community, batch, genome1, genome2, unimog_path=None):
     if integerisation == "align" and unimog_path==None:
         unimog = f"{outputpath}/unimogs/batch_{batch}_align.unimog"
-    elif integerisation == "anno":
-        community = plasmid_to_community[genome1]
-        unimog = f"{outputpath}/unimogs/relabelled/blocks/{community}_blocks.unimog"
     elif integerisation == "skip":
         unimog=unimog_path
     elif integerisation == "align" and unimog_path!=None:
@@ -45,12 +42,10 @@ def get_unimog(outputpath, integerisation, plasmid_to_community, batch, genome1,
 def get_entries(integerisation, genome_1, genome_2):
     if integerisation == "align":
         return f"{genome_1}~{genome_2}:{genome_1}", f"{genome_1}~{genome_2}:{genome_2}"
-    elif integerisation == "anno":
-        return genome_1, genome_2
     elif integerisation == "skip":
         return genome_1, genome_2
 
-def gurobi_flow(pairs, containment_distance, containments, integerisation, outputpath, batch, timelimit, threads, plasmid_to_community):
+def gurobi_flow(pairs, containment_distance, containments, integerisation, outputpath, batch, timelimit, threads, plasmid_to_community, unimog_path):
     compute_DCJ = import_module("gurobi_and_ding", "compute_DCJ")
     dists = []
     for pair in pairs:
@@ -58,12 +53,12 @@ def gurobi_flow(pairs, containment_distance, containments, integerisation, outpu
         genome2 = pair[1]
         entry1, entry2 = get_entries(integerisation, genome1, genome2)
         if containments[(genome1,genome2)]<=containment_distance:
-            unimog = get_unimog(outputpath, integerisation, plasmid_to_community, batch, genome1, genome2)
+            unimog = get_unimog(outputpath, integerisation, plasmid_to_community, batch, genome1, genome2, unimog_path)
             dist = compute_DCJ(unimog, entry1, entry2, timelimit, threads)
             dists.append(f"{genome1}\t{genome2}\t{dist}\n")
     return dists
 
-def GLPK_flow(pairs, containment_distance, containments, integerisation, outputpath, batch, timelimit, snakefile_dir, plasmid_to_community):
+def GLPK_flow(pairs, containment_distance, containments, integerisation, outputpath, batch, timelimit, snakefile_dir, plasmid_to_community, unimog_path):
     output_dirs = [Path(f"ding/ilp"), Path(f"ding/solutions")]
     for dir in output_dirs:
         dir.mkdir(parents=True, exist_ok=True)
@@ -80,7 +75,7 @@ def GLPK_flow(pairs, containment_distance, containments, integerisation, outputp
         solution = f"ding/solutions/{genome1}~{genome2}.sol"
         entry1, entry2 = get_entries(integerisation, genome1, genome2)
         if containments[(genome1,genome2)]<=containment_distance:
-            unimog = get_unimog(outputpath, integerisation, plasmid_to_community, batch, genome1, genome2)
+            unimog = get_unimog(outputpath, integerisation, plasmid_to_community, batch, genome1, genome2, unimog_path)
             unimog_to_ilp(unimog, lp, entry1, entry2)
             ilp_GLPK(lp, solution, snakefile_dir, timelimit)
             dist = dcj_dist(unimog, solution, entry1, entry2)
@@ -89,9 +84,9 @@ def GLPK_flow(pairs, containment_distance, containments, integerisation, outputp
 
 def batchwise_ding(pairs, containment_distance, containments, integerisation, outputpath, distpath, batch, timelimit, threads, snakefile_dir, plasmid_to_community, unimog_path, ilp_solver):
     if ilp_solver == "gurobi":
-        dists=gurobi_flow(pairs, containment_distance, containments, integerisation, outputpath, batch, timelimit, threads, plasmid_to_community)
+        dists=gurobi_flow(pairs, containment_distance, containments, integerisation, outputpath, batch, timelimit, threads, plasmid_to_community, unimog_path)
     elif ilp_solver == "GLPK":
-        dists=GLPK_flow(pairs, containment_distance, containments, integerisation, outputpath, batch, timelimit, snakefile_dir, plasmid_to_community)
+        dists=GLPK_flow(pairs, containment_distance, containments, integerisation, outputpath, batch, timelimit, snakefile_dir, plasmid_to_community, unimog_path)
     else:
         raise Exception(f"{ilp_solver} is an invalid solver!")
     with open(distpath, "w") as f:
@@ -123,10 +118,7 @@ def main():
     pairs=read_in_batch_pairs(args.batch_file)
     containments=get_containment_distances_for_batch(args.containment_tsv)
 
-    if args.integerisation=="anno":
-        plasmid_to_community = get_plasmid_to_community(args.communitypath)
-    else:
-        plasmid_to_community=None
+    plasmid_to_community=None
 
     batchwise_ding(pairs, float(args.containment_distance), containments, args.integerisation, args.outputpath, args.distpath, args.batch, args.timelimit, args.threads, args.snakefile_dir, plasmid_to_community, args.unimog, args.ilp_solver)
 
