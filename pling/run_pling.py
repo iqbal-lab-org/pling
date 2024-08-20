@@ -12,6 +12,7 @@ import pandas as pd
 from pathlib import Path
 import subprocess
 import yaml
+import importlib
 from pling import __version__
 
 def parse_args():
@@ -52,6 +53,12 @@ def parse_args():
 def get_pling_path():
     plingpath = os.path.realpath(os.path.dirname(__file__))
     return plingpath
+
+def check_gurobi(ilp_solver):
+    if ilp_solver == "gurobi":
+        spec = importlib.util.find_spec("gurobi")
+        if spec is None:
+            raise Exception("Missing optional dependency gurobi!")
 
 def make_config_file(args):
     #make configfile
@@ -115,6 +122,9 @@ def make_config_file(args):
     return configfile, tmp_dir, forceall, profile
 
 def pling(args):
+
+    check_gurobi(args.ilp_solver)
+
     configfile, tmp_dir, forceall, profile = make_config_file(args)
 
     snakemake_args = f"--configfile {configfile} --cores {args.cores} --rerun-incomplete --nolock {profile} {forceall}"

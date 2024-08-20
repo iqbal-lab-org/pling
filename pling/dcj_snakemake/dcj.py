@@ -2,7 +2,6 @@ import argparse
 from pling.utils import read_in_batch_pairs
 from pathlib import Path
 from glpk_and_ding import *
-from gurobi_and_ding import *
 
 def get_plasmid_to_community(communitypath):
     plasmid_to_community = {}
@@ -118,6 +117,9 @@ def main():
         plasmid_to_community = get_plasmid_to_community(args.communitypath)
     else:
         plasmid_to_community=None
+
+    if args.ilp_solver == "gurobi":
+        from gurobi_and_ding import *
 
     batchwise_ding(pairs, float(args.containment_distance), containments, args.integerisation, args.outputpath, args.distpath, args.batch, args.timelimit, args.threads, args.snakefile_dir, plasmid_to_community, args.unimog, args.ilp_solver)
 
