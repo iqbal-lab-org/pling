@@ -36,7 +36,8 @@ class Test_Pling(TestCase):
                              sourmash=False,
                              sourmash_threshold=None,
                              topology=None,
-                             regions=False
+                             regions=False,
+                             output_type="html"
                              )
             run_pling.pling(args)
 
@@ -68,7 +69,8 @@ class Test_Pling(TestCase):
                              sourmash=False,
                              sourmash_threshold=None,
                              topology=None,
-                             regions=False
+                             regions=False,
+                             output_type="html"
                              )
             run_pling.pling(args)
 
@@ -118,7 +120,8 @@ class Test_Indels(TestCase):
                              sourmash=False,
                              sourmash_threshold=None,
                              topology=None,
-                             regions=False
+                             regions=False,
+                             output_type="html"
                              )
             run_pling.pling(args)
 
@@ -158,7 +161,8 @@ class Test_Palindrome(TestCase):
                          sourmash=False,
                          sourmash_threshold=None,
                          topology=None,
-                         regions=False
+                         regions=False,
+                         output_type="html"
                          )
         run_pling.pling(args)
 
@@ -194,7 +198,8 @@ class Test_Containment_1(TestCase):
                          sourmash=False,
                          sourmash_threshold=None,
                          topology=None,
-                         regions=False
+                         regions=False,
+                         output_type="html"
                          )
         run_pling.pling(args)
 

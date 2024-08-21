@@ -40,7 +40,8 @@ class Test_Pling_end_to_end(TestCase):
             sourmash=False,
             sourmash_threshold=0.85,
             topology=None,
-            regions=False
+            regions=False,
+            output_type="html"
         )
         run_pling.pling(args)
 
