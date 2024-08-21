@@ -54,6 +54,18 @@ Overview
 
 **Network thresholds:** ``--containment-distance`` and ``--dcj`` control the thresholds at which edges are added to the continament and DCJ-Indel networks. If looking for recent transmissions, we recommend trying threshold 0.3 for the containment distance. If you want to try different DCJ-Indel thresholds with the same containment threshold, you can run Pling at different DCJ-Indel thresholds with the same output directory -- this will mean that only the DCJ-Indel network will be calculated anew, which will significantly reduce runtime. Changing the containment threshold will prompt Pling to rerun the whole workflow though, and so you should change the output directory if you don't want to lose previous results.
 
+**Genome topologies:** By default, pling assumes all genomes are circular, but with ``--topology`` you can include both circular and linear genomes. Give ``--topology`` a file path to a tsv with the following format:
+
+.. code-block:: console
+
+	plasmid	topology
+	genome_1	circular
+	genome_2	circular
+	genome_3	linear
+	genome_4	circular
+	
+You can also run pling on regions of genomes with the ``--regions`` flag.
+
 **Batching:** ``--batch_size``, ``--sourmash`` and ``--sourmash_threshold`` are all associated with the batching step in Pling, in which pairs of plasmids are assigned to a batch. Integerisation and DCJ-Indel calculation is then run per batch, as this improves runtime. If your dataset is in the 1000s, batch sizes of 750 tend to work well. If your dataset is in the order of the 100s or even less, the default batch size should work well enough. If you have a very large (>10k) and diverse dataset, you may want to prefilter which pairs of plasmids you calculate containment distances for and integerise, by first estimating containment distances with sourmash and discarding any too divergent pairs of plasmids early in the workflow.
 
 **Integerisation from alignment parameters:** ``--identity`` and ``--min_indel_size`` control how blocks of sequence are selected during integerisation. For a block of sequence to qualify as shared, its sequence similarity must at least be the value of ``--identity``. Blocks of sequence that are not shared between plasmids are assigned an integer if they are greater than the value of ``--min_indel_size``. Any blocks of sequence less than the value of ``--min_indel_size`` are discarded.
@@ -73,44 +85,44 @@ To run pling on a region of a genome, rather than full genomes, use the ``--regi
 2. the region of interest is embedded in a circular genome
 3. the orientation of the sequences is not known, and should be chosen such that the longest common block of sequence is oriented the same way in both sequences
 
-In practice, assumptions 1 and 2 result in a false integer being added to the integerisation of a pair of sequences. For example, say you have two sequences *A* and *B*, and *1*, *2*, and *3* represent blocks of sequence from *A* and *B*. If *A* and *B* look as follows::
+In practice, assumptions 1 and 2 result in a false integer being added to the integerisation of a pair of sequences. For example, say you have two sequences *A* and *B*, and *1*, *2*, and *3* represent blocks of sequence from *A* and *B*. If *A* and *B* look as follows:
 
-A: 1 3 2
-B: 1 2
+.. code-block:: console
 
-then the integer representation pling uses to calculate DCJ-Indel is::
+	A: 1 3 2
+	B: 1 2
 
-A: 1 3 2 4
-B: 1 2 4
+then the integer representation pling uses to calculate DCJ-Indel is:
 
-Assumption 3 handles the case where e.g. two sequences are the same, but one is the reverse complement of the other. In this case in one of the sequences the false integer has a negative sign, i.e. is reverse complemented, and it would look like this (where *2* is the false integer)::
+.. code-block:: console
 
-A: 1 2
-B: -1 -2
+	A: 1 3 2 4
+	B: 1 2 4
 
-The DCJ-Indel distance in this case is then 0, as the genomes containing *A* and *B* are assumed to be circular. Generally, pling decides orientation based off of the longest shared block of sequence. Say for example *A* and *B* have the form::
+Assumption 3 handles the case where e.g. two sequences are the same, but one is the reverse complement of the other. In this case in one of the sequences the false integer has a negative sign, i.e. is reverse complemented, and it would look like this (where *2* is the false integer):
 
-A: 1 3 2
-B: 1 -2
+.. code-block:: console
 
-where *2* is the longest block of sequence common to A and B. Then the integer representation used by pling would be::
+	A: 1 2
+	B: -1 -2
 
-A: 1 3 2 4
-B: 1 -2 -4
+The DCJ-Indel distance in this case is then 0, as the genomes containing *A* and *B* are assumed to be circular. Generally, pling decides orientation based off of the longest shared block of sequence. Say for example *A* and *B* have the form:
+
+.. code-block:: console
+
+	A: 1 3 2
+	B: 1 -2
+
+where *2* is the longest block of sequence common to A and B. Then the integer representation used by pling would be:
+
+.. code-block:: console
+
+	A: 1 3 2 4
+	B: 1 -2 -4
 
 These assumptions were chosen to hopefully best reflect what type of sequences pling will be used on; however, other assumptions may also have been reasonable for modelling regions. It is worth noting though that modifying the assumptions made for calculating on regions usually only slightly change the DCJ-Indel distances (plus or minus a few DCJ-Indel operations), if at all.
 
 You cannot use both the ``--topology`` and ``--regions`` options at the same time - ``--regions`` will override ``--topology`` and assume all input sequences are regions embedded in circular genomes.
-
-Improving runtime
------------------
-
-If you are finding pling is being slow, there's a couple of things you can try that may improve run times:
-
-1. **Increase number of cores:** By default, pling runs with only one core/thread. Increasing the number of cores with ``cores`` can help significantly.
-2. **Increase batch size:** Pling assigns pairs of plasmids to a batch, and then integerisation and DCJ-Indel calculation are run per batch, as this improves runtime. You can increase the number of pairs per batch size via ``batch_size``. On larger datasets this can improve runtimes, as increasing the batch sizes (and therefore decreasing the number of batches overall) decreases the overhead of managing those batches. If your dataset is in the 1000s, batch sizes of 750 tend to work well.
-3. **Prefilter pairs of plasmids with sourmash:** If you have a very large (>10k) and diverse dataset, you may want to prefilter which pairs of plasmids you calculate containment distances for and integerise, by first estimating containment distances with sourmash and discarding any too divergent pairs of plasmids early in the workflow. Note that sourmash is a kmer sketching approach, and will sometimes fail to correctly estimate containment for very small plasmids (~5kb and smaller). To run the prefiltering, use the ``sourmash`` flag, and you can modify the containment distance at which plasmid pairs get filtered out with ``sourmash_threshold``. We have found that sourmash generally overestimates containment distance, which is why the default threshold for sourmash is 0.85. Decreasing the threshold will filter out more pairs, and therefore decrease run time, but also increases the risk of wrongly discarding pairs. As a general rule of thumb, a sourmash threshold that is higher than the overall containment distance threshold by 0.25 or 0.35 shouldn't wrongly discard pairs.
-4. **Use gurobi as the ILP solver:** This is not worth trying unless you have already tried the previous options and still want a quicker run time. By default, pling calculates DCJ-Indel with the ILP solver GLPK, which is free and open source. Gurobi is an alternative, faster ILP solver, but is a commercial software. Please see installation of optional dependancies for more instructions on how to set it up. This is only worth doing if you are planning to use pling repreatedly on large datasets. After installation, use ``--ilp_solver gurobi`` to run pling with gurobi.
 
 Skipping integerisation and unimog file format
 ----------------------------------------------
@@ -145,19 +157,34 @@ If you want to construct a unimog file for regions of genomes, rather than full 
 	>genome_4
 	2 4 5 )
 
-Note that as genome_3 is linear, the false integer here means the region of interest is right at the start of the genome. If this is not the case, you may want to integerise with::
+Note that as genome_3 is linear, the false integer here means the region of interest is right at the start of the genome. If this is not the case, you may want to integerise with:
 
->genome_3
-6 1 2 4 5 |
+.. code-block:: console
 
-for regions that are in the middle of a genome, or::
+	>genome_3
+	6 1 2 4 5 |
 
->genome_3
-5 1 2 4 |
+for regions that are in the middle of a genome, or:
+
+.. code-block:: console
+
+	>genome_3
+	5 1 2 4 |
 
 for regions that are at the end.
 
 For more information on the unimog file format, please refer to https://bibiserv.cebitec.uni-bielefeld.de/dcj?id=dcj_manual.
+
+
+Improving runtime
+-----------------
+
+If you are finding pling is being slow, there's a couple of things you can try that may improve run times:
+
+1. **Increase number of cores:** By default, pling runs with only one core/thread. Increasing the number of cores with ``cores`` can help significantly.
+2. **Increase batch size:** Pling assigns pairs of plasmids to a batch, and then integerisation and DCJ-Indel calculation are run per batch, as this improves runtime. You can increase the number of pairs per batch size via ``batch_size``. On larger datasets this can improve runtimes, as increasing the batch sizes (and therefore decreasing the number of batches overall) decreases the overhead of managing those batches. If your dataset is in the 1000s, batch sizes of 750 tend to work well.
+3. **Prefilter pairs of plasmids with sourmash:** If you have a very large (>10k) and diverse dataset, you may want to prefilter which pairs of plasmids you calculate containment distances for and integerise, by first estimating containment distances with sourmash and discarding any too divergent pairs of plasmids early in the workflow. Note that sourmash is a kmer sketching approach, and will sometimes fail to correctly estimate containment for very small plasmids (~5kb and smaller). To run the prefiltering, use the ``sourmash`` flag, and you can modify the containment distance at which plasmid pairs get filtered out with ``sourmash_threshold``. We have found that sourmash generally overestimates containment distance, which is why the default threshold for sourmash is 0.85. Decreasing the threshold will filter out more pairs, and therefore decrease run time, but also increases the risk of wrongly discarding pairs. As a general rule of thumb, a sourmash threshold that is higher than the overall containment distance threshold by 0.25 or 0.35 shouldn't wrongly discard pairs.
+4. **Use gurobi as the ILP solver:** This is not worth trying unless you have already tried the previous options and still want a quicker run time. By default, pling calculates DCJ-Indel with the ILP solver GLPK, which is free and open source. Gurobi is an alternative, faster ILP solver, but is a commercial software. Please see installation of optional dependancies for more instructions on how to set it up. This is only worth doing if you are planning to use pling repreatedly on large datasets. After installation, use ``--ilp_solver gurobi`` to run pling with gurobi.
 
 Integerisation from annotation (pling v1)
 -----------------------------------------
@@ -169,7 +196,7 @@ As of version 2, pling no longer does integerisation from gene annotation, as we
 - Snakemake >=7.25.4, <=7.32.4
 - pandas >=2.0
 
-To run, required input is a list of paths to fasta files ``genomes_list`` and a path to an output directory ``output_dir``. All the genomes must be circular and complete. If ``pling_path`` is the path to the directory to which you downloaded pling, then usage is
+To run, required input is a list of paths to fasta files ``genomes_list`` and a path to an output directory ``output_dir``. All the genomes must be circular and complete. If ``pling_path`` is the path to the directory to which you downloaded pling, then usage is::
 
 PYTHONPATH=<pling_path> python <pling_path>/pling/run_pling.py <genomes_list> <output_dir> anno --bakta_db <bakta_db>
 
