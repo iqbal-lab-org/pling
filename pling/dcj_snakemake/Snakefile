@@ -98,12 +98,14 @@ rule build_DCJ_graph:
         mem_mb=lambda wildcards, attempt: config["build_DCJ_graph_mem"]*attempt
     params:
         dcj_dist_threshold=config["dcj_dist_threshold"],
-        small_subcommunity_size_threshold = config["small_subcommunity_size_threshold"] #Communities with size up to this parameter will be joined to neighbouring larger subcommunities
+        small_subcommunity_size_threshold = config["small_subcommunity_size_threshold"], #Communities with size up to this parameter will be joined to neighbouring larger subcommunities
+        output_type = config["output_type"]
     shell: """
             plasnet type \
                 --distance-threshold {params.dcj_dist_threshold} \
                 --small-subcommunity-size-threshold {params.small_subcommunity_size_threshold} \
                 {input.communities} \
                 {input.distances_tsv} \
-                {output.dcj_graph_outdir}
+                {output.dcj_graph_outdir} \
+                --output-type {params.output_type}
         """

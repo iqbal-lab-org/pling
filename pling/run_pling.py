@@ -35,6 +35,7 @@ def parse_args():
     parser.add_argument("--bh_connectivity", default=10, help="Minimum number of connections a plasmid need to be considered a hub plasmid.")
     parser.add_argument("--bh_neighbours_edge_density", default=0.2, help="Maximum number of edge density between hub plasmid neighbours to label the plasmid as hub.")
     parser.add_argument("--small_subcommunity_size_threshold", default=4, help="Communities with size up to this parameter will be joined to neighbouring larger subcommunities.")
+    parser.add_argument("--output_type", choices=["html", "json", "both"], default="html", help="Whether to output networks as html visualisations, cytoscape formatted json, or both.")
     parser.add_argument("--plasmid_metadata", help="Metadata to add beside plasmid ID on the visualisation graph. Must be a tsv with a single column, with data in the same order as in genomes_list.")
     parser.add_argument("--ilp_solver", choices=["GLPK", "gurobi"], default="GLPK",
                         help="ILP solver to use. Default is GLPK, which is slower but is bundled with pling and is free. "
@@ -97,7 +98,7 @@ def make_config_file(args):
 
     configfile = f"{args.output_dir}/tmp_files/config.yaml"
 
-    config_dict = {"genomes_list": str(args.genomes_list), "output_dir": str(args.output_dir), "integerisation": str(args.integerisation), "seq_containment_distance": float(args.containment_distance), "dcj_dist_threshold": int(args.dcj), "prefix": "all_plasmids","communities": f"{args.output_dir}/containment/containment_communities", "identity_threshold": float(args.identity), "length_threshold": int(args.min_indel_size), "bh_connectivity": int(args.bh_connectivity), "bh_neighbours_edge_density": float(args.bh_neighbours_edge_density), "small_subcommunity_size_threshold": int(args.small_subcommunity_size_threshold),"metadata": metadata, "ilp_solver": str(args.ilp_solver), "timelimit": timelimit, "batch_size": int(args.batch_size), "topology": topology}
+    config_dict = {"genomes_list": str(args.genomes_list), "output_dir": str(args.output_dir), "integerisation": str(args.integerisation), "seq_containment_distance": float(args.containment_distance), "dcj_dist_threshold": int(args.dcj), "prefix": "all_plasmids","communities": f"{args.output_dir}/containment/containment_communities", "identity_threshold": float(args.identity), "length_threshold": int(args.min_indel_size), "bh_connectivity": int(args.bh_connectivity), "bh_neighbours_edge_density": float(args.bh_neighbours_edge_density), "small_subcommunity_size_threshold": int(args.small_subcommunity_size_threshold), "output_type": str(args.output_type), "metadata": metadata, "ilp_solver": str(args.ilp_solver), "timelimit": timelimit, "batch_size": int(args.batch_size), "topology": topology}
 
     if args.sourmash:
         config_dict["sourmash"] = str(args.sourmash)
