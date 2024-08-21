@@ -7,9 +7,9 @@ Required input is a text file of a list of paths to fasta files ``genomes_list``
 
     ls -d -1 $PWD/*.fasta > input.txt
 
-Then if `pling_path` is the path to the directory to which you downloaded pling, then usage is
+Then usage is
 
 .. code-block:: console
 
-    PYTHONPATH=pling_path python pling_path/pling/run_pling.py input.txt output_dir align
+    pling input.txt output_dir align
 
