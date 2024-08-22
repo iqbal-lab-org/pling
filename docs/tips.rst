@@ -23,7 +23,7 @@ Interpreting pling networks
 
 In addition to the clustering, studying and interpreting the pling networks can indicate interesting evolutionary events. Here are collected a couple of examples from real data to showcase what you might want to look out for.
 
-Example 1: Cointegrate bridging subcommunities
+**Example 1: Cointegrate bridging subcommunities**
 
 .. image:: images/russian_dolls_fusion.png
    :alt:  fusion bridging two subcommunities
@@ -31,7 +31,7 @@ Example 1: Cointegrate bridging subcommunities
    
 This example was also discussed in figure 4 of the pling paper. The central plasmid bridges two otherwise completely distinct subcommunities, and the distances between that plasmid and the remaining plasmids are low both in terms of containment and DCJ-Indel. This makes it a likely candidate for a cointegrate plasmid, and checking additional data such as plasmid length and Inc types, as well looking at visualisations of alignments between these plasmids, confirms this.
 
-Example 2: Cointegrates and parental plasmids in a single subcommunity:
+**Example 2: Cointegrates and parental plasmids in a single subcommunity**
 
 .. image:: images/plasmid_cointegrates.png
    :alt:  cointegrates and parents
@@ -40,7 +40,7 @@ Example 2: Cointegrates and parental plasmids in a single subcommunity:
 In this example, cointegrates and their parental plasmids form one subcommunity. The five leftmost plasmids are IncR plasmids, while the five rightmost are IncFIB-FII. The three in the middle are IncFII-FIB-R plasmids, which are three cointegrate plasmids formed from the fusion of the IncR and IncFIB-FII plasmids. Like in the previous example, the cointegrates bridge the parental plasmids together. In this case, rather than being split into two subcommunities, they all end up in one -- this is because there aren't enough samples from the parents and cointegrate to create distinct enough structures on the network for the clustering algorithm to pick up on them being different. This is generally something worth looking out for, if e.g. you find a pling subcommunity has no core, check Inc types or length distributions. If you find both single and multireplicon plasmids, or have a very spread out or bimodal length distribution, that may indicate the subcommunity contains both cointegrates and their parental plasmids.
 (This example and figure is courtesy of Sandra Reuters)
    
-Example 3: Hub plasmids
+**Example 3: Hub plasmids**
 
 .. image:: images/russian_dolls_network.png
    :alt:  hub plasmids
