@@ -1,8 +1,0 @@
-channels:
-  - conda-forge
-  - bioconda
-dependencies:
-  - python =3.10
-  - sourmash =4.4.0
-  - pandas =1.5.3
-  - numpy =1.26.0

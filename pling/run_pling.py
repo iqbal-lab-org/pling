@@ -12,27 +12,21 @@ import pandas as pd
 from pathlib import Path
 import subprocess
 import yaml
-
-def get_version():
-    try:
-        pling_dir = get_pling_path()
-        output = subprocess.check_output("git describe --tags", shell=True, cwd=pling_dir).strip()
-        output = output.decode("utf-8").split('-')[0]
-    except:
-        output = "Error getting version."
-    return output
-
+import importlib
+from pling import __version__
 
 def parse_args():
     parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-    parser.add_argument('--version', action='version', version=get_version())
+    parser.add_argument('--version', action='version', version=__version__)
     parser.add_argument("genomes_list", help="Path to list of fasta file paths.")
     parser.add_argument("output_dir", help="Path to output directory.")
-    parser.add_argument("integerisation", choices=["anno", "align"],
-                        help="Integerisation method: \"anno\" for annotation and \"align\" for alignment."
-                             " Note that recommended method is integerisation from alignment.")
+    parser.add_argument("integerisation", choices=["align", "skip"],
+                        help="Integerisation method: \"align\" for alignment, \"skip\" to skip integerisation altogether. Make sure to input a unimog file if skipping integerisation.")
+    parser.add_argument("--unimog", help="Path to unimog file. Required input if skipping integerisation.")
     parser.add_argument("--containment_distance", default=0.5, help="Threshold for initial containment network.")
     parser.add_argument("--dcj", default=4, help="Threshold for final DCJ-Indel network.")
+    parser.add_argument("--regions", action="store_true", help="Cluster regions rather than complete genomes. Assumes regions are taken from circular plasmids.")
+    parser.add_argument("--topology", help="File stating whether plasmids are circular or linear. Must be a tsv with two columns, one with plasmid IDs under \"plasmid\" and one with \"linear\" or \"circular\" as entries under \"topology\". Without this file, pling will asume all plasmids are circular.")
     parser.add_argument("--batch_size", default = 200, help="How many pairs of genomes to run together in one go (for integerisation from alignment and DCJ calculation steps).")
     parser.add_argument("--sourmash", action="store_true", help="Run sourmash as first filter on which pairs to calculate DCJ on. Recommended for large and very diverse datasets.")
     parser.add_argument("--sourmash_threshold", default=0.85, help="Threshold for filtering with sourmash.")
@@ -41,6 +35,7 @@ def parse_args():
     parser.add_argument("--bh_connectivity", default=10, help="Minimum number of connections a plasmid need to be considered a hub plasmid.")
     parser.add_argument("--bh_neighbours_edge_density", default=0.2, help="Maximum number of edge density between hub plasmid neighbours to label the plasmid as hub.")
     parser.add_argument("--small_subcommunity_size_threshold", default=4, help="Communities with size up to this parameter will be joined to neighbouring larger subcommunities.")
+    parser.add_argument("--output_type", choices=["html", "json", "both"], default="html", help="Whether to output networks as html visualisations, cytoscape formatted json, or both.")
     parser.add_argument("--plasmid_metadata", help="Metadata to add beside plasmid ID on the visualisation graph. Must be a tsv with a single column, with data in the same order as in genomes_list.")
     parser.add_argument("--ilp_solver", choices=["GLPK", "gurobi"], default="GLPK",
                         help="ILP solver to use. Default is GLPK, which is slower but is bundled with pling and is free. "
@@ -51,9 +46,6 @@ def parse_args():
     parser.add_argument("--profile", help="To run on a cluster with corresponding snakemake profile.")
     #parser.add_argument("--storetmp", action="store_true", help="Don't delete intermediate temporary files.")
     parser.add_argument("--forceall", action="store_true", help="Force snakemake to rerun everything.")
-    parser.add_argument("--dedup", action="store_true", help="Whether or not to deduplicate (for integerisation from annotation).")
-    parser.add_argument("--dedup_threshold", default=98.5, help="Threshold for separating paralogs in deduplication step (for integerisation from annotation).")
-    parser.add_argument("--bakta_db", help="Path to bakta database (required for integerisation from annotation).")
 
     args = parser.parse_args()
     return args
@@ -62,6 +54,12 @@ def parse_args():
 def get_pling_path():
     plingpath = os.path.realpath(os.path.dirname(__file__))
     return plingpath
+
+def check_gurobi(ilp_solver):
+    if ilp_solver == "gurobi":
+        spec = importlib.util.find_spec("gurobi")
+        if spec is None:
+            raise Exception("Missing optional dependency gurobi!")
 
 def make_config_file(args):
     #make configfile
@@ -79,6 +77,11 @@ def make_config_file(args):
     else:
         metadata= args.metadata
 
+    if args.topology==None:
+        topology = "None"
+    else:
+        topology= args.topology
+
     profile = ""
     if args.profile!=None:
         profile = f"--profile {args.profile}"
@@ -94,13 +97,18 @@ def make_config_file(args):
     tmp_dir.mkdir(parents=True, exist_ok=True)
 
     configfile = f"{args.output_dir}/tmp_files/config.yaml"
-    config_dict = {"genomes_list": str(args.genomes_list), "output_dir": str(args.output_dir), "integerisation": str(args.integerisation), "bakta_db": str(args.bakta_db), "seq_containment_distance": float(args.containment_distance), "dcj_dist_threshold": int(args.dcj), "prefix": "all_plasmids","communities": f"{args.output_dir}/containment/containment_communities", "identity_threshold": float(args.identity), "length_threshold": int(args.min_indel_size), "bh_connectivity": int(args.bh_connectivity), "bh_neighbours_edge_density": float(args.bh_neighbours_edge_density), "small_subcommunity_size_threshold": int(args.small_subcommunity_size_threshold),"metadata": metadata, "ilp_solver": str(args.ilp_solver), "timelimit": timelimit, "batch_size": int(args.batch_size)}
-    if args.dedup:
-        config_dict["dedup"] = str(args.dedup)
-        config_dict["dedup_threshold"] = str(args.dedup_threshold)
+
+    config_dict = {"genomes_list": str(args.genomes_list), "output_dir": str(args.output_dir), "integerisation": str(args.integerisation), "seq_containment_distance": float(args.containment_distance), "dcj_dist_threshold": int(args.dcj), "prefix": "all_plasmids","communities": f"{args.output_dir}/containment/containment_communities", "identity_threshold": float(args.identity), "length_threshold": int(args.min_indel_size), "bh_connectivity": int(args.bh_connectivity), "bh_neighbours_edge_density": float(args.bh_neighbours_edge_density), "small_subcommunity_size_threshold": int(args.small_subcommunity_size_threshold), "output_type": str(args.output_type), "metadata": metadata, "ilp_solver": str(args.ilp_solver), "timelimit": timelimit, "batch_size": int(args.batch_size), "topology": topology}
+
     if args.sourmash:
         config_dict["sourmash"] = str(args.sourmash)
         config_dict["sourmash_threshold"] = str(args.sourmash_threshold)
+    if args.regions:
+        config_dict["regions"] = str(args.regions)
+    if args.unimog!=None and args.integerisation=="skip":
+        config_dict["unimog"] = args.unimog
+    elif args.unimog==None and args.integerisation=="skip":
+        raise Exception("Selected to skip integerisation, but missing unimog file as input!")
     for row in resources.index:
         rule = resources.loc[row, "Rule"]
         threads = resources.loc[row, "Threads"]
@@ -115,9 +123,12 @@ def make_config_file(args):
     return configfile, tmp_dir, forceall, profile
 
 def pling(args):
+
+    check_gurobi(args.ilp_solver)
+
     configfile, tmp_dir, forceall, profile = make_config_file(args)
 
-    snakemake_args = f"--configfile {configfile} --cores {args.cores} --use-conda --rerun-incomplete --nolock {profile} {forceall}"
+    snakemake_args = f"--configfile {configfile} --cores {args.cores} --rerun-incomplete --nolock {profile} {forceall}"
 
     #batching
     try:
@@ -129,29 +140,22 @@ def pling(args):
         print(e)
         raise e
 
-    #integerisation
-    if args.integerisation == "anno":
-        try:
-            print("Building containment network...\n")
-            subprocess.run(f"snakemake --snakefile {get_pling_path()}/jac_network_snakemake/Snakefile {snakemake_args}", shell=True, check=True, capture_output=True)
-            print("Completed containment network.\n")
-        except subprocess.CalledProcessError as e:
-            print(e.stderr.decode())
-            print(e)
-            raise e
-        try:
-            print("Annotating and integerising...\n")
-            subprocess.run(f"snakemake --snakefile {get_pling_path()}/anno_snakemake/Snakefile {snakemake_args}", shell=True, check=True, capture_output=True)
-            print("Completed integerisation.\n")
-        except subprocess.CalledProcessError as e:
-            print(e.stderr.decode())
-            print(e)
-            raise e
-    elif args.integerisation == "align":
+    if args.integerisation == "align":
         try:
             print("Aligning, integerising, and building containment network...\n")
             subprocess.run(f"snakemake --snakefile {get_pling_path()}/align_snakemake/Snakefile {snakemake_args}", shell=True, check=True, capture_output=True)
             print("Completed integerisation and containment network.\n")
+        except subprocess.CalledProcessError as e:
+            print(e.stderr.decode())
+            print(e)
+            raise e
+    elif args.integerisation == "skip":
+        if args.unimog==None:
+            raise Exception("Skipping integerisation but there is no unimog file provided!")
+        try:
+            print("Building containment network...\n")
+            subprocess.run(f"snakemake --snakefile {get_pling_path()}/jac_network_snakemake/Snakefile {snakemake_args}", shell=True, check=True, capture_output=True)
+            print("Completed containment network.\n")
         except subprocess.CalledProcessError as e:
             print(e.stderr.decode())
             print(e)

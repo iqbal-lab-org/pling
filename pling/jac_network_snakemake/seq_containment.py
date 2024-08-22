@@ -21,8 +21,8 @@ def get_coordinates(split_line, index):
     return start, end
 
 def get_sequence_containment_distance(plasmid_1: Path, plasmid_2: Path, prefix: str, identity_threshold=80) -> Tuple[str, str]:
-    subprocess.check_call(f"perl -w $(which dnadiff) {plasmid_1} {plasmid_2} -p {prefix} 2>/dev/null", shell=True)
-    show_coords_output = subprocess.check_output(f"show-coords -TrcldH -I {identity_threshold} {prefix}.1delta", shell=True).strip().split(b'\n')  # TODO: what about this threshold?
+    subprocess.check_call(f"nucmer --diagdiff 20 --breaklen 500  --maxmatch -p {prefix} {plasmid_1} {plasmid_2} && delta-filter -qr {prefix}.delta > {prefix}.1delta", shell=True)
+    show_coords_output = subprocess.check_output(f"show-coords -TrcldH -I {identity_threshold} {prefix}.1delta", shell=True).strip().split(b'\n') 
 
     assert(len(show_coords_output)>0)
 

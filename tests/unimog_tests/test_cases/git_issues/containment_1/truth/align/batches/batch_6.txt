@@ -1,0 +1,5 @@
+['outlier', 'del_rearrange']
+['outlier', 'inversion']
+['outlier', 'dup_and_inverse']
+['outlier', 'inverse_block']
+['2_dup_3_dup', '3_dup_w_inverse']

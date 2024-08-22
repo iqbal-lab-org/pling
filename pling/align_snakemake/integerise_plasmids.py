@@ -4,6 +4,7 @@ from pathlib import Path
 from typing import Tuple
 import pandas as pd
 from matches import *
+import warnings
 
 def make_interval_tree_w_dups(block_coords, length_threshold):
     ref_to_block = IntervalTree()
@@ -42,12 +43,36 @@ def populate_interval_tree_with_unmatched_blocks(interval_tree, total_length, bl
                 block_index+=1
         else:
             pos+=1
+    return block_index
 
-def get_unimog(interval_tree):
+def longest_block(interval_tree):
+    lengths = sorted([(interval.end-interval.begin, interval.data) for interval in sorted(interval_tree)], key=lambda x: x[0], reverse=True)
+    return lengths[0][1]
+
+def check_rev_comp(ref_tree, query_tree, fake):
+    ref_block = longest_block(ref_tree)
+    query_block = longest_block(query_tree)
+    if ref_block == query_block:
+        return fake
+    elif ref_block == -query_block:
+        return -fake
+    else:
+        warning.warn("Longest block on reference does not equal longest block on query. Cannot decide orientation, so assume both regions are oriented the same way.")
+        return fake
+
+def get_unimog(interval_tree, fake=None, topology="circular"):
     intervals=[]
     for interval in sorted(interval_tree):
         intervals.append(str(interval.data))
-    intervals.append(")")
+    if topology == "circular":
+        intervals.append(")")
+    elif topology == "linear":
+        intervals.append("|")
+    elif topology == "region":
+        intervals.append(str(fake))
+        intervals.append(")")
+    else:
+        raise Exception(f"\"{topology}\" is an invalid plasmid topology!")
     return ' '.join(intervals)
 
 def get_blocks(plasmid, interval_tree):
@@ -108,8 +133,8 @@ def sort_and_update_indels(indels):
             updated_indels.append(indels[i])
     return updated_indels
 
-def integerise_plasmids(plasmid_1: Path, plasmid_2: Path, prefix: str, plasmid_1_name, plasmid_2_name, containment_threshold, identity_threshold=80, length_threshold=200):
-    subprocess.check_call(f"nucmer --diagdiff 20 --breaklen 500  --maxmatch -p {prefix} {plasmid_1} {plasmid_2} && delta-filter -1 {prefix}.delta > {prefix}.1delta", shell=True)
+def integerise_plasmids(plasmid_1: Path, plasmid_2: Path, prefix: str, plasmid_1_name, plasmid_2_name, containment_threshold, identity_threshold=80, topology_1="circular", topology_2="circular", length_threshold=200):
+    subprocess.check_call(f"nucmer --diagdiff 20 --breaklen 500  --maxmatch -p {prefix} {plasmid_1} {plasmid_2} && delta-filter -qr {prefix}.delta > {prefix}.1delta", shell=True)
     show_coords_output = subprocess.check_output(f"show-coords -TrcldH -I {identity_threshold} {prefix}.1delta", shell=True).strip().split(b'\n')  # TODO: what about this threshold?
     show_snps_output = subprocess.check_output(f"show-snps -TrH {prefix}.1delta", shell=True).strip().split(b'\n')
 
@@ -190,21 +215,23 @@ def integerise_plasmids(plasmid_1: Path, plasmid_2: Path, prefix: str, plasmid_1
         containment_similarity = coverage_ref/len_ref
     containment_distance = 1-containment_similarity
 
-    if containment_distance<=containment_threshold:
-        overlap_threshold = 0
-        matches.resolve_overlaps(overlap_threshold)
-        ref_to_block, query_to_block, max_id = make_interval_tree_w_dups(matches.list, length_threshold)
-        populate_interval_tree_with_unmatched_blocks(ref_to_block, len_ref, max_id+1, length_threshold)
-        populate_interval_tree_with_unmatched_blocks(query_to_block, len_query, len(ref_to_block)+1, length_threshold)
-        plasmid_1_unimogs = get_unimog(ref_to_block)
-        plasmid_2_unimogs = get_unimog(query_to_block)
-        blocks_ref = get_blocks(plasmid_1_name, ref_to_block)
-        blocks_query = get_blocks(plasmid_2_name, query_to_block)
-    else:
+    if containment_distance==1 or containment_distance>containment_threshold:
         plasmid_1_unimogs = "1 )"
         plasmid_2_unimogs = "2 )"
         blocks_ref = pd.DataFrame({"Plasmid":[], "Block_ID":[], "Start":[], "End":[]})
         blocks_query = pd.DataFrame({"Plasmid":[], "Block_ID":[], "Start":[], "End":[]})
+    else:
+        overlap_threshold = 0
+        matches.resolve_overlaps(overlap_threshold)
+        ref_to_block, query_to_block, max_id = make_interval_tree_w_dups(matches.list, length_threshold)
+        max_id = populate_interval_tree_with_unmatched_blocks(ref_to_block, len_ref, max_id+1, length_threshold)
+        max_id = populate_interval_tree_with_unmatched_blocks(query_to_block, len_query, len(ref_to_block)+1, length_threshold)
+        plasmid_1_unimogs = get_unimog(ref_to_block, max_id, topology_1)
+        if topology_1 == "region":
+            max_id = check_rev_comp(ref_to_block, query_to_block, max_id)
+        plasmid_2_unimogs = get_unimog(query_to_block, max_id, topology_2)
+        blocks_ref = get_blocks(plasmid_1_name, ref_to_block)
+        blocks_query = get_blocks(plasmid_2_name, query_to_block)
 
     for extension in [".1coords", ".1delta", ".delta", ".mcoords", ".mdelta", ".qdiff", ".rdiff", ".report", ".snps", ".unqry", ".unref"]:
         try:

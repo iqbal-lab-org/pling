@@ -12,6 +12,18 @@ FASTAFILES = [el[0] for el in pd.read_csv(config["genomes_list"], header=None).v
 FASTAEXT = {os.path.splitext(os.path.basename(el))[0]:os.path.splitext(os.path.basename(el))[1] for el in FASTAFILES}
 GENOMES = list(FASTAEXT.keys())
 
+def get_regions():
+    if config.get("regions", False):
+        return "--regions"
+    else:
+        return ""
+
+def get_topology(topology):
+    if config["topology"]=="None":
+        return ""
+    else:
+        return f"--topology {topology}"
+
 include: "../common_rules/common_rules.smk"
 
 rule all:
@@ -31,22 +43,24 @@ rule make_unimogs:
         mem_mb=lambda wildcards, attempt: config["make_unimogs_mem"]*attempt
     params:
         genomes_list = config["genomes_list"],
-        batch = lambda wildcards: wildcards.batch,
         outputpath = OUTPUTPATH,
         identity_threshold = config["identity_threshold"],
         containment_distance = config["seq_containment_distance"],
-        pling_root_dir = get_pling_root_dir()
-    conda: "../envs/integerise.yaml"
+        pling_root_dir = get_pling_root_dir(),
+        regions = get_regions(),
+        topology = get_topology(config["topology"])
     shadow: "shallow"
     shell:
         """
         PYTHONPATH={params.pling_root_dir} python {params.pling_root_dir}/pling/align_snakemake/unimog.py \
             --genomes_list {params.genomes_list} \
-            --batch {params.batch} \
+            --batch {input.batch_list} \
             --identity_threshold {params.identity_threshold} \
             --containment_distance {params.containment_distance} \
             --outputpath {params.outputpath} \
             --containment_output {output.containment} \
             --unimog_output {output.unimog} \
-            --map_output {output.map}
+            --map_output {output.map} \
+            {params.regions} \
+            {params.topology}
         """

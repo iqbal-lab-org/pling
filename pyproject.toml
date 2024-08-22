@@ -1,0 +1,19 @@
+[build-system]
+requires = ["setuptools", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "pling"
+version = "2.0.0"
+description = "Pling computes the rearrangement distance between plasmids"
+authors = [{name = "Daria Frolova", email = "daria@ebi.ac.uk"}, {name = "Leandro Lima", email = "leandro@ebi.ac.uk"}]
+license = {text = "MIT"}
+readme = "README.md"
+keywords = ["Plasmids", "Comparative genomics", "Genome rearrangement", "DCJ-indel distance"]
+requires-python = ">=3.9,<3.12"
+
+[project.urls]
+Homepage = "https://github.com/iqbal-lab-org/pling"
+
+[project.scripts]
+pling = 'pling.run_pling:main'

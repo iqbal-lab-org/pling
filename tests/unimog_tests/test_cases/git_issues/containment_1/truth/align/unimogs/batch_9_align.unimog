@@ -1,0 +1,20 @@
+>reference_2~del_rearrange:reference_2
+1 4 2 3 )
+>reference_2~del_rearrange:del_rearrange
+2 1 3 )
+>reference_2~inversion:reference_2
+1 2 )
+>reference_2~inversion:inversion
+-1 2 )
+>reference_2~dup_and_inverse:reference_2
+1 2 )
+>reference_2~dup_and_inverse:dup_and_inverse
+-1 3 2 )
+>reference_2~inverse_block:reference_2
+1 2 )
+>reference_2~inverse_block:inverse_block
+1 -2 )
+>del_rearrange~inversion:del_rearrange
+1 2 3 )
+>del_rearrange~inversion:inversion
+4 -2 1 3 )

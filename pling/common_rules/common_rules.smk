@@ -50,18 +50,19 @@ rule get_communities:
     threads: 1
     resources:
         mem_mb=lambda wildcards, attempt: config["get_communities_mem"]*attempt
-    conda: "../envs/plasnet.yaml"
     params:
         containment_distance=config["seq_containment_distance"],
         bh_connectivity=config["bh_connectivity"],
         bh_neighbours_edge_density=config["bh_neighbours_edge_density"],
-        metadata = get_metadata(config["metadata"])
+        metadata = get_metadata(config["metadata"]),
+        output_type = config["output_type"]
     shell: """
         plasnet split \
             --distance-threshold {params.containment_distance} \
             --bh-connectivity {params.bh_connectivity} \
             --bh-neighbours-edge-density {params.bh_neighbours_edge_density} \
             --output-plasmid-graph \
+            --output-type {params.output_type} \
             {params.metadata} \
             {input.genomes} \
             {input.containment} \

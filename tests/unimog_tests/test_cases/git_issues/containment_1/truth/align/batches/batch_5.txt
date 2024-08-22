@@ -1,0 +1,5 @@
+['3_dup', 'dup_and_inverse']
+['3_dup', 'inverse_block']
+['outlier', '2_dup_3_dup']
+['outlier', '3_dup_w_inverse']
+['outlier', 'reference_2']

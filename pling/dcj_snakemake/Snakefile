@@ -21,77 +21,55 @@ def get_timelimit(timelimit):
     else:
         return f"--timelimit {timelimit}"
 
+def get_unimog():
+    if config.get("unimog", False):
+        unimog = config["unimog"]
+        return f"--unimog {unimog}"
+    else:
+        return ""
+
 rule all:
     input:
         dcj_graph_outdir = f"{OUTPUTPATH}/dcj_thresh_{dcj_threshold}_graph"
 
-if config["ilp_solver"] == "GLPK":
-    rule glpk_and_ding:
-        input:
-            containment_tsv = lambda wildcards: f"{OUTPUTPATH}/tmp_files/containment_batchwise/batch_{wildcards.batch}_containment.tsv"
-        output:
-            f"{OUTPUTPATH}/tmp_files/dists_batchwise/batch_{{batch}}_dcj.tsv"
-        params:
-            containment_distance=CONTAINMENT_DISTANCE,
-            integerisation=INTEGERISATION,
-            outputpath=OUTPUTPATH,
-            communitypath=f"{COMMUNITIES}/objects/communities.txt",
-            batch=lambda wildcards: wildcards.batch,
-            timelimit=get_timelimit(config["timelimit"]),
-            snakefile_dir=os.path.dirname(sys.argv[sys.argv.index("--snakefile")+1]),
-            pling_root_dir = get_pling_root_dir()
-        threads: 1 #no multithreading available for GLPK
-        resources:
-            mem_mb = lambda wildcards, attempt: attempt * config["ilp_mem"]
-        conda: "../envs/ding_and_glpk.yaml"
-        shadow: "shallow"
-        shell:
-                """
-                PYTHONPATH={params.pling_root_dir} python {params.pling_root_dir}/pling/dcj_snakemake/glpk_and_ding.py \
-                        --batch {params.batch} \
-                        --containment_tsv {input.containment_tsv} \
-                        --containment_distance {params.containment_distance} \
-                        --outputpath {params.outputpath} \
-                        --communitypath {params.communitypath} \
-                        --integerisation {params.integerisation} \
-                        {params.timelimit} \
-                        --threads {threads} \
-                        --snakefile_dir {params.snakefile_dir}
-                """
-
-elif config["ilp_solver"] == "gurobi":
-    rule gurobi_and_ding:
-        input:
-            containment_tsv = lambda wildcards: f"{OUTPUTPATH}/tmp_files/containment_batchwise/batch_{wildcards.batch}_containment.tsv"
-        output:
-            f"{OUTPUTPATH}/tmp_files/dists_batchwise/batch_{{batch}}_dcj.tsv"
-        params:
-            containment_distance=CONTAINMENT_DISTANCE,
-            integerisation=INTEGERISATION,
-            outputpath=OUTPUTPATH,
-            communitypath=f"{COMMUNITIES}/objects/communities.txt",
-            batch=lambda wildcards: wildcards.batch,
-            timelimit=get_timelimit(config["timelimit"]),
-            pling_root_dir = get_pling_root_dir()
-        threads: config["ilp_threads"]
-        resources:
-            mem_mb = lambda wildcards, attempt: attempt * config["ilp_mem"]
-        conda: "../envs/ding_and_glpk.yaml"
-        shadow: "shallow"
-        shell:
-                """
-                PYTHONPATH={params.pling_root_dir} python {params.pling_root_dir}/pling/dcj_snakemake/gurobi_and_ding.py \
-                        --batch {params.batch} \
-                        --containment_tsv {input.containment_tsv} \
-                        --containment_distance {params.containment_distance} \
-                        --outputpath {params.outputpath} \
-                        --communitypath {params.communitypath} \
-                        --integerisation {params.integerisation} \
-                        {params.timelimit} \
-                        --threads {threads} \
-                """
-else:
-    raise Exception("Not a valid ILP solver!")
+rule ding:
+    input:
+        containment_tsv = lambda wildcards: f"{OUTPUTPATH}/tmp_files/containment_batchwise/batch_{wildcards.batch}_containment.tsv",
+        batch_list = lambda wildcards: f"{OUTPUTPATH}/batches/batch_{wildcards.batch}.txt"
+    output:
+        f"{OUTPUTPATH}/tmp_files/dists_batchwise/batch_{{batch}}_dcj.tsv"
+    params:
+        containment_distance=CONTAINMENT_DISTANCE,
+        integerisation=INTEGERISATION,
+        outputpath=OUTPUTPATH,
+        communitypath=f"{COMMUNITIES}/objects/communities.txt",
+        batch=lambda wildcards: wildcards.batch,
+        timelimit=get_timelimit(config["timelimit"]),
+        snakefile_dir=os.path.dirname(sys.argv[sys.argv.index("--snakefile")+1]),
+        pling_root_dir = get_pling_root_dir(),
+        unimog = get_unimog(),
+        ilp_solver = config["ilp_solver"]
+    threads: config["ilp_threads"]
+    resources:
+        mem_mb = lambda wildcards, attempt: attempt * config["ilp_mem"]
+    shadow: "shallow"
+    shell:
+            """
+            PYTHONPATH={params.pling_root_dir} python {params.pling_root_dir}/pling/dcj_snakemake/dcj.py \
+                    --batch_file {input.batch_list} \
+                    --batch {params.batch} \
+                    --containment_tsv {input.containment_tsv} \
+                    --containment_distance {params.containment_distance} \
+                    --outputpath {params.outputpath} \
+                    --distpath {output} \
+                    --communitypath {params.communitypath} \
+                    --integerisation {params.integerisation} \
+                    {params.timelimit} \
+                    --threads {threads} \
+                    --snakefile_dir {params.snakefile_dir} \
+                    {params.unimog} \
+                    --ilp_solver {params.ilp_solver}
+            """
 
 rule dcj_tsv:
     input:
@@ -118,15 +96,16 @@ rule build_DCJ_graph:
     threads: 1
     resources:
         mem_mb=lambda wildcards, attempt: config["build_DCJ_graph_mem"]*attempt
-    conda: "../envs/plasnet.yaml"
     params:
         dcj_dist_threshold=config["dcj_dist_threshold"],
-        small_subcommunity_size_threshold = config["small_subcommunity_size_threshold"] #Communities with size up to this parameter will be joined to neighbouring larger subcommunities
+        small_subcommunity_size_threshold = config["small_subcommunity_size_threshold"], #Communities with size up to this parameter will be joined to neighbouring larger subcommunities
+        output_type = config["output_type"]
     shell: """
             plasnet type \
                 --distance-threshold {params.dcj_dist_threshold} \
                 --small-subcommunity-size-threshold {params.small_subcommunity_size_threshold} \
                 {input.communities} \
                 {input.distances_tsv} \
-                {output.dcj_graph_outdir}
+                {output.dcj_graph_outdir} \
+                --output-type {params.output_type}
         """

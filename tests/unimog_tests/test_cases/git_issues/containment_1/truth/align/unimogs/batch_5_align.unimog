@@ -1,0 +1,20 @@
+>3_dup~dup_and_inverse:3_dup
+1 3 2 4 )
+>3_dup~dup_and_inverse:dup_and_inverse
+-2 -1 5 )
+>3_dup~inverse_block:3_dup
+1 3 2 4 )
+>3_dup~inverse_block:inverse_block
+1 2 5 )
+>outlier~2_dup_3_dup:outlier
+1 )
+>outlier~2_dup_3_dup:2_dup_3_dup
+2 )
+>outlier~3_dup_w_inverse:outlier
+1 )
+>outlier~3_dup_w_inverse:3_dup_w_inverse
+2 )
+>outlier~reference_2:outlier
+1 )
+>outlier~reference_2:reference_2
+2 )

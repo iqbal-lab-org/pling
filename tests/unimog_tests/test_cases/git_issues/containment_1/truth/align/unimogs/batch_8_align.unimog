@@ -1,0 +1,20 @@
+>3_dup_w_inverse~reference_2:3_dup_w_inverse
+1 2 3 )
+>3_dup_w_inverse~reference_2:reference_2
+1 -2 4 )
+>3_dup_w_inverse~del_rearrange:3_dup_w_inverse
+1 2 )
+>3_dup_w_inverse~del_rearrange:del_rearrange
+3 1 4 )
+>3_dup_w_inverse~inversion:3_dup_w_inverse
+1 2 3 )
+>3_dup_w_inverse~inversion:inversion
+2 -1 4 )
+>3_dup_w_inverse~dup_and_inverse:3_dup_w_inverse
+1 2 3 )
+>3_dup_w_inverse~dup_and_inverse:dup_and_inverse
+2 -1 4 )
+>3_dup_w_inverse~inverse_block:3_dup_w_inverse
+1 2 3 )
+>3_dup_w_inverse~inverse_block:inverse_block
+1 -2 4 )

@@ -16,12 +16,12 @@ jobs:
     strategy:
       matrix:
         os: [ ubuntu-latest ]
-        python-version: [ 3.8, 3.9, "3.10", 3.11 ]
+        python-version: [ 3.9, "3.10", 3.11 ]
     steps:
       - uses: actions/checkout@v3
       - uses: mamba-org/setup-micromamba@v1
         with:
-          micromamba-version: '1.4.5-0'
+          micromamba-version: '1.5.8-0'
           environment-name: test-env
           condarc: |
             channels:
@@ -30,9 +30,15 @@ jobs:
               - defaults
           create-args: >-
             python=${{ matrix.python-version }}
-            snakemake
-            mamba
+            sourmash 
             pandas
+            numpy
+            intervaltree
+            mummer=3.23
+            glpk=5.0
+            snakemake=7.32.4
+            plasnet=0.6.0
+            dingII
           init-shell: bash
           cache-environment: true
           post-cleanup: 'all'
@@ -45,4 +51,5 @@ jobs:
         shell: bash -el {0}
         run: |
           micromamba activate test-env
+          python -m pip install .
           PYTHONPATH="." python -m unittest discover -s tests -t .
