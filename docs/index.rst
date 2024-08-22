@@ -7,6 +7,8 @@ Pling is a software workflow for plasmid analysis using rearrangement distances,
 
    installation.rst
    basic.rst
+   tutorial.rst
    output.rst
    advanced.rst
+   tips.rst
    citation.rst
