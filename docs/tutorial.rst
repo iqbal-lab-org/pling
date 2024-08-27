@@ -17,7 +17,7 @@ Then generate a list of filepaths to input to pling by doing:
 	ls -d -1 $PWD/*.fna > ../input.txt
 	cd ..
 	
-To reduce runtime, in this example you are going to run pling with the sourmash prefiltering. This removes plasmid pairs with containment distance greater than 0.85 early in the workflow, to reduce the number of pairwise calculations pling needs to perform. With 8 cores, this should take roughly 25 minutes.
+To reduce runtime, in this example you are going to run pling with the sourmash prefiltering. This removes plasmid pairs with containment distance greater than 0.85 early in the workflow, to reduce the number of pairwise calculations pling needs to perform. With 8 cores, this should take roughly 20 minutes.
 Decide on a name for your output directory; in this tutorial we will use ``pling_out``.
 Run pling with the following command::
 
