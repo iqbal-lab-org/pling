@@ -39,7 +39,7 @@ def get_metadata(metadata):
     if metadata == "None":
         return ""
     else:
-        return f"--plasmid-metadata {metadata}"
+        return f"--plasmids-metadata {metadata}"
 
 rule get_communities:
     input:
