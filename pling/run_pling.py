@@ -75,7 +75,7 @@ def make_config_file(args):
     if args.plasmid_metadata==None:
         metadata = "None"
     else:
-        metadata= args.metadata
+        metadata= args.plasmid_metadata
 
     if args.topology==None:
         topology = "None"
