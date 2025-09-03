@@ -27,6 +27,7 @@ def parse_args():
     parser.add_argument("--dcj", default=4, help="Threshold for final DCJ-Indel network.")
     parser.add_argument("--regions", action="store_true", help="Cluster regions rather than complete genomes. Assumes regions are taken from circular plasmids.")
     parser.add_argument("--topology", help="File stating whether plasmids are circular or linear. Must be a tsv with two columns, one with plasmid IDs under \"plasmid\" and one with \"linear\" or \"circular\" as entries under \"topology\". Without this file, pling will asume all plasmids are circular.")
+    parser.add_argument("--previous_pling", help="If a subset of the plasmids has been typed with pling before, can input a path to the output directory to bias the new clustering to the previous clustering. Previous run must have the same thresholds.")
     parser.add_argument("--batch_size", default = 200, help="How many pairs of genomes to run together in one go (for integerisation from alignment and DCJ calculation steps).")
     parser.add_argument("--sourmash", action="store_true", help="Run sourmash as first filter on which pairs to calculate DCJ on. Recommended for large and very diverse datasets.")
     parser.add_argument("--sourmash_threshold", default=0.85, help="Threshold for filtering with sourmash.")
@@ -100,6 +101,8 @@ def make_config_file(args):
 
     config_dict = {"genomes_list": str(args.genomes_list), "output_dir": str(args.output_dir), "integerisation": str(args.integerisation), "seq_containment_distance": float(args.containment_distance), "dcj_dist_threshold": int(args.dcj), "prefix": "all_plasmids","communities": f"{args.output_dir}/containment/containment_communities", "identity_threshold": float(args.identity), "length_threshold": int(args.min_indel_size), "bh_connectivity": int(args.bh_connectivity), "bh_neighbours_edge_density": float(args.bh_neighbours_edge_density), "small_subcommunity_size_threshold": int(args.small_subcommunity_size_threshold), "output_type": str(args.output_type), "metadata": metadata, "ilp_solver": str(args.ilp_solver), "timelimit": timelimit, "batch_size": int(args.batch_size), "topology": topology}
 
+    if args.previous_pling:
+        config_dict["previous_pling"] = str(args.previous_pling)
     if args.sourmash:
         config_dict["sourmash"] = str(args.sourmash)
         config_dict["sourmash_threshold"] = str(args.sourmash_threshold)
