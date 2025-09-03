@@ -24,6 +24,8 @@ def get_batching_resources(type):
 def get_prev_pling():
     if config.get("previous_pling",False):
         return f"--prev_typing {config["previous_pling"]}/dcj_thresh_{dcj_threshold}_graph/objects"
+    else:
+        return ""
 
 rule all:
     input:
@@ -52,5 +54,6 @@ rule get_batches:
             --outputpath {params.outputpath} \
             {params.sourmash} \
             --smash_threshold {params.smash_threshold} \
-            --containmentpath {params.containmentpath}
+            --containmentpath {params.containmentpath} \
+            {params.prev_pling}
         """
