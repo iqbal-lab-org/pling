@@ -1,6 +1,7 @@
 from pling.utils import get_pling_root_dir
 
 OUTPUTPATH = config["output_dir"]
+dcj_threshold = config["dcj_dist_threshold"]
 
 def smash():
     if config.get("sourmash", False):
@@ -20,6 +21,10 @@ def get_batching_resources(type):
     elif type == "mem":
         return mem
 
+def get_prev_pling():
+    if config.get("previous_pling",False):
+        return f"--prev_typing {config["previous_pling"]}/dcj_thresh_{dcj_threshold}_graph/objects"
+
 rule all:
     input:
         f"{OUTPUTPATH}/batches"
@@ -34,7 +39,8 @@ rule get_batches:
         sourmash = smash(),
         smash_threshold = config.get("sourmash_threshold", 1),
         containmentpath = f"{OUTPUTPATH}/containment/not_pairs_containment_distance.tsv",
-        pling_root_dir = get_pling_root_dir()
+        pling_root_dir = get_pling_root_dir(),
+        prev_pling = get_prev_pling()
     threads: get_batching_resources("threads")
     resources:
         mem_mb=lambda wildcards, attempt: get_batching_resources("mem")*attempt

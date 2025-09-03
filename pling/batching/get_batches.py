@@ -2,6 +2,7 @@ import argparse
 import os
 import math
 import numpy as np
+import pandas as pd
 import subprocess
 from pathlib import Path
 from pling.utils import get_fasta_file_info
@@ -18,7 +19,7 @@ def append_pair(smash, smash_threshold, smash_matrix, i, j):
     else:
         return (1-smash_matrix[i][j]<=smash_threshold)
 
-def get_pairs(genomes, batch_size, output_dir, containmentpath, smash, smash_matrix = None, smash_threshold = None):
+def get_pairs(genomes, batch_size, output_dir, containmentpath, smash, smash_matrix = None, smash_threshold = None, prev_genomes = []):
     output_dir = Path(output_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
     n = len(genomes)
@@ -29,17 +30,18 @@ def get_pairs(genomes, batch_size, output_dir, containmentpath, smash, smash_mat
         dir.mkdir(parents=True, exist_ok=True)
         contain_file = open(containmentpath, "w")
     for i,j in itertools.combinations(range(n), 2):
-        append = append_pair(smash, smash_threshold, smash_matrix, i, j)
-        if append:
-            if iter%batch_size==0:
-                if iter!=0:
-                    batch_file.close()
-                batch = batch+1
-                batch_file = open(f"{output_dir}/batch_{batch}.txt","w")
-            batch_file.write(str([genomes[i], genomes[j]])+"\n")
-            iter = iter+1
-        elif smash:
-            contain_file.write(f"{genomes[i]}\t{genomes[j]}\t{1-smash_matrix[i][j]}\n")
+        if not genomes[i] in prev_genomes or not genomes[j] in prev_genomes:
+            append = append_pair(smash, smash_threshold, smash_matrix, i, j)
+            if append:
+                if iter%batch_size==0:
+                    if iter!=0:
+                        batch_file.close()
+                    batch = batch+1
+                    batch_file = open(f"{output_dir}/batch_{batch}.txt","w")
+                batch_file.write(str([genomes[i], genomes[j]])+"\n")
+                iter = iter+1
+            elif smash:
+                contain_file.write(f"{genomes[i]}\t{genomes[j]}\t{1-smash_matrix[i][j]}\n")
     if smash:
         contain_file.close()
     batch_file.close()
@@ -77,7 +79,7 @@ def main():
     parser.add_argument("--sourmash", action="store_true")
     parser.add_argument("--smash_threshold",type=float)
     parser.add_argument("--containmentpath")
-    parser.add_argument("--dcj_path")
+    parser.add_argument("--prev_typing")
 
     args = parser.parse_args()
 
@@ -93,7 +95,14 @@ def main():
         genomes = get_labels(args.genomes_list)
         smash_matrix = None
 
-    len_pairs = get_pairs(genomes, args.batch_size, f"{args.outputpath}/batches", args.containmentpath, args.sourmash, smash_matrix, args.smash_threshold)
+    if args.prev_typing:
+        prev_genomes = pd.read("{args.prev_typing}/typing.tsv", sep="\t")["plasmid"].to_list()
+        hubs = pd.read("{args.prev_typing}/typing.tsv", sep="\t")["hub_plasmids"].to_list()
+        prev_genomes = prev_genomes+hubs
+    else:
+        prev_genomes=[]
+
+    len_pairs = get_pairs(genomes, args.batch_size, f"{args.outputpath}/batches", args.containmentpath, args.sourmash, smash_matrix, args.smash_threshold,prev_genomes=prev_genomes)
     number_of_batches = math.ceil(len_pairs/args.batch_size)
 
     with open(f"{args.outputpath}/batches/batching_info.txt", "w") as f:
