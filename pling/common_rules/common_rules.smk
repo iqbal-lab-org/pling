@@ -5,6 +5,12 @@
 # GENOMES
 from pling.utils import get_number_of_batches
 
+def get_prev_pling():
+    if config.get("previous_pling",False):
+        return f"--graph-pickle {config["previous_pling"]}/containment/containment_communities/objects/plasmid_graph.pkl --prev_typing {config["previous_pling"]}/containment/containment_communities/objects/communities.tsv"
+    else:
+        return ""
+
 rule create_genomes_tsv:
     output:
         genomes_tsv = f"{OUTPUTPATH}/tmp_files/genomes.tsv"
@@ -55,7 +61,8 @@ rule get_communities:
         bh_connectivity=config["bh_connectivity"],
         bh_neighbours_edge_density=config["bh_neighbours_edge_density"],
         metadata = get_metadata(config["metadata"]),
-        output_type = config["output_type"]
+        output_type = config["output_type"],
+        prev_pling = get_prev_pling()
     shell: """
         plasnet split \
             --distance-threshold {params.containment_distance} \
@@ -66,5 +73,6 @@ rule get_communities:
             {params.metadata} \
             {input.genomes} \
             {input.containment} \
-            {output.communities}
+            {output.communities} \
+            {params.prev_pling}
     """

@@ -28,6 +28,12 @@ def get_unimog():
     else:
         return ""
 
+def get_prev_pling():
+    if config.get("previous_pling",False):
+        return f"--prev_typing {config["previous_pling"]}/dcj_thresh_{dcj_threshold}_graph/objects/typing.tsv"
+    else:
+        return ""
+
 rule all:
     input:
         dcj_graph_outdir = f"{OUTPUTPATH}/dcj_thresh_{dcj_threshold}_graph"
@@ -99,7 +105,8 @@ rule build_DCJ_graph:
     params:
         dcj_dist_threshold=config["dcj_dist_threshold"],
         small_subcommunity_size_threshold = config["small_subcommunity_size_threshold"], #Communities with size up to this parameter will be joined to neighbouring larger subcommunities
-        output_type = config["output_type"]
+        output_type = config["output_type"],
+        prev_pling = get_prev_pling()
     shell: """
             plasnet type \
                 --distance-threshold {params.dcj_dist_threshold} \
@@ -107,5 +114,6 @@ rule build_DCJ_graph:
                 {input.communities} \
                 {input.distances_tsv} \
                 {output.dcj_graph_outdir} \
-                --output-type {params.output_type}
+                --output-type {params.output_type} \
+                {params.prev_pling}
         """
