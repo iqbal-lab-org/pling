@@ -3,3 +3,41 @@
 __pycache__
 logs
 /.venv/
+build/
+	gurobi.log
+	meta.yaml
+	pling.egg-info/
+	tests/gurobi.log
+	tests/integration_test/gurobi.log
+	tests/reuter_no_weights/
+	tests/test1/
+	tests/test2/
+	tests/unimog_tests/test_cases/git_issues/containment_1/out/
+	tests/unimog_tests/test_cases/git_issues/palindrome/out/
+	tests/unimog_tests/test_cases/indel_tests/test_1/out/
+	tests/unimog_tests/test_cases/indel_tests/test_10/out/
+	tests/unimog_tests/test_cases/indel_tests/test_2/out/
+	tests/unimog_tests/test_cases/indel_tests/test_3/out/
+	tests/unimog_tests/test_cases/indel_tests/test_4/out/
+	tests/unimog_tests/test_cases/indel_tests/test_4/truth/align/containment/containment_communities/objects/communities.pkl
+	tests/unimog_tests/test_cases/indel_tests/test_4/truth/align/containment/containment_communities/objects/plasmid_graph.pkl
+	tests/unimog_tests/test_cases/indel_tests/test_4/truth/align/containment/containment_communities/visualisations/
+	tests/unimog_tests/test_cases/indel_tests/test_5/out/
+	tests/unimog_tests/test_cases/indel_tests/test_6/out/
+	tests/unimog_tests/test_cases/indel_tests/test_7/out/
+	tests/unimog_tests/test_cases/indel_tests/test_8/out/
+	tests/unimog_tests/test_cases/indel_tests/test_9/out/
+	tests/unimog_tests/test_cases/toy_tests/test_1/out/
+	tests/unimog_tests/test_cases/toy_tests/test_1/truth/align/containment/containment_communities/objects/communities.pkl
+	tests/unimog_tests/test_cases/toy_tests/test_1/truth/align/containment/containment_communities/objects/plasmid_graph.pkl
+	tests/unimog_tests/test_cases/toy_tests/test_1/truth/align/containment/containment_communities/visualisations/
+	tests/unimog_tests/test_cases/toy_tests/test_1/truth/align/dcj_thresh_4_graph/objects/communities.pkl
+	tests/unimog_tests/test_cases/toy_tests/test_1/truth/align/dcj_thresh_4_graph/objects/subcommunities.pkl
+	tests/unimog_tests/test_cases/toy_tests/test_1/truth/align/dcj_thresh_4_graph/visualisations/
+	tests/unimog_tests/test_cases/toy_tests/test_2/out/
+	tests/unimog_tests/test_cases/toy_tests/test_2/truth/align/containment/containment_communities/objects/communities.pkl
+	tests/unimog_tests/test_cases/toy_tests/test_2/truth/align/containment/containment_communities/objects/plasmid_graph.pkl
+	tests/unimog_tests/test_cases/toy_tests/test_2/truth/align/containment/containment_communities/visualisations/
+	tests/unimog_tests/test_cases/toy_tests/test_2/truth/align/dcj_thresh_4_graph/objects/communities.pkl
+	tests/unimog_tests/test_cases/toy_tests/test_2/truth/align/dcj_thresh_4_graph/objects/subcommunities.pkl
+	tests/unimog_tests/test_cases/toy_tests/test_2/truth/align/dcj_thresh_4_graph/visualisations/
