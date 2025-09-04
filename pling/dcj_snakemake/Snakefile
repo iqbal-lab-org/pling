@@ -30,13 +30,15 @@ def get_unimog():
 
 def get_prev_pling():
     if config.get("previous_pling",False):
-        return f"--prev_typing {config["previous_pling"]}/dcj_thresh_{dcj_threshold}_graph/objects/typing.tsv"
+        blub = config["previous_pling"]
+        return f"--prev_typing {blub}/dcj_thresh_{dcj_threshold}_graph/objects/typing.tsv"
     else:
         return ""
 
 def get_prev_dcj():
     if config.get("previous_pling",False):
-        return f"{config["previous_pling"]}/all_plasmids_distances.tsv"
+        blub = config["previous_pling"]
+        return f"{blub}/all_plasmids_distances.tsv"
     else:
         return None
 
@@ -102,6 +104,7 @@ rule dcj_tsv:
                 dcj_out.write(to_cat)
             if params.prev_dcj:
                 with open(params.prev_dcj) as f:
+                    next(f)
                     to_cat = f.read()
                 dcj_out.write(to_cat)
 

@@ -96,8 +96,8 @@ def main():
         smash_matrix = None
 
     if args.prev_typing:
-        prev_genomes = pd.read("{args.prev_typing}/typing.tsv", sep="\t")["plasmid"].to_list()
-        hubs = pd.read("{args.prev_typing}/typing.tsv", sep="\t")["hub_plasmids"].to_list()
+        prev_genomes = pd.read_csv(f"{args.prev_typing}/typing.tsv", sep="\t")["plasmid"].to_list()
+        hubs = pd.read_csv(f"{args.prev_typing}/hub_plasmids.csv", sep="\t")["hub_plasmids"].to_list()
         prev_genomes = prev_genomes+hubs
     else:
         prev_genomes=[]

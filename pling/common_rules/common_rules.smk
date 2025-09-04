@@ -7,7 +7,8 @@ from pling.utils import get_number_of_batches
 
 def get_prev_pling():
     if config.get("previous_pling",False):
-        return f"--graph-pickle {config["previous_pling"]}/containment/containment_communities/objects/plasmid_graph.pkl --prev_typing {config["previous_pling"]}/containment/containment_communities/objects/communities.tsv"
+        blub = config["previous_pling"]
+        return f"--graph-pickle {blub}/containment/containment_communities/objects/plasmid_graph.pkl --prev_typing {blub}/containment/containment_communities/objects/communities.tsv"
     else:
         return ""
 
