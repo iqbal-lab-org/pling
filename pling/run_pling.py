@@ -15,6 +15,7 @@ from pling import __version__
 import click
 import logging
 from plasnet.utils import PathlibPath
+import warnings
 
 
 def get_pling_path():
@@ -36,7 +37,11 @@ def make_config_file(args, integerisation):
     if args["timelimit"]==None:
         timelimit = "None"
     else:
-        timelimit= args["timelimit"]
+        if args["ilp_solver"] == "gurobi":
+            timelimit= args["timelimit"]
+        elif args["ilp_solver"] == "GLPK":
+            timelimit = "None"
+            warnings.warn("GLPK does not support a time limit; time limit parameter has been ignored.")
 
     if args["plasmid_metadata"]==None:
         metadata = "None"
