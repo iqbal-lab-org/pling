@@ -7,6 +7,7 @@ import subprocess
 from pathlib import Path
 from pling.utils import get_fasta_file_info
 import itertools
+import sys
 
 def get_labels(filepath):
     fastafiles, fastaext, fastapath = get_fasta_file_info(filepath)
@@ -60,13 +61,13 @@ def run_smash(genome_list, sig_path, matrixpath):
     try:
         subprocess.run(f"sourmash sketch dna --from-file {genome_list} -o {sig_path}", shell=True, check=True, capture_output=True)
     except subprocess.CalledProcessError as e:
-        print(e.stderr.decode())
+        print(e.stderr.decode(), file=sys.stderr)
         print(e)
         raise e
     try:
         subprocess.run(f"sourmash compare {sig_path} --max-containment -o {matrixpath}", shell=True, check=True, capture_output=True)
     except subprocess.CalledProcessError as e:
-        print(e.stderr.decode())
+        print(e.stderr.decode(), file=sys.stderr)
         print(e)
         raise e
 

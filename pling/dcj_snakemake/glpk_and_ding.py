@@ -1,4 +1,5 @@
 import subprocess
+import sys
 
 def unimog_to_ilp(unimog, lp, genome1, genome2):
     try:
@@ -6,7 +7,8 @@ def unimog_to_ilp(unimog, lp, genome1, genome2):
         subprocess.run(f"dingII generate {unimog} -mm --writeilp {lp} -p {genome1} {genome2}", shell=True, check=True, capture_output=True)
         print("Completed.\n")
     except subprocess.CalledProcessError as e:
-        print(e.stderr.decode())
+        print(f"ERROR IN RULE: dingII FAILING WITH {genome1} AND {genome2}", file=sys.stderr)
+        print(e.stderr.decode(), file=sys.stderr)
         print(e)
         raise e
 
@@ -19,7 +21,8 @@ def ilp_GLPK(lp, solution, snakefile_dir, timelimit):
         print("Completed.\n")
         subprocess.run(f"rm {solution}.tmp", shell=True, check=True, capture_output=True)
     except subprocess.CalledProcessError as e:
-        print(e.stderr.decode())
+        print(f"ERROR IN RULE: GLPK FAILING WITH {lp}", file=sys.stderr)
+        print(e.stderr.decode(), file=sys.stderr)
         print(e)
         raise e
 
@@ -30,7 +33,8 @@ def dcj_dist(unimog, solution, genome1, genome2):
         dist = int(dcj_out.strip().split(" ")[2])
         print("Completed.\n")
     except subprocess.CalledProcessError as e:
-        print(e.stderr.decode())
+        print(f"ERROR IN RULE: dingII FAILING WITH {genome1} AND {genome2}", file=sys.stderr)
+        print(e.stderr.decode(), file=sys.stderr)
         print(e)
         raise e
     return dist

@@ -65,7 +65,7 @@ def GLPK_flow(pairs, containment_distance, containments, integerisation, outputp
     if timelimit == None:
         timelimit=""
     else:
-        timelimit=f"--tmlim {args.timelimit}"
+        timelimit=f"--tmlim {timelimit}"
 
     dists = []
     for pair in pairs:
