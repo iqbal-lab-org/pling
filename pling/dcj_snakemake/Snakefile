@@ -44,6 +44,12 @@ def get_prev_dcj():
     else:
         return None
 
+def get_vis():
+    if config["visualisation"]=="none":
+        return "--no-vis"
+    else:
+        return ""
+
 rule all:
     input:
         dcj_graph_outdir = f"{OUTPUTPATH}/dcj_thresh_{dcj_threshold}_graph"
@@ -123,7 +129,8 @@ rule build_DCJ_graph:
         dcj_dist_threshold=config["dcj_dist_threshold"],
         small_subcommunity_size_threshold = config["small_subcommunity_size_threshold"], #Communities with size up to this parameter will be joined to neighbouring larger subcommunities
         output_type = config["output_type"],
-        prev_pling = get_prev_pling()
+        prev_pling = get_prev_pling(),
+        vis = get_vis()
     shell: """
             plasnet type \
                 --distance-threshold {params.dcj_dist_threshold} \
@@ -132,5 +139,6 @@ rule build_DCJ_graph:
                 {input.distances_tsv} \
                 {output.dcj_graph_outdir} \
                 --output-type {params.output_type} \
-                {params.prev_pling}
+                {params.prev_pling} \
+                {params.vis}
         """

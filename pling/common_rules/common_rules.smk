@@ -14,6 +14,12 @@ def get_prev_pling():
     else:
         return ""
 
+def get_vis():
+    if config["visualisation"]=="none" or config["visualisation"]=="subcommunity":
+        return "--no-community-vis"
+    else:
+        return "--output-plasmid-graph"
+
 rule create_genomes_tsv:
     output:
         genomes_tsv = f"{OUTPUTPATH}/tmp_files/genomes.tsv"
@@ -65,17 +71,18 @@ rule get_communities:
         bh_neighbours_edge_density=config["bh_neighbours_edge_density"],
         metadata = get_metadata(config["metadata"]),
         output_type = config["output_type"],
+        vis = get_vis(),
         prev_pling = get_prev_pling()
     shell: """
         plasnet split \
             --distance-threshold {params.containment_distance} \
             --bh-connectivity {params.bh_connectivity} \
             --bh-neighbours-edge-density {params.bh_neighbours_edge_density} \
-            --output-plasmid-graph \
             --output-type {params.output_type} \
             {params.metadata} \
             {input.genomes} \
             {input.containment} \
             {output.communities} \
-            {params.prev_pling}
+            {params.prev_pling} \
+            {params.vis}
     """
