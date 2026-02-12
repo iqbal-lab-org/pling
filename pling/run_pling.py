@@ -69,6 +69,7 @@ def make_config_file(args, integerisation):
 
     if integerisation=="skip":
         config_dict["unimog"] = str(args["unimog"])
+        config_dict["sourmash_only"] = str(args["sourmash_only"])
 
     if args["sourmash"]:
         config_dict["sourmash"] = str(args["sourmash"])

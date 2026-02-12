@@ -9,6 +9,12 @@ def smash():
     else:
         return ""
 
+def smash_only():
+    if config.get("sourmash_only", False):
+        return "--sourmash_only"
+    else:
+        return ""
+
 def get_batching_resources(type):
     if config.get("sourmash", False):
         threads = config["sourmash_threads"]
@@ -20,6 +26,12 @@ def get_batching_resources(type):
         return threads
     elif type == "mem":
         return mem
+
+def get_containmentpath():
+    if config.get("sourmash_only", False):
+        return f"{OUTPUTPATH}/containment/all_pairs_containment_distance.tsv"
+    else:
+        f"{OUTPUTPATH}/containment/not_pairs_containment_distance.tsv"
 
 def get_prev_pling():
     if config.get("previous_pling",False):
@@ -41,8 +53,9 @@ rule get_batches:
         genomes_list = config["genomes_list"],
         batch_size = config["batch_size"],
         sourmash = smash(),
+        sourmash_only = smash_only(),
         smash_threshold = config.get("sourmash_threshold", 1),
-        containmentpath = f"{OUTPUTPATH}/containment/not_pairs_containment_distance.tsv",
+        containmentpath = get_containmentpath(),
         pling_root_dir = get_pling_root_dir(),
         prev_pling = get_prev_pling()
     threads: get_batching_resources("threads")
@@ -55,6 +68,7 @@ rule get_batches:
             --batch_size {params.batch_size} \
             --outputpath {params.outputpath} \
             {params.sourmash} \
+            {params.sourmash_only} \
             --smash_threshold {params.smash_threshold} \
             --containmentpath {params.containmentpath} \
             {params.prev_pling}

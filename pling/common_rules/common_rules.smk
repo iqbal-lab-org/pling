@@ -32,21 +32,22 @@ rule create_genomes_tsv:
                 f.write(f"{genome}\n")
 localrules: create_genomes_tsv
 
-rule cat_containment:
-    input:
-        containments = expand(f"{OUTPUTPATH}/tmp_files/containment_batchwise/batch_{{batch}}_containment.tsv", batch=[str(i) for i in range(get_number_of_batches(OUTPUTPATH))])
-    output:
-        all_containment_distances = f"{OUTPUTPATH}/containment/all_pairs_containment_distance.tsv"
-    threads: 1
-    resources:
-        mem_mb=lambda wildcards, attempt: 4000*attempt
-    run:
-        with open(output.all_containment_distances, "w") as contain_out:
-            contain_out.write("plasmid_1\tplasmid_2\tdistance\n")
-            for file in input.containments:
-                with open(file, "r") as f:
-                    to_cat = f.read()
-                contain_out.write(to_cat)
+if not config.get("sourmash_only", False):
+    rule cat_containment:
+        input:
+            containments = expand(f"{OUTPUTPATH}/tmp_files/containment_batchwise/batch_{{batch}}_containment.tsv", batch=[str(i) for i in range(get_number_of_batches(OUTPUTPATH))])
+        output:
+            all_containment_distances = f"{OUTPUTPATH}/containment/all_pairs_containment_distance.tsv"
+        threads: 1
+        resources:
+            mem_mb=lambda wildcards, attempt: 4000*attempt
+        run:
+            with open(output.all_containment_distances, "w") as contain_out:
+                contain_out.write("plasmid_1\tplasmid_2\tdistance\n")
+                for file in input.containments:
+                    with open(file, "r") as f:
+                        to_cat = f.read()
+                    contain_out.write(to_cat)
 
 localrules: cat_containment
 

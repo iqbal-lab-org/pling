@@ -26,13 +26,14 @@ def previous_pair(genome_1, genome_2, prev_genomes):
             return True
     return False
 
-def get_pairs(genomes, batch_size, output_dir, containmentpath, smash, smash_matrix = None, smash_threshold = None, prev_genomes = []):
+def get_pairs(genomes, batch_size, output_dir, containmentpath, smash, smash_only, smash_matrix = None, smash_threshold = None, prev_genomes = []):
     output_dir = Path(output_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
     n = len(genomes)
     iter = 0
     batch = -1
-    if smash:
+    if smash or smash_only:
+        print("blub", file=sys.stdout)
         dir = Path(os.path.dirname(containmentpath))
         dir.mkdir(parents=True, exist_ok=True)
         contain_file = open(containmentpath, "w")
@@ -47,9 +48,11 @@ def get_pairs(genomes, batch_size, output_dir, containmentpath, smash, smash_mat
                     batch_file = open(f"{output_dir}/batch_{batch}.txt","w")
                 batch_file.write(str([genomes[i], genomes[j]])+"\n")
                 iter = iter+1
+                if smash_only:
+                    contain_file.write(f"{genomes[i]}\t{genomes[j]}\t{1-smash_matrix[i][j]}\n")
             elif smash:
                 contain_file.write(f"{genomes[i]}\t{genomes[j]}\t{1-smash_matrix[i][j]}\n")
-    if smash:
+    if smash or smash_only:
         contain_file.close()
     batch_file.close()
     return iter
@@ -84,13 +87,14 @@ def main():
     parser.add_argument("--batch_size", type=int)
     parser.add_argument("--outputpath")
     parser.add_argument("--sourmash", action="store_true")
+    parser.add_argument("--sourmash_only", action="store_true")
     parser.add_argument("--smash_threshold",type=float)
     parser.add_argument("--containmentpath")
     parser.add_argument("--prev_typing", nargs="*")
 
     args = parser.parse_args()
 
-    if args.sourmash:
+    if args.sourmash or args.sourmash_only:
         sig_dir = Path(f"{args.outputpath}/sourmash")
         sig_dir.mkdir(parents=True, exist_ok=True)
         sig_path = sig_dir/"all_plasmids.sig"
@@ -109,7 +113,7 @@ def main():
     else:
         prev_genomes=[]
 
-    len_pairs = get_pairs(genomes, args.batch_size, f"{args.outputpath}/batches", args.containmentpath, args.sourmash, smash_matrix, args.smash_threshold,prev_genomes=prev_genomes)
+    len_pairs = get_pairs(genomes, args.batch_size, f"{args.outputpath}/batches", args.containmentpath, args.sourmash, args.sourmash_only, smash_matrix, args.smash_threshold,prev_genomes=prev_genomes)
     number_of_batches = math.ceil(len_pairs/args.batch_size)
 
     with open(f"{args.outputpath}/batches/batching_info.txt", "w") as f:
