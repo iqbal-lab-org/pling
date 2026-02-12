@@ -30,8 +30,9 @@ def get_unimog():
 
 def get_prev_pling():
     if config.get("previous_pling",False):
-        blub = config["previous_pling"]
-        return f"--prev_typing {blub}/dcj_thresh_{dcj_threshold}_graph/objects/typing.tsv"
+        blub = config["previous_pling"].strip().split(",")
+        blah = " ".join([f"{bl}/dcj_thresh_{dcj_threshold}_graph/objects/typing.tsv" for bl in blub])
+        return f"--prev_typing {blah}"
     else:
         return ""
 

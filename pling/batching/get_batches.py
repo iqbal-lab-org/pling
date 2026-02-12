@@ -19,6 +19,12 @@ def append_pair(smash, smash_threshold, smash_matrix, i, j):
         return True
     else:
         return (1-smash_matrix[i][j]<=smash_threshold)
+    
+def previous_pair(genome_1, genome_2, prev_genomes):
+    for genomes in prev_genomes:
+        if genome_1 in genomes and genome_2 in genomes:
+            return True
+    return False
 
 def get_pairs(genomes, batch_size, output_dir, containmentpath, smash, smash_matrix = None, smash_threshold = None, prev_genomes = []):
     output_dir = Path(output_dir)
@@ -31,7 +37,7 @@ def get_pairs(genomes, batch_size, output_dir, containmentpath, smash, smash_mat
         dir.mkdir(parents=True, exist_ok=True)
         contain_file = open(containmentpath, "w")
     for i,j in itertools.combinations(range(n), 2):
-        if not genomes[i] in prev_genomes or not genomes[j] in prev_genomes:
+        if not previous_pair(genomes[i], genomes[j], prev_genomes):
             append = append_pair(smash, smash_threshold, smash_matrix, i, j)
             if append:
                 if iter%batch_size==0:
@@ -80,7 +86,7 @@ def main():
     parser.add_argument("--sourmash", action="store_true")
     parser.add_argument("--smash_threshold",type=float)
     parser.add_argument("--containmentpath")
-    parser.add_argument("--prev_typing")
+    parser.add_argument("--prev_typing", nargs="*")
 
     args = parser.parse_args()
 
@@ -97,9 +103,9 @@ def main():
         smash_matrix = None
 
     if args.prev_typing:
-        prev_genomes = pd.read_csv(f"{args.prev_typing}/typing.tsv", sep="\t")["plasmid"].to_list()
-        hubs = pd.read_csv(f"{args.prev_typing}/hub_plasmids.csv", sep="\t")["hub_plasmids"].to_list()
-        prev_genomes = prev_genomes+hubs
+        prev_genomes = [pd.read_csv(f"{path}/typing.tsv", sep="\t")["plasmid"].to_list() for path in args.prev_typing]
+        prev_hubs = [pd.read_csv(f"{path}/hub_plasmids.csv", sep="\t")["hub_plasmids"].to_list() for path in args.prev_typing]
+        prev_genomes = [prev_genomes[i]+prev_hubs[i] for i in range(len(args.prev_typing))]
     else:
         prev_genomes=[]
 

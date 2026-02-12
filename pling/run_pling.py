@@ -75,7 +75,10 @@ def make_config_file(args, integerisation):
         config_dict["sourmash_threshold"] = str(args["sourmash_threshold"])
 
     if "previous_pling" in args.keys():
-        config_dict["previous_pling"] = str(args["previous_pling"])
+        if len(args["previous_pling"])==1:
+            config_dict["previous_pling"] = str(args["previous_pling"])
+        else:
+            config_dict["previous_pling"] = ",".join([str(path) for path in args["previous_pling"]])
     
     profile = ""
     if args["profile"]!=None:
@@ -282,7 +285,7 @@ Third input is a path to previous pling output directory (multiple are permitted
 )
 @click.argument("genomes_list", type=PathlibPath(exists=True))
 @click.argument("output_dir", type=PathlibPath(exists=False))
-@click.argument("previous_pling", required=True)
+@click.argument("previous_pling", required=True, nargs=-1)
 @click.option("--containment_distance", default=0.5, help="Threshold for initial containment network.")
 @click.option("--dcj", default=4, help="Threshold for final DCJ-Indel network.")
 @click.option("--regions", is_flag=True, help="Cluster regions rather than complete genomes. Assumes regions are taken from circular plasmids.")
