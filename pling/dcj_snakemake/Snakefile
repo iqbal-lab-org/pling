@@ -32,7 +32,8 @@ def get_prev_pling():
     if config.get("previous_pling",False):
         blub = config["previous_pling"].strip().split(",")
         blah = " ".join([f"{bl}/dcj_thresh_{dcj_threshold}_graph/objects/typing.tsv" for bl in blub])
-        return f"--prev_typing {blah}"
+        recluster = config["reclustering_method"]
+        return f"--prev_typing {blah} --reclustering_method {recluster}"
     else:
         return ""
 
