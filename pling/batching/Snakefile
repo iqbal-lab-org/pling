@@ -5,7 +5,7 @@ dcj_threshold = config["dcj_dist_threshold"]
 
 def smash():
     if config.get("sourmash_only", False):
-        return f"--sourmash_only --sourmash --smash_threshold " + config["seq_containment_distance"]
+        return f"--sourmash_only --sourmash --smash_threshold " + str(config["seq_containment_distance"])
     elif config.get("sourmash", False) and not config.get("sourmash_only", False):
         return f"--sourmash --smash_threshold " + config.get("sourmash_threshold", "1")
     else:
