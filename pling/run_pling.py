@@ -141,7 +141,49 @@ def ding_and_cluster(snakemake_args):
     run_command(f"snakemake --snakefile {get_pling_path()}/dcj_snakemake/Snakefile {snakemake_args}")
     logger.info("Completed distance calculations and clustering.")
 
-@click.group()
+
+def thresholds(func):
+    options = [
+        click.option("--containment_distance", default=0.5, help="Threshold for initial containment network."),
+        click.option("--dcj", default=4, help="Threshold for final DCJ-Indel network."),
+        click.option("--identity", default=80, help="Threshold for percentage of shared sequence between blocks (for integerisation from alignment and for containment calculation)."),
+        click.option("--min_indel_size", default=200, help="Minimum size for an indel to be treated as a block (for integerisation from alignment)."),
+        click.option("--bh_connectivity", default=10, help="Minimum number of connections a plasmid need to be considered a hub plasmid."),
+        click.option("--bh_neighbours_edge_density", default=0.2, help="Maximum number of edge density between hub plasmid neighbours to label the plasmid as hub."),
+        click.option("--small_subcommunity_size_threshold", default=4, help="Communities with size up to this parameter will be joined to neighbouring larger subcommunities."),
+    ]
+    for option in reversed(options):
+        func = option(func)
+    return func
+
+def vis_paras(func):
+    options = [
+        click.option("--output_type", type=click.Choice(["html", "json", "both"]), default="html", help="Whether to output networks as html visualisations, cytoscape formatted json, or both."),
+        click.option("--plasmid_metadata", help="Metadata to add beside plasmid ID on the visualisation graph. Must be a tsv with a single column, with data in the same order as in genomes_list."),
+        click.option("--visualisation", type=click.Choice(["none", "all", "subcommunity"]), default="subcommunity", help="Which network visualisations to produce."),
+    ]
+    for option in reversed(options):
+        func = option(func)
+    return func
+
+def resource_paras(func):
+    options = [
+        click.option("--batch_size", default = 200, help="How many pairs of genomes to run together in one go (for integerisation from alignment and DCJ calculation steps)."),
+        click.option("--ilp_solver", type=click.Choice(["GLPK", "gurobi"]), default="GLPK",
+                            help="ILP solver to use. Default is GLPK, which is slower but is bundled with pling and is free. "
+                                    "If using gurobi, make sure you have a valid license and gurobi_cl is in your PATH."),
+        click.option("--timelimit", help="Time limit in seconds for ILP solver."),
+        click.option("--resources", help="tsv stating number of threads and memory to use for each rule."),
+        click.option("--cores", default=1, help="Total number of cores/threads. Put the maximum number of threads you request in the resources tsv here. (This argument is passed on to snakemake's --cores argument.)"),
+        click.option("--profile", help="To run on a cluster with corresponding snakemake profile."),
+        #@click.option("--storetmp", is_flag=True, help="Don't delete intermediate temporary files.")
+        click.option("--forceall", is_flag=True, help="Force snakemake to rerun everything."),
+    ]
+    for option in reversed(options):
+        func = option(func)
+    return func
+
+@click.group(context_settings={"show_default": True})
 @click.version_option(version=__version__)
 @click.help_option()
 def cli() -> None:
@@ -168,30 +210,13 @@ Second input is a path to an output directory.
 )
 @click.argument("genomes_list", type=PathlibPath(exists=True))
 @click.argument("output_dir", type=PathlibPath(exists=False))
-@click.option("--containment_distance", default=0.5, help="Threshold for initial containment network.")
-@click.option("--dcj", default=4, help="Threshold for final DCJ-Indel network.")
+@thresholds
 @click.option("--regions", is_flag=True, help="Cluster regions rather than complete genomes. Assumes regions are taken from circular plasmids.")
 @click.option("--topology", help="File stating whether plasmids are circular or linear. Must be a tsv with two columns, one with plasmid IDs under \"plasmid\" and one with \"linear\" or \"circular\" as entries under \"topology\". Without this file, pling will asume all plasmids are circular.")
-@click.option("--batch_size", default = 200, help="How many pairs of genomes to run together in one go (for integerisation from alignment and DCJ calculation steps).")
 @click.option("--sourmash", is_flag=True, help="Run sourmash as first filter on which pairs to calculate DCJ on. Recommended for large and very diverse datasets.")
 @click.option("--sourmash_threshold", default=0.85, help="Threshold for filtering with sourmash.")
-@click.option("--identity", default=80, help="Threshold for percentage of shared sequence between blocks (for integerisation from alignment and for containment calculation).")
-@click.option("--min_indel_size", default=200, help="Minimum size for an indel to be treated as a block (for integerisation from alignment).")
-@click.option("--bh_connectivity", default=10, help="Minimum number of connections a plasmid need to be considered a hub plasmid.")
-@click.option("--bh_neighbours_edge_density", default=0.2, help="Maximum number of edge density between hub plasmid neighbours to label the plasmid as hub.")
-@click.option("--small_subcommunity_size_threshold", default=4, help="Communities with size up to this parameter will be joined to neighbouring larger subcommunities.")
-@click.option("--output_type", type=click.Choice(["html", "json", "both"]), default="html", help="Whether to output networks as html visualisations, cytoscape formatted json, or both.")
-@click.option("--plasmid_metadata", help="Metadata to add beside plasmid ID on the visualisation graph. Must be a tsv with a single column, with data in the same order as in genomes_list.")
-@click.option("--visualisation", type=click.Choice(["none", "all", "subcommunity"]), default="subcommunity", help="Which network visualisations to produce.")
-@click.option("--ilp_solver", type=click.Choice(["GLPK", "gurobi"]), default="GLPK",
-                    help="ILP solver to use. Default is GLPK, which is slower but is bundled with pling and is free. "
-                            "If using gurobi, make sure you have a valid license and gurobi_cl is in your PATH.")
-@click.option("--timelimit", help="Time limit in seconds for ILP solver.")
-@click.option("--resources", help="tsv stating number of threads and memory to use for each rule.")
-@click.option("--cores", default=1, help="Total number of cores/threads. Put the maximum number of threads you request in the resources tsv here. (This argument is passed on to snakemake's --cores argument.)")
-@click.option("--profile", help="To run on a cluster with corresponding snakemake profile.")
-#@click.option("--storetmp", is_flag=True, help="Don't delete intermediate temporary files.")
-@click.option("--forceall", is_flag=True, help="Force snakemake to rerun everything.")
+@vis_paras
+@resource_paras
 @click.help_option()
 def align(
     **args
@@ -227,28 +252,12 @@ Third input is a path to a unimog file. Required input when skipping integerisat
 @click.argument("genomes_list", type=PathlibPath(exists=True))
 @click.argument("output_dir", type=PathlibPath(exists=False))
 @click.argument("unimog", type=PathlibPath(exists=True))
-@click.option("--containment_distance", default=0.5, help="Threshold for initial containment network.")
-@click.option("--dcj", default=4, help="Threshold for final DCJ-Indel network.")
-@click.option("--batch_size", default = 200, help="How many pairs of genomes to run together in one go (for integerisation from alignment and DCJ calculation steps).")
+@thresholds
 @click.option("--sourmash", is_flag=True, help="Run sourmash as first filter on which pairs to calculate DCJ on. Recommended for large and very diverse datasets.")
 @click.option("--sourmash_threshold", default=0.85, help="Threshold for filtering with sourmash.")
 @click.option("--sourmash_only", is_flag=True, help="Run sourmash instead of aligning to get containment distances. Uses the threshold from \"containment_distance\" rather than \"sourmash_threshold\".")
-@click.option("--identity", default=80, help="Threshold for percentage of shared sequence between blocks (for integerisation from alignment and for containment calculation).")
-@click.option("--bh_connectivity", default=10, help="Minimum number of connections a plasmid need to be considered a hub plasmid.")
-@click.option("--bh_neighbours_edge_density", default=0.2, help="Maximum number of edge density between hub plasmid neighbours to label the plasmid as hub.")
-@click.option("--small_subcommunity_size_threshold", default=4, help="Communities with size up to this parameter will be joined to neighbouring larger subcommunities.")
-@click.option("--output_type", type=click.Choice(["html", "json", "both"]), default="html", help="Whether to output networks as html visualisations, cytoscape formatted json, or both.")
-@click.option("--plasmid_metadata", help="Metadata to add beside plasmid ID on the visualisation graph. Must be a tsv with a single column, with data in the same order as in genomes_list.")
-@click.option("--visualisation", type=click.Choice(["none", "all", "subcommunity"]), default="subcommunity", help="Which network visualisations to use.")
-@click.option("--ilp_solver", type=click.Choice(["GLPK", "gurobi"]), default="GLPK",
-                    help="ILP solver to use. Default is GLPK, which is slower but is bundled with pling and is free. "
-                            "If using gurobi, make sure you have a valid license and gurobi_cl is in your PATH.")
-@click.option("--timelimit", help="Time limit in seconds for ILP solver.")
-@click.option("--resources", help="tsv stating number of threads and memory to use for each rule.")
-@click.option("--cores", default=1, help="Total number of cores/threads. Put the maximum number of threads you request in the resources tsv here. (This argument is passed on to snakemake's --cores argument.)")
-@click.option("--profile", help="To run on a cluster with corresponding snakemake profile.")
-#@click.option("--storetmp", is_flag=True, help="Don't delete intermediate temporary files.")
-@click.option("--forceall", is_flag=True, help="Force snakemake to rerun everything.")
+@vis_paras
+@resource_paras
 @click.help_option()
 def skip(
     **args
@@ -289,30 +298,13 @@ Third input is a path to previous pling output directory (multiple are permitted
 @click.argument("output_dir", type=PathlibPath(exists=False))
 @click.argument("previous_pling", required=True, nargs=-1)
 @click.option("--reclustering_method", type=click.Choice(["unbiased", "biased", "nearest_neighbour"]), default="unbiased")
-@click.option("--containment_distance", default=0.5, help="Threshold for initial containment network.")
-@click.option("--dcj", default=4, help="Threshold for final DCJ-Indel network.")
+@thresholds
 @click.option("--regions", is_flag=True, help="Cluster regions rather than complete genomes. Assumes regions are taken from circular plasmids.")
 @click.option("--topology", help="File stating whether plasmids are circular or linear. Must be a tsv with two columns, one with plasmid IDs under \"plasmid\" and one with \"linear\" or \"circular\" as entries under \"topology\". Without this file, pling will asume all plasmids are circular.")
-@click.option("--batch_size", default = 200, help="How many pairs of genomes to run together in one go (for integerisation from alignment and DCJ calculation steps).")
 @click.option("--sourmash", is_flag=True, help="Run sourmash as first filter on which pairs to calculate DCJ on. Recommended for large and very diverse datasets.")
 @click.option("--sourmash_threshold", default=0.85, help="Threshold for filtering with sourmash.")
-@click.option("--identity", default=80, help="Threshold for percentage of shared sequence between blocks (for integerisation from alignment and for containment calculation).")
-@click.option("--min_indel_size", default=200, help="Minimum size for an indel to be treated as a block (for integerisation from alignment).")
-@click.option("--bh_connectivity", default=10, help="Minimum number of connections a plasmid need to be considered a hub plasmid.")
-@click.option("--bh_neighbours_edge_density", default=0.2, help="Maximum number of edge density between hub plasmid neighbours to label the plasmid as hub.")
-@click.option("--small_subcommunity_size_threshold", default=4, help="Communities with size up to this parameter will be joined to neighbouring larger subcommunities.")
-@click.option("--output_type", type=click.Choice(["html", "json", "both"]), default="html", help="Whether to output networks as html visualisations, cytoscape formatted json, or both.")
-@click.option("--plasmid_metadata", help="Metadata to add beside plasmid ID on the visualisation graph. Must be a tsv with a single column, with data in the same order as in genomes_list.")
-@click.option("--visualisation", type=click.Choice(["none", "all", "subcommunity"]), default="subcommunity", help="Which network visualisations to use.")
-@click.option("--ilp_solver", type=click.Choice(["GLPK", "gurobi"]), default="GLPK",
-                    help="ILP solver to use. Default is GLPK, which is slower but is bundled with pling and is free. "
-                            "If using gurobi, make sure you have a valid license and gurobi_cl is in your PATH.")
-@click.option("--timelimit", help="Time limit in seconds for ILP solver.")
-@click.option("--resources", help="tsv stating number of threads and memory to use for each rule.")
-@click.option("--cores", default=1, help="Total number of cores/threads. Put the maximum number of threads you request in the resources tsv here. (This argument is passed on to snakemake's --cores argument.)")
-@click.option("--profile", help="To run on a cluster with corresponding snakemake profile.")
-#@click.option("--storetmp", is_flag=True, help="Don't delete intermediate temporary files.")
-@click.option("--forceall", is_flag=True, help="Force snakemake to rerun everything.")
+@vis_paras
+@resource_paras
 @click.help_option()
 def add(
     **args
