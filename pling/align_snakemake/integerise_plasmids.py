@@ -29,21 +29,17 @@ def make_interval_tree_w_dups(block_coords, length_threshold):
     return ref_to_block, query_to_block, max_id
 
 def populate_interval_tree_with_unmatched_blocks(interval_tree, total_length, block_index, length_threshold):
-    pos = 1
-    while pos <= total_length:
-        no_matches = len(interval_tree[pos])==0
-        if no_matches:
-            start_pos = pos
-            while len(interval_tree[pos])==0 and pos<=total_length:
-                pos+=1
-            end_pos = pos
+    sorted_intervals = sorted(interval_tree)
+    prev_block_end = 1
+    for start, end, block in sorted_intervals:
+        if prev_block_end < start and start-prev_block_end > length_threshold:
+            interval_tree[prev_block_end:start] = block_index
+            block_index += 1 
+        prev_block_end = end
+       
+    if prev_block_end < total_length and total_length+1-prev_block_end > length_threshold:
+        interval_tree[prev_block_end:total_length+1] = block_index
 
-            too_short_unmatched_block = end_pos-start_pos <= length_threshold
-            if not too_short_unmatched_block:
-                interval_tree[start_pos:end_pos]=block_index
-                block_index+=1
-        else:
-            pos+=1
     return block_index
 
 def longest_block(interval_tree):
