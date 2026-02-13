@@ -4,14 +4,10 @@ OUTPUTPATH = config["output_dir"]
 dcj_threshold = config["dcj_dist_threshold"]
 
 def smash():
-    if config.get("sourmash", False):
-        return "--sourmash"
-    else:
-        return ""
-
-def smash_only():
     if config.get("sourmash_only", False):
-        return "--sourmash_only"
+        return f"--sourmash_only --sourmash --smash_threshold " + config["seq_containment_distance"]
+    elif config.get("sourmash", False) and not config.get("sourmash_only", False):
+        return f"--sourmash --smash_threshold " + config.get("sourmash_threshold", "1")
     else:
         return ""
 
@@ -53,8 +49,6 @@ rule get_batches:
         genomes_list = config["genomes_list"],
         batch_size = config["batch_size"],
         sourmash = smash(),
-        sourmash_only = smash_only(),
-        smash_threshold = config.get("sourmash_threshold", 1),
         containmentpath = get_containmentpath(),
         pling_root_dir = get_pling_root_dir(),
         prev_pling = get_prev_pling()
@@ -68,8 +62,6 @@ rule get_batches:
             --batch_size {params.batch_size} \
             --outputpath {params.outputpath} \
             {params.sourmash} \
-            {params.sourmash_only} \
-            --smash_threshold {params.smash_threshold} \
             --containmentpath {params.containmentpath} \
             {params.prev_pling}
         """
