@@ -50,13 +50,19 @@ def get_vis():
     else:
         return ""
 
+def get_containmentpath(batch):
+    if config.get("sourmash_only", False):
+        return f"{OUTPUTPATH}/containment/all_pairs_containment_distance.tsv"
+    else:
+        return f"{OUTPUTPATH}/tmp_files/containment_batchwise/batch_{batch}_containment.tsv"
+
 rule all:
     input:
         dcj_graph_outdir = f"{OUTPUTPATH}/dcj_thresh_{dcj_threshold}_graph"
 
 rule ding:
     input:
-        containment_tsv = lambda wildcards: f"{OUTPUTPATH}/tmp_files/containment_batchwise/batch_{wildcards.batch}_containment.tsv",
+        containment_tsv = lambda wildcards: get_containmentpath(wildcards.batch),
         batch_list = lambda wildcards: f"{OUTPUTPATH}/batches/batch_{wildcards.batch}.txt"
     output:
         f"{OUTPUTPATH}/tmp_files/dists_batchwise/batch_{{batch}}_dcj.tsv"

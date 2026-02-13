@@ -33,10 +33,10 @@ def get_pairs(genomes, batch_size, output_dir, containmentpath, smash, smash_onl
     iter = 0
     batch = -1
     if smash or smash_only:
-        print("blub", file=sys.stdout)
         dir = Path(os.path.dirname(containmentpath))
         dir.mkdir(parents=True, exist_ok=True)
         contain_file = open(containmentpath, "w")
+        contain_file.write("plasmid_1\tplasmid_2\tdistance\n")
     for i,j in itertools.combinations(range(n), 2):
         if not previous_pair(genomes[i], genomes[j], prev_genomes):
             append = append_pair(smash, smash_threshold, smash_matrix, i, j)

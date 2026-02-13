@@ -49,7 +49,7 @@ if not config.get("sourmash_only", False):
                         to_cat = f.read()
                     contain_out.write(to_cat)
 
-localrules: cat_containment
+    localrules: cat_containment
 
 def get_metadata(metadata):
     if metadata == "None":
