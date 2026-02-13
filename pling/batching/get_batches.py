@@ -70,14 +70,16 @@ def run_smash(genome_list, sig_path, matrixpath):
     try:
         subprocess.run(f"sourmash sketch dna --from-file {genome_list} -o {sig_path}", shell=True, check=True, capture_output=True)
     except subprocess.CalledProcessError as e:
+        print(f"ERROR IN RULE: SOURMASH FAILING WITH {genome_list}", file=sys.stderr)
         print(e.stderr.decode(), file=sys.stderr)
-        print(e)
+        print("END ERROR MSG", file=sys.stderr)
         raise e
     try:
         subprocess.run(f"sourmash compare {sig_path} --max-containment -o {matrixpath}", shell=True, check=True, capture_output=True)
     except subprocess.CalledProcessError as e:
+        print(f"ERROR IN RULE: SOURMASH FAILING WITH {genome_list}", file=sys.stderr)
         print(e.stderr.decode(), file=sys.stderr)
-        print(e)
+        print("END ERROR MSG", file=sys.stderr)
         raise e
 
 def main():

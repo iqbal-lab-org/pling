@@ -16,7 +16,10 @@ import click
 import logging
 from plasnet.utils import PathlibPath
 import warnings
+import sys
 
+logFormatter = logging.Formatter("%(asctime)s [%(levelname)s]  %(message)s")
+logger = logging.getLogger(__name__)
 
 def get_pling_path():
     plingpath = os.path.realpath(os.path.dirname(__file__))
@@ -26,28 +29,11 @@ def check_gurobi(ilp_solver):
     if ilp_solver == "gurobi":
         spec = importlib.util.find_spec("gurobi")
         if spec is None:
+            logging.error("Missing optional dependency gurobi!")
             raise Exception("Missing optional dependency gurobi!")
 
 def make_config_file(args, integerisation):
     #make configfile
-    forceall = ""
-    if args["forceall"] == True:
-        forceall = "--forceall"
-
-    if args["timelimit"]==None:
-        timelimit = "None"
-    else:
-        if args["ilp_solver"] == "gurobi":
-            timelimit= args["timelimit"]
-        elif args["ilp_solver"] == "GLPK":
-            timelimit = "None"
-            warnings.warn("GLPK does not support a time limit; time limit parameter has been ignored.")
-
-    if args["plasmid_metadata"]==None:
-        metadata = "None"
-    else:
-        metadata= str(args["plasmid_metadata"])
-
     output_dir = Path(args["output_dir"])
     output_dir.mkdir(parents=True, exist_ok=True)
 
@@ -56,7 +42,7 @@ def make_config_file(args, integerisation):
 
     configfile = f"{output_dir}/tmp_files/config.yaml"
 
-    config_dict = {"genomes_list": str(args["genomes_list"]), "output_dir": str(output_dir), "integerisation": integerisation, "seq_containment_distance": float(args["containment_distance"]), "dcj_dist_threshold": int(args["dcj"]), "prefix": "all_plasmids","communities": f"{output_dir}/containment/containment_communities", "identity_threshold": float(args["identity"]), "bh_connectivity": int(args["bh_connectivity"]), "bh_neighbours_edge_density": float(args["bh_neighbours_edge_density"]), "small_subcommunity_size_threshold": int(args["small_subcommunity_size_threshold"]), "output_type": str(args["output_type"]), "metadata": metadata, "ilp_solver": str(args["ilp_solver"]), "timelimit": timelimit, "batch_size": int(args["batch_size"]), "visualisation":str(args["visualisation"])}
+    config_dict = {"genomes_list": str(args["genomes_list"]), "output_dir": str(output_dir), "integerisation": integerisation, "seq_containment_distance": float(args["containment_distance"]), "dcj_dist_threshold": int(args["dcj"]), "prefix": "all_plasmids","communities": f"{output_dir}/containment/containment_communities", "identity_threshold": float(args["identity"]), "bh_connectivity": int(args["bh_connectivity"]), "bh_neighbours_edge_density": float(args["bh_neighbours_edge_density"]), "small_subcommunity_size_threshold": int(args["small_subcommunity_size_threshold"]), "output_type": str(args["output_type"]), "ilp_solver": str(args["ilp_solver"]), "batch_size": int(args["batch_size"]), "visualisation":str(args["visualisation"])}
 
     if integerisation=="align":
         config_dict["length_threshold"] = int(args["min_indel_size"])
@@ -83,7 +69,32 @@ def make_config_file(args, integerisation):
             config_dict["previous_pling"] = ",".join([str(path) for path in args["previous_pling"]])
             if config_dict["reclustering_method"]=="nearest_neighbour":
                 raise Exception("Nearest neighbour typing does not support merging graphs.")
-    
+            
+    with open(f"{output_dir}/pling.log", "w") as log:
+        log.write(f"pling version {__version__}\n")
+        yaml.dump(config_dict,log)
+    fileHandler = logging.FileHandler(f"{output_dir}/pling.log")
+    fileHandler.setFormatter(logFormatter)
+    logger.addHandler(fileHandler)
+
+    forceall = ""
+    if args["forceall"] == True:
+        forceall = "--forceall"
+
+    if args["timelimit"]==None:
+        config_dict["timelimit"] = "None"
+    else:
+        if args["ilp_solver"] == "gurobi":
+            config_dict["timelimit"]= args["timelimit"]
+        elif args["ilp_solver"] == "GLPK":
+            config_dict["timelimit"] = "None"
+            logger.warning("GLPK does not support a time limit; time limit parameter has been ignored.")
+
+    if args["plasmid_metadata"]==None:
+        config_dict["metadata"] = "None"
+    else:
+        config_dict["metadata"]= str(args["plasmid_metadata"])
+
     profile = ""
     if args["profile"]!=None:
         profile = "--profile " + {args["profile"]}
@@ -102,39 +113,31 @@ def make_config_file(args, integerisation):
     with open(configfile, 'w') as config:
         yaml.dump(config_dict, config)
 
-    return configfile, tmp_dir, forceall, profile
+    snakemake_args = f"--configfile {configfile} --cores " + str(args["cores"]) + f" --rerun-incomplete --nolock {profile} {forceall} --quiet all"
+
+    return tmp_dir, snakemake_args
+
+def run_command(command):
+    try:
+        subprocess.run(command, shell=True, check=True, capture_output=True)
+    except subprocess.CalledProcessError as e:
+        logger.exception(e.stderr.decode())
+        raise e
 
 def batching(snakemake_args):
-    try:
-        print("Batching...\n")
-        subprocess.run(f"snakemake --snakefile {get_pling_path()}/batching/Snakefile {snakemake_args}", shell=True, check=True, capture_output=True)
-        print("Completed batching.\n")
-    except subprocess.CalledProcessError as e:
-        print(e.stderr.decode())
-        print(e)
-        raise e
+    logger.info("Batching...")
+    run_command(f"snakemake --snakefile {get_pling_path()}/batching/Snakefile {snakemake_args}")
+    logger.info("Completed batching.")
     
 def alignment(snakemake_args):
-    try:
-        print("Aligning, integerising, and building containment network...\n")
-        subprocess.run(f"snakemake --snakefile {get_pling_path()}/align_snakemake/Snakefile {snakemake_args}", shell=True, check=True, capture_output=True)
-        print("Completed integerisation and containment network.\n")
-    except subprocess.CalledProcessError as e:
-        print(e.stderr.decode())
-        print(e)
-        raise e
+    logger.info("Aligning, integerising, and building containment network...")
+    run_command(f"snakemake --snakefile {get_pling_path()}/align_snakemake/Snakefile {snakemake_args}")
+    logger.info("Completed integerisation and containment network.")
     
 def ding_and_cluster(snakemake_args):
-    try:
-        print("Calculating DCJ-Indel distance and clustering...\n")
-        subprocess.run(f"snakemake --snakefile {get_pling_path()}/dcj_snakemake/Snakefile {snakemake_args}", shell=True, check=True, capture_output=True)
-        print("Completed distance calculations and clustering.\n")
-    except subprocess.CalledProcessError as e:
-        print(e.stderr.decode())
-        print(e)
-        raise e
-
-
+    logger.info("Calculating DCJ-Indel distance and clustering...")
+    run_command(f"snakemake --snakefile {get_pling_path()}/dcj_snakemake/Snakefile {snakemake_args}")
+    logger.info("Completed distance calculations and clustering.")
 
 @click.group()
 @click.version_option(version=__version__)
@@ -193,9 +196,7 @@ def align(
 ):
     check_gurobi(args["ilp_solver"])
 
-    configfile, tmp_dir, forceall, profile = make_config_file(args, "align")
-
-    snakemake_args = f"--configfile {configfile} --cores " + str(args["cores"]) + f" --rerun-incomplete --nolock {profile} {forceall}"
+    tmp_dir, snakemake_args = make_config_file(args, "align")
 
     batching(snakemake_args)
 
@@ -252,20 +253,13 @@ def skip(
 ):
     check_gurobi(args["ilp_solver"])
 
-    configfile, tmp_dir, forceall, profile = make_config_file(args, "skip")
-
-    snakemake_args = f"--configfile {configfile} --cores " + str(args["cores"]) + f" --rerun-incomplete --nolock {profile} {forceall}"
+    tmp_dir, snakemake_args = make_config_file(args, "skip")
 
     batching(snakemake_args)
 
-    try:
-        print("Building containment network...\n")
-        subprocess.run(f"snakemake --snakefile {get_pling_path()}/jac_network_snakemake/Snakefile {snakemake_args}", shell=True, check=True, capture_output=True)
-        print("Completed containment network.\n")
-    except subprocess.CalledProcessError as e:
-        print(e.stderr.decode())
-        print(e)
-        raise e
+    logger.info("Building containment network...")
+    run_command(f"snakemake --snakefile {get_pling_path()}/jac_network_snakemake/Snakefile {snakemake_args}")
+    logger.info("Completed containment network.")
 
     ding_and_cluster(snakemake_args)
 
@@ -323,9 +317,7 @@ def add(
 ):
     check_gurobi(args["ilp_solver"])
 
-    configfile, tmp_dir, forceall, profile = make_config_file(args, "align")
-
-    snakemake_args = f"--configfile {configfile} --cores " + str(args["cores"]) + f" --rerun-incomplete --nolock {profile} {forceall}"
+    tmp_dir, snakemake_args = make_config_file(args, "align")
 
     batching(snakemake_args)
 
