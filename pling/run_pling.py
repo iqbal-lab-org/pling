@@ -72,7 +72,9 @@ def make_config_file(args, integerisation):
             
     with open(f"{output_dir}/pling.log", "w") as log:
         log.write(f"pling version {__version__}\n")
+        log.write("\n ARGUMENTS \n\n")
         yaml.dump(config_dict,log)
+        log.write("\n\n LOG \n\n")
     fileHandler = logging.FileHandler(f"{output_dir}/pling.log")
     fileHandler.setFormatter(logFormatter)
     logger.addHandler(fileHandler)
