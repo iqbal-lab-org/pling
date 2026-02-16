@@ -2,7 +2,7 @@ from argparse import Namespace
 from unittest import TestCase
 from pling import run_pling
 from tests.utils import *
-
+from click.testing import CliRunner
 
 class Test_Pling_end_to_end(TestCase):
     def read_file(self, path):
@@ -16,35 +16,23 @@ class Test_Pling_end_to_end(TestCase):
         self.assertEqual(first_file_content, second_file_content)
 
     def test_pling_align_end_to_end(self):
-        args = Namespace(
-            genomes_list='tests/integration_test/data/incy_list_4.txt',
-            output_dir='tests/integration_test/data/out_align',
-            integerisation='align',
-            unimog=None,
-            containment_distance=0.6,
-            dcj=4,
-            identity=80,
-            min_indel_size=200,
-            bh_connectivity=10,
-            bh_neighbours_edge_density=0.2,
-            small_subcommunity_size_threshold=4,
-            plasmid_metadata=None,
-            cores=2,
-            storetmp=False,
-            forceall=True,
-            ilp_solver="GLPK",
-            timelimit=None,
-            resources=None,
-            profile=None,
-            batch_size=50,
-            sourmash=False,
-            sourmash_threshold=0.85,
-            topology=None,
-            regions=False,
-            output_type="html",
-            previous_pling=None
+        runner = CliRunner()
+
+        result = runner.invoke(
+            run_pling.cli,
+            [
+                "cluster", "align",
+                "tests/integration_test/data/incy_list_4.txt",
+                "tests/integration_test/data/out_align",
+                "--containment_distance", "0.6",
+                "--dcj", "4",
+                "--cores", "2",
+                "--forceall",
+                "--batch_size", "50"
+            ],
         )
-        run_pling.pling(args)
+
+        assert result.exit_code == 0, result.output
 
         assert_files_are_identical(
             "tests/integration_test/data/out_align/all_plasmids_distances.tsv",

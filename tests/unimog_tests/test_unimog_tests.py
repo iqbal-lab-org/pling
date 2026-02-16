@@ -2,6 +2,7 @@ from argparse import Namespace
 from unittest import TestCase
 from pling import run_pling
 from tests.utils import *
+from click.testing import CliRunner
 import os
 
 class Test_Pling(TestCase):
@@ -11,70 +12,45 @@ class Test_Pling(TestCase):
         self.toy_dir = "tests/unimog_tests/test_cases/toy_tests"
 
     def test_toy_alignment(self):
-        tests = self.toy_tests
-        for test in tests:
-            args = Namespace(genomes_list=f"{self.toy_dir}/input/{test}.txt",
-                             output_dir=f"{self.toy_dir}/{test}/out/align",
-                             integerisation="align",
-                             unimog=None,
-                             containment_distance=0.2,
-                             dcj=4,
-                             identity=80,
-                             min_indel_size=200,
-                             bh_connectivity=10,
-                             bh_neighbours_edge_density=0.2,
-                             small_subcommunity_size_threshold=4,
-                             plasmid_metadata=None,
-                             cores='1',
-                             storetmp=False,
-                             forceall=True,
-                             ilp_solver="GLPK",
-                             timelimit=None,
-                             resources=None,
-                             profile=None,
-                             batch_size=5,
-                             sourmash=False,
-                             sourmash_threshold=None,
-                             topology=None,
-                             regions=False,
-                             output_type="html",
-                             previous_pling=None
-                             )
-            run_pling.pling(args)
+        runner = CliRunner()
+
+        for test in self.toy_tests:
+            result = runner.invoke(
+                run_pling.cli,
+                [
+                    "cluster", "align",
+                    f"{self.toy_dir}/input/{test}.txt",
+                    f"{self.toy_dir}/{test}/out/align",
+                    "--containment_distance", "0.2",
+                    "--dcj", "4",
+                    "--forceall",
+                    "--batch_size", "5"
+                ],
+            )
+
+            assert result.exit_code == 0, f"{test} failed:\n{result.output}"
 
             assert_end_to_end(test, self.toy_dir)
 
     def test_toy_skip(self):
-        tests = self.toy_tests
-        for test in tests:
-            args = Namespace(genomes_list=f"{self.toy_dir}/input/{test}.txt",
-                             output_dir=f"{self.toy_dir}/{test}/out/skip",
-                             integerisation="skip",
-                             unimog=f"{self.toy_dir}/input/skip.unimog",
-                             containment_distance=0.2,
-                             dcj=4,
-                             identity=80,
-                             min_indel_size=200,
-                             bh_connectivity=10,
-                             bh_neighbours_edge_density=0.2,
-                             small_subcommunity_size_threshold=4,
-                             plasmid_metadata=None,
-                             cores='1',
-                             storetmp=False,
-                             forceall=True,
-                             ilp_solver="GLPK",
-                             timelimit=None,
-                             resources=None,
-                             profile=None,
-                             batch_size=5,
-                             sourmash=False,
-                             sourmash_threshold=None,
-                             topology=None,
-                             regions=False,
-                             output_type="html",
-                             previous_pling=None
-                             )
-            run_pling.pling(args)
+        runner = CliRunner()
+
+        for test in self.toy_tests:
+            result = runner.invoke(
+                run_pling.cli,
+                [
+                    "cluster", "skip",
+                    f"{self.toy_dir}/input/{test}.txt",
+                    f"{self.toy_dir}/{test}/out/skip",
+                    f"{self.toy_dir}/input/skip.unimog",
+                    "--containment_distance", "0.2",
+                    "--dcj", "4",
+                    "--forceall",
+                    "--batch_size", "5"
+                ],
+            )
+
+            assert result.exit_code == 0, f"{test} failed:\n{result.output}"
 
             dir = self.toy_dir
 
@@ -82,13 +58,13 @@ class Test_Pling(TestCase):
             assert_containment(test, dir, "skip")
 
             #DCJ distance matrix
-            assert_files_are_identical(f"{dir}/{test}/out/skip/all_plasmids_distances.tsv",
-                                       f"{dir}/{test}/truth/skip/all_plasmids_distances.tsv")
+            assert_distances_identical(f"{dir}/{test}/out/skip/all_plasmids_distances.tsv",
+                                        f"{dir}/{test}/truth/skip/all_plasmids_distances.tsv")
             #DCJ communities
             assert_files_are_identical(f"{dir}/{test}/out/skip/dcj_thresh_4_graph/objects/typing.tsv",
-                                       f"{dir}/{test}/truth/skip/dcj_thresh_4_graph/objects/typing.tsv")
+                                        f"{dir}/{test}/truth/skip/dcj_thresh_4_graph/objects/typing.tsv")
             assert_files_are_identical(f"{dir}/{test}/out/skip/dcj_thresh_4_graph/objects/hub_plasmids.csv",
-                                       f"{dir}/{test}/truth/skip/dcj_thresh_4_graph/objects/hub_plasmids.csv")
+                                        f"{dir}/{test}/truth/skip/dcj_thresh_4_graph/objects/hub_plasmids.csv")
 
 class Test_Indels(TestCase):
 
@@ -97,36 +73,23 @@ class Test_Indels(TestCase):
         self.indel_dir = "tests/unimog_tests/test_cases/indel_tests"
 
     def test_indel_alignment(self):
-        tests = self.indel_tests
-        for test in tests:
-            args = Namespace(genomes_list=f"{self.indel_dir}/input/{test}.txt",
-                             output_dir=f"{self.indel_dir}/{test}/out/align",
-                             integerisation="align",
-                             unimog=None,
-                             containment_distance=0.6,
-                             dcj=4,
-                             identity=80,
-                             min_indel_size=200,
-                             bh_connectivity=10,
-                             bh_neighbours_edge_density=0.2,
-                             small_subcommunity_size_threshold=4,
-                             plasmid_metadata=None,
-                             cores='1',
-                             storetmp=False,
-                             forceall=True,
-                             ilp_solver="GLPK",
-                             timelimit=None,
-                             resources=None,
-                             profile=None,
-                             batch_size=1,
-                             sourmash=False,
-                             sourmash_threshold=None,
-                             topology=None,
-                             regions=False,
-                             output_type="html",
-                             previous_pling=None
-                             )
-            run_pling.pling(args)
+        runner = CliRunner()
+
+        for test in self.indel_tests:
+            result = runner.invoke(
+                run_pling.cli,
+                [
+                    "cluster", "align",
+                    f"{self.indel_dir}/input/{test}.txt",
+                    f"{self.indel_dir}/{test}/out/align",
+                    "--containment_distance", "0.6",
+                    "--dcj", "4",
+                    "--forceall",
+                    "--batch_size", "1",
+                ],
+            )
+
+            assert result.exit_code == 0, f"{test} failed:\n{result.output}"
 
             #containment communities
             assert_containment(test, self.indel_dir, "align")
@@ -141,34 +104,22 @@ class Test_Palindrome(TestCase):
         self.dir = "tests/unimog_tests/test_cases/git_issues"
 
     def test_palindrome(self):
-        args = Namespace(genomes_list=f"{self.dir}/input/{self.test}.txt",
-                         output_dir=f"{self.dir}/{self.test}/out/align",
-                         integerisation="align",
-                         unimog=None,
-                         containment_distance=0.6,
-                         dcj=4,
-                         identity=80,
-                         min_indel_size=200,
-                         bh_connectivity=10,
-                         bh_neighbours_edge_density=0.2,
-                         small_subcommunity_size_threshold=4,
-                         plasmid_metadata=None,
-                         cores='1',
-                         storetmp=False,
-                         forceall=True,
-                         ilp_solver="GLPK",
-                         timelimit=None,
-                         resources=None,
-                         profile=None,
-                         batch_size=5,
-                         sourmash=False,
-                         sourmash_threshold=None,
-                         topology=None,
-                         regions=False,
-                         output_type="html",
-                         previous_pling=None
-                         )
-        run_pling.pling(args)
+        runner = CliRunner()
+
+        result = runner.invoke(
+            run_pling.cli,
+            [
+                "cluster", "align",
+                f"{self.dir}/input/{self.test}.txt",
+                f"{self.dir}/{self.test}/out/align",
+                "--containment_distance", "0.6",
+                "--dcj", "4",
+                "--forceall",
+                "--batch_size", "5",
+            ],
+        )
+
+        assert result.exit_code == 0, result.output
 
         assert_end_to_end(self.test, self.dir)
 
@@ -179,34 +130,22 @@ class Test_Containment_1(TestCase):
         self.dir = "tests/unimog_tests/test_cases/git_issues"
 
     def test_containment_1(self):
-        args = Namespace(genomes_list=f"tests/unimog_tests/test_cases/toy_tests/input/test_2.txt",
-                         output_dir=f"{self.dir}/{self.test}/out/align",
-                         integerisation="align",
-                         unimog=None,
-                         containment_distance=1,
-                         dcj=4,
-                         identity=80,
-                         min_indel_size=200,
-                         bh_connectivity=10,
-                         bh_neighbours_edge_density=0.2,
-                         small_subcommunity_size_threshold=4,
-                         plasmid_metadata=None,
-                         cores='1',
-                         storetmp=False,
-                         forceall=True,
-                         ilp_solver="GLPK",
-                         timelimit=None,
-                         resources=None,
-                         profile=None,
-                         batch_size=5,
-                         sourmash=False,
-                         sourmash_threshold=None,
-                         topology=None,
-                         regions=False,
-                         output_type="html",
-                         previous_pling=None
-                         )
-        run_pling.pling(args)
+        runner = CliRunner()
+
+        result = runner.invoke(
+            run_pling.cli,
+            [
+                "cluster", "align",
+                "tests/unimog_tests/test_cases/toy_tests/input/test_2.txt",
+                f"{self.dir}/{self.test}/out/align",
+                "--containment_distance", "1",
+                "--dcj", "4",
+                "--forceall",
+                "--batch_size", "5",
+            ],
+        )
+
+        assert result.exit_code == 0, result.output
 
         assert_end_to_end(self.test, self.dir)
 

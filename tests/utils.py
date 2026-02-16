@@ -9,6 +9,19 @@ def read_file(path):
     with open(path, 'rb') as f:
         return f.read()
 
+def read_dist_tsv(path):
+    dists = {}
+    with open(path, 'r') as f:
+        next(f)
+        for line in f:
+            plasmid_1, plasmid_2, dist = line.strip().split("\t")
+            dists[frozenset([plasmid_1,plasmid_2])] = dist
+    return dists
+
+def assert_distances_identical(path_to_first_file, path_to_second_file):
+    first_file_content = read_dist_tsv(path_to_first_file)
+    second_file_content = read_dist_tsv(path_to_second_file)
+    tc.assertEqual(first_file_content, second_file_content)
 
 def assert_files_are_identical(path_to_first_file, path_to_second_file):
     first_file_content = read_file(path_to_first_file)
@@ -27,7 +40,7 @@ def get_batch_num(filepath):
     return num
 
 def assert_containment(test, test_dir, integerisation):
-    assert_files_are_identical(f"{test_dir}/{test}/out/{integerisation}/containment/all_pairs_containment_distance.tsv",
+    assert_distances_identical(f"{test_dir}/{test}/out/{integerisation}/containment/all_pairs_containment_distance.tsv",
                                f"{test_dir}/{test}/truth/{integerisation}/containment/all_pairs_containment_distance.tsv")
     assert_files_are_identical(f"{test_dir}/{test}/out/{integerisation}/containment/containment_communities/objects/communities.tsv",
                                f"{test_dir}/{test}/truth/{integerisation}/containment/containment_communities/objects/communities.tsv")
@@ -48,7 +61,7 @@ def assert_end_to_end(test, dir):
     batch_num = get_batch_num(f"{dir}/{test}/out/align/batches/batching_info.txt")
     assert_align_unimogs(test, dir, batch_num)
     #DCJ distance matrix
-    assert_files_are_identical(f"{dir}/{test}/out/align/all_plasmids_distances.tsv",
+    assert_distances_identical(f"{dir}/{test}/out/align/all_plasmids_distances.tsv",
                                f"{dir}/{test}/truth/align/all_plasmids_distances.tsv")
     #DCJ communities
     assert_files_are_identical(f"{dir}/{test}/out/align/dcj_thresh_4_graph/objects/typing.tsv",
