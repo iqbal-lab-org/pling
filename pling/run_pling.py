@@ -69,7 +69,7 @@ def make_config_file(args, integerisation):
     if "previous_pling" in args.keys():
         config_dict["reclustering_method"] = args["reclustering_method"]
         config_dict["previous_pling"] = ",".join([str(path) for path in args["previous_pling"]])
-        if config_dict["reclustering_method"]=="nearest_neighbour":
+        if config_dict["reclustering_method"]=="nearest_neighbour" and len(args["previous_pling"])>1:
             raise Exception("Nearest neighbour typing does not support merging graphs.")
             
     with open(f"{output_dir}/pling.log", "w") as log:
