@@ -42,7 +42,12 @@ def make_config_file(args, integerisation):
 
     configfile = f"{output_dir}/tmp_files/config.yaml"
 
-    config_dict = {"genomes_list": str(args["genomes_list"]), "output_dir": str(output_dir), "integerisation": integerisation, "seq_containment_distance": float(args["containment_distance"]), "dcj_dist_threshold": int(args["dcj"]), "prefix": "all_plasmids","communities": f"{output_dir}/containment/containment_communities", "identity_threshold": float(args["identity"]), "bh_connectivity": int(args["bh_connectivity"]), "bh_neighbours_edge_density": float(args["bh_neighbours_edge_density"]), "small_subcommunity_size_threshold": int(args["small_subcommunity_size_threshold"]), "output_type": str(args["output_type"]), "ilp_solver": str(args["ilp_solver"]), "batch_size": int(args["batch_size"]), "visualisation":str(args["visualisation"])}
+    config_dict = {"genomes_list": str(args["genomes_list"]), "output_dir": str(output_dir), "integerisation": integerisation, 
+                   "seq_containment_distance": float(args["containment_distance"]), "dcj_dist_threshold": int(args["dcj"]), 
+                   "prefix": "all_plasmids","communities": f"{output_dir}/containment/containment_communities", 
+                   "identity_threshold": float(args["identity"]), "bh_connectivity": int(args["bh_connectivity"]), 
+                   "bh_neighbours_edge_density": float(args["bh_neighbours_edge_density"]), "small_subcommunity_size_threshold": int(args["small_subcommunity_size_threshold"]), 
+                   "output_type": str(args["output_type"]), "ilp_solver": str(args["ilp_solver"]), "batch_size": int(args["batch_size"]), "visualisation":str(args["visualisation"])}
 
     if integerisation=="align":
         config_dict["length_threshold"] = int(args["min_indel_size"])
@@ -63,12 +68,9 @@ def make_config_file(args, integerisation):
 
     if "previous_pling" in args.keys():
         config_dict["reclustering_method"] = args["reclustering_method"]
-        if len(args["previous_pling"])==1:
-            config_dict["previous_pling"] = str(args["previous_pling"])
-        else:
-            config_dict["previous_pling"] = ",".join([str(path) for path in args["previous_pling"]])
-            if config_dict["reclustering_method"]=="nearest_neighbour":
-                raise Exception("Nearest neighbour typing does not support merging graphs.")
+        config_dict["previous_pling"] = ",".join([str(path) for path in args["previous_pling"]])
+        if config_dict["reclustering_method"]=="nearest_neighbour":
+            raise Exception("Nearest neighbour typing does not support merging graphs.")
             
     with open(f"{output_dir}/pling.log", "w") as log:
         log.write(f"pling version {__version__}\n")
