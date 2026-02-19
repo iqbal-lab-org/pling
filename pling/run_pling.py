@@ -31,6 +31,29 @@ def check_gurobi(ilp_solver):
         if spec is None:
             logging.error("Missing optional dependency gurobi!")
             raise Exception("Missing optional dependency gurobi!")
+        
+def make_snakemake_config(args, config_dict):
+    forceall = ""
+    if args["forceall"] == True:
+        forceall = "--forceall"
+
+    profile = ""
+    if args["profile"]!=None:
+        profile = "--profile " + {args["profile"]}
+    if args["resources"]!=None:
+        resources = pd.read_csv(args["resources"], sep="\t")
+    else:
+        resources = pd.read_csv(f"{get_pling_path()}/resources.tsv", sep="\t")
+    for row in resources.index:
+        rule = resources.loc[row, "Rule"]
+        threads = resources.loc[row, "Threads"]
+        mem =  resources.loc[row, "Mem"]
+        if not pd.isna(threads):
+            config_dict[f"{rule}_threads"] = int(threads)
+        config_dict[f"{rule}_mem"] = int(mem)
+
+    return config_dict, profile, forceall
+
 
 def make_config_file(args, integerisation):
     #make configfile
@@ -81,10 +104,6 @@ def make_config_file(args, integerisation):
     fileHandler.setFormatter(logFormatter)
     logger.addHandler(fileHandler)
 
-    forceall = ""
-    if args["forceall"] == True:
-        forceall = "--forceall"
-
     if args["timelimit"]==None:
         config_dict["timelimit"] = "None"
     else:
@@ -99,20 +118,7 @@ def make_config_file(args, integerisation):
     else:
         config_dict["metadata"]= str(args["plasmid_metadata"])
 
-    profile = ""
-    if args["profile"]!=None:
-        profile = "--profile " + {args["profile"]}
-    if args["resources"]!=None:
-        resources = pd.read_csv(args["resources"], sep="\t")
-    else:
-        resources = pd.read_csv(f"{get_pling_path()}/resources.tsv", sep="\t")
-    for row in resources.index:
-        rule = resources.loc[row, "Rule"]
-        threads = resources.loc[row, "Threads"]
-        mem =  resources.loc[row, "Mem"]
-        if not pd.isna(threads):
-            config_dict[f"{rule}_threads"] = int(threads)
-        config_dict[f"{rule}_mem"] = int(mem)
+    config_dict, profile, forceall = make_snakemake_config(args, config_dict)
 
     with open(configfile, 'w') as config:
         yaml.dump(config_dict, config)
@@ -327,11 +333,52 @@ def add(
 cli.add_command(add)
 
 @click.command(
-        help = "Output DCJ-Indel distances as matrices for each subcommunity."
+        help = "Output DCJ-Indel distances as matrices for each subcommunity, and calculate neighbour-joining trees."
 )
+@click.argument("output_dir", type=PathlibPath(exists=True))
+@click.option("--submatrices_dir", type=PathlibPath(exists=False), help="Directory to store results in. Defaults to pling_dir/submatrices.")
+@click.option("--ignore_containment", is_flag=True, help="Calculate missing DCJ-Indel distances due to pairs not meeting the containment threshold previously. Interpret these with caution!")
+@click.option("--vis_trees", is_flag=True, help="Plot the DCJ-Indel NJ trees.")
+@resource_paras
 @click.help_option()
-def submatrix():
-    pass
+def submatrix(args):
+
+    config_dict = {}
+    output_dir = args["output_dir"]
+    with open(f"{output_dir}/pling.log") as f:
+        lines = f.readlines
+        args_bool = True
+        i = 4
+        while args_bool:
+            if lines[i]=="\n":
+                args_bool = False
+            else:
+                arg, value = lines[i].replace(" ", "").strip().split(":")
+                config_dict[arg] = value
+                i = i + 1
+
+    if "submatrices_dir" in args.keys():
+        config_dict["submatrices_dir"] = args["submatrices_dir"]
+    else:
+        config_dict["submatrices_dir"] = f"{output_dir}/submatrices"
+
+    if args["timelimit"]==None:
+        config_dict["timelimit"] = "None"
+    else:
+        if args["ilp_solver"] == "gurobi":
+            config_dict["timelimit"]= args["timelimit"]
+        elif args["ilp_solver"] == "GLPK":
+            config_dict["timelimit"] = "None"
+            logger.warning("GLPK does not support a time limit; time limit parameter has been ignored.")
+
+    config_dict, profile, forceall = make_snakemake_config(args, config_dict)
+
+    configfile = config_dict["submatrices_dir"]+"/config.yaml"
+    with open(configfile, 'w') as config:
+        yaml.dump(config_dict, config)
+
+    command = "snakemake --cores " + args["cores"] + f" --Snakefile {get_pling_path()}/submatrices_snakemake/Snakefile --configfile {configfile} --rerun-incomplete --nolock {profile} {forceall} --quiet all"
+    run_command(command)
 
 cli.add_command(submatrix)
 

@@ -1,0 +1,178 @@
+from pathlib import Path
+import os
+import pandas as pd
+import subprocess
+import glob
+
+configfile: "config.yaml"
+
+INTEGERISATION="align"
+OUTPUTPATH = config["output_dir"]
+dcj_threshold = config["dcj_dist_threshold"]
+SUBCOMMUNITIESPATH = f"{OUTPUTPATH}/dcj_thresh_{dcj_threshold}_graph"
+subcommunities_df = pd.read_csv(SUBCOMMUNITIESPATH, sep='\t')
+subcommunities_list = list(set(subcommunities_df["type"].to_list()))
+pling_dir = config["pling"]
+
+
+def get_regions():
+    if config.get("regions", False):
+        return "--regions"
+    else:
+        return ""
+
+def get_topology(topology):
+    if config["topology"]=="None":
+        return ""
+    else:
+        return f"--topology {topology}"
+
+def read_in_dists(filepath):
+    dists = {}
+    with open(filepath, "r") as f:
+        for line in f:
+            plasmid1, plasmid2, dist = line.strip("\n").split("\t")
+            dists[(plasmid1,plasmid2)] = dist
+            dists[(plasmid2,plasmid1)] = dist
+    return dists
+
+rule all:
+    input:
+        files = expand(f"{OUTPUTPATH}/trees/{{subcommunity}}.tree", subcommunity=subcommunities_list)
+
+rule incomplete_submatrices:
+    input:
+        subcom = SUBCOMMUNITIESPATH,
+        tsv = config["dcj"]
+    output:
+        outdir = directory("{OUTPUTPATH}/incomplete")
+    params:
+        outdir = OUTPUTPATH
+    resources:
+        mem_mb = lambda wildcards, attempt: attempt * 1000
+    script:
+        "get_submatrices.py"
+
+rule missing_entries:
+    input:
+        incomplete_submatrix = lambda wildcards: f"{OUTPUTPATH}/incomplete/{wildcards.subcommunity}_incomplete.dist"
+    output:
+        missing_entries = f"{OUTPUTPATH}/missing/{{subcommunity}}_missing.txt"
+    resources:
+        mem_mb = lambda wildcards, attempt: attempt * 1000
+    run:
+        submatrix = pd.read_csv(input.incomplete_submatrix, sep="\t", index_col=0)
+        submatrix.columns = submatrix.index
+        missing_df = submatrix.isna()
+        with open(output.missing_entries, "w") as f:
+            for i in range(0, len(submatrix.index)):
+                plasmid1 = list(submatrix.index)[i]
+                for j in range(0,i):
+                    if missing_df.iloc[i,j]==True:
+                        plasmid2 = list(submatrix.columns)[j]
+                        f.write(str([plasmid1,plasmid2])+"\n")
+
+rule make_unimogs:
+    input:
+        batch_list=lambda wildcards: f"{OUTPUTPATH}/missing/{wildcards.subcommunity}_missing.txt"
+    output:
+        containment=f"{OUTPUTPATH}/containment_missing/{{subcommunity}}_containment.tsv",
+        unimog = f"{OUTPUTPATH}/unimogs_missing/{{subcommunity}}_align.unimog",
+        map = f"{OUTPUTPATH}/unimogs_missing/{{subcommunity}}_map.txt"
+    threads: 1
+    resources:
+        mem_mb=lambda wildcards, attempt: 10000*attempt
+    params:
+        genomes_list = config["genomes_list"],
+        outputpath = OUTPUTPATH,
+        identity_threshold = 80,
+        containment_distance = 1,
+        pling_root_dir = pling_dir,
+        regions = get_regions(),
+        topology = get_topology(config["topology"])
+    shadow: "shallow"
+    conda: "pling"
+    shell:
+        """
+        PYTHONPATH={params.pling_root_dir} python {params.pling_root_dir}/pling/align_snakemake/unimog.py \
+            --genomes_list {params.genomes_list} \
+            --batch {input.batch_list} \
+            --identity_threshold {params.identity_threshold} \
+            --containment_distance {params.containment_distance} \
+            --outputpath {params.outputpath} \
+            --containment_output {output.containment} \
+            --unimog_output {output.unimog} \
+            --map_output {output.map} \
+            {params.regions} \
+            {params.topology}
+        """
+
+rule ding:
+    input:
+        containment_tsv=f"{OUTPUTPATH}/containment_missing/{{subcommunity}}_containment.tsv",
+        unimog = f"{OUTPUTPATH}/unimogs_missing/{{subcommunity}}_align.unimog",
+        batch_list = lambda wildcards: f"{OUTPUTPATH}/missing/{wildcards.subcommunity}_missing.txt"
+    output:
+        f"{OUTPUTPATH}/dists_missing/{{subcommunity}}_dcj.tsv"
+    params:
+        containment_distance=1,
+        outputpath=OUTPUTPATH,
+        snakefile_dir=f"{pling_dir}/pling/dcj_snakemake",
+        pling_root_dir = pling_dir,
+        ilp_solver = config["ilp_solver"]
+    threads: 1
+    resources:
+        mem_mb = lambda wildcards, attempt: attempt * 16000
+    shadow: "shallow"
+    conda: "pling"
+    shell:
+            """
+            PYTHONPATH={params.pling_root_dir} python {params.pling_root_dir}/pling/dcj_snakemake/dcj.py \
+                    --batch_file {input.batch_list} \
+                    --batch 0 \
+                    --containment_tsv {input.containment_tsv} \
+                    --containment_distance {params.containment_distance} \
+                    --outputpath {params.outputpath} \
+                    --distpath {output} \
+                    --communitypath NA \
+                    --integerisation align \
+                    --threads {threads} \
+                    --snakefile_dir {params.pling_root_dir}/pling/dcj_snakemake \
+                    --unimog {input.unimog} \
+                    --ilp_solver {params.ilp_solver}
+            """
+
+rule dcj_submatrix:
+    input:
+        missing_dists = lambda wildcards: f"{OUTPUTPATH}/dists_missing/{wildcards.subcommunity}_dcj.tsv",
+        incomplete_submatrix = lambda wildcards: f"{OUTPUTPATH}/incomplete/{wildcards.subcommunity}_incomplete.dist"
+    output:
+        submatrix_tsv = f"{OUTPUTPATH}/dists/{{subcommunity}}.dist"
+    run:
+        submatrix = pd.read_csv(input.incomplete_submatrix, sep="\t", index_col=0)
+        submatrix.columns = submatrix.index
+        missing_dists = read_in_dists(input.missing_dists)
+        distances = submatrix.copy()
+        missing_df = submatrix.isna()
+        for i in range(0, len(submatrix.index)):
+            plasmid1 = list(submatrix.index)[i]
+            for j in range(0,i):
+                if missing_df.iloc[i,j]==True:
+                    plasmid2 = list(submatrix.columns)[j]
+                    distances.loc[plasmid1,plasmid2] = missing_dists[(plasmid1,plasmid2)]
+                    distances.loc[plasmid2,plasmid1] = missing_dists[(plasmid1,plasmid2)]
+        new_row = pd.DataFrame({el:pd.NA for el in submatrix.columns}, index=[submatrix.index.name])
+        distances = pd.concat([new_row,distances.loc[:]])
+        distances.to_csv(output.submatrix_tsv, sep="\t", index=True, header=False)
+
+rule trees:
+    input:
+        f"{OUTPUTPATH}/dists/{{subcommunity}}.dist"
+    output:
+        f"{OUTPUTPATH}/trees/{{subcommunity}}.tree"
+    resources:
+        mem_mb = lambda wildcards, attempt: attempt * 1000
+    shell:
+        "quicktree -in m {input} > {output}"
+
+
