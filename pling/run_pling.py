@@ -5,51 +5,21 @@ Created on Tue Aug 15 14:34:47 2023
 """
 
 import subprocess
-import argparse
 import shutil
 import os
 import pandas as pd
 from pathlib import Path
-import subprocess
 import yaml
 import importlib
 from pling import __version__
+import click
+import logging
+from plasnet.utils import PathlibPath
+import warnings
+import sys
 
-def parse_args():
-    parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-    parser.add_argument('--version', action='version', version=__version__)
-    parser.add_argument("genomes_list", help="Path to list of fasta file paths.")
-    parser.add_argument("output_dir", help="Path to output directory.")
-    parser.add_argument("integerisation", choices=["align", "skip"],
-                        help="Integerisation method: \"align\" for alignment, \"skip\" to skip integerisation altogether. Make sure to input a unimog file if skipping integerisation.")
-    parser.add_argument("--unimog", help="Path to unimog file. Required input if skipping integerisation.")
-    parser.add_argument("--containment_distance", default=0.5, help="Threshold for initial containment network.")
-    parser.add_argument("--dcj", default=4, help="Threshold for final DCJ-Indel network.")
-    parser.add_argument("--regions", action="store_true", help="Cluster regions rather than complete genomes. Assumes regions are taken from circular plasmids.")
-    parser.add_argument("--topology", help="File stating whether plasmids are circular or linear. Must be a tsv with two columns, one with plasmid IDs under \"plasmid\" and one with \"linear\" or \"circular\" as entries under \"topology\". Without this file, pling will asume all plasmids are circular.")
-    parser.add_argument("--batch_size", default = 200, help="How many pairs of genomes to run together in one go (for integerisation from alignment and DCJ calculation steps).")
-    parser.add_argument("--sourmash", action="store_true", help="Run sourmash as first filter on which pairs to calculate DCJ on. Recommended for large and very diverse datasets.")
-    parser.add_argument("--sourmash_threshold", default=0.85, help="Threshold for filtering with sourmash.")
-    parser.add_argument("--identity", default=80, help="Threshold for percentage of shared sequence between blocks (for integerisation from alignment and for containment calculation).")
-    parser.add_argument("--min_indel_size", default=200, help="Minimum size for an indel to be treated as a block (for integerisation from alignment).")
-    parser.add_argument("--bh_connectivity", default=10, help="Minimum number of connections a plasmid need to be considered a hub plasmid.")
-    parser.add_argument("--bh_neighbours_edge_density", default=0.2, help="Maximum number of edge density between hub plasmid neighbours to label the plasmid as hub.")
-    parser.add_argument("--small_subcommunity_size_threshold", default=4, help="Communities with size up to this parameter will be joined to neighbouring larger subcommunities.")
-    parser.add_argument("--output_type", choices=["html", "json", "both"], default="html", help="Whether to output networks as html visualisations, cytoscape formatted json, or both.")
-    parser.add_argument("--plasmid_metadata", help="Metadata to add beside plasmid ID on the visualisation graph. Must be a tsv with a single column, with data in the same order as in genomes_list.")
-    parser.add_argument("--ilp_solver", choices=["GLPK", "gurobi"], default="GLPK",
-                        help="ILP solver to use. Default is GLPK, which is slower but is bundled with pling and is free. "
-                             "If using gurobi, make sure you have a valid license and gurobi_cl is in your PATH.")
-    parser.add_argument("--timelimit", help="Time limit in seconds for ILP solver.")
-    parser.add_argument("--resources", help="tsv stating number of threads and memory to use for each rule.")
-    parser.add_argument("--cores", default=1, help="Total number of cores/threads. Put the maximum number of threads you request in the resources tsv here. (This argument is passed on to snakemake's --cores argument.)")
-    parser.add_argument("--profile", help="To run on a cluster with corresponding snakemake profile.")
-    #parser.add_argument("--storetmp", action="store_true", help="Don't delete intermediate temporary files.")
-    parser.add_argument("--forceall", action="store_true", help="Force snakemake to rerun everything.")
-
-    args = parser.parse_args()
-    return args
-
+logFormatter = logging.Formatter("%(asctime)s [%(levelname)s]  %(message)s")
+logger = logging.getLogger(__name__)
 
 def get_pling_path():
     plingpath = os.path.realpath(os.path.dirname(__file__))
@@ -59,56 +29,21 @@ def check_gurobi(ilp_solver):
     if ilp_solver == "gurobi":
         spec = importlib.util.find_spec("gurobi")
         if spec is None:
+            logging.error("Missing optional dependency gurobi!")
             raise Exception("Missing optional dependency gurobi!")
-
-def make_config_file(args):
-    #make configfile
+        
+def make_snakemake_config(args, config_dict):
     forceall = ""
-    if args.forceall == True:
+    if args["forceall"] == True:
         forceall = "--forceall"
 
-    if args.timelimit==None:
-        timelimit = "None"
-    else:
-        timelimit= args.timelimit
-
-    if args.plasmid_metadata==None:
-        metadata = "None"
-    else:
-        metadata= args.plasmid_metadata
-
-    if args.topology==None:
-        topology = "None"
-    else:
-        topology= args.topology
-
     profile = ""
-    if args.profile!=None:
-        profile = f"--profile {args.profile}"
-    if args.resources!=None:
-        resources = pd.read_csv(args.resources, sep="\t")
+    if args["profile"]!=None:
+        profile = "--profile " + {args["profile"]}
+    if args["resources"]!=None:
+        resources = pd.read_csv(args["resources"], sep="\t")
     else:
         resources = pd.read_csv(f"{get_pling_path()}/resources.tsv", sep="\t")
-
-    output_dir = Path(args.output_dir)
-    output_dir.mkdir(parents=True, exist_ok=True)
-
-    tmp_dir = output_dir/"tmp_files"
-    tmp_dir.mkdir(parents=True, exist_ok=True)
-
-    configfile = f"{args.output_dir}/tmp_files/config.yaml"
-
-    config_dict = {"genomes_list": str(args.genomes_list), "output_dir": str(args.output_dir), "integerisation": str(args.integerisation), "seq_containment_distance": float(args.containment_distance), "dcj_dist_threshold": int(args.dcj), "prefix": "all_plasmids","communities": f"{args.output_dir}/containment/containment_communities", "identity_threshold": float(args.identity), "length_threshold": int(args.min_indel_size), "bh_connectivity": int(args.bh_connectivity), "bh_neighbours_edge_density": float(args.bh_neighbours_edge_density), "small_subcommunity_size_threshold": int(args.small_subcommunity_size_threshold), "output_type": str(args.output_type), "metadata": metadata, "ilp_solver": str(args.ilp_solver), "timelimit": timelimit, "batch_size": int(args.batch_size), "topology": topology}
-
-    if args.sourmash:
-        config_dict["sourmash"] = str(args.sourmash)
-        config_dict["sourmash_threshold"] = str(args.sourmash_threshold)
-    if args.regions:
-        config_dict["regions"] = str(args.regions)
-    if args.unimog!=None and args.integerisation=="skip":
-        config_dict["unimog"] = args.unimog
-    elif args.unimog==None and args.integerisation=="skip":
-        raise Exception("Selected to skip integerisation, but missing unimog file as input!")
     for row in resources.index:
         rule = resources.loc[row, "Rule"]
         threads = resources.loc[row, "Threads"]
@@ -117,70 +52,338 @@ def make_config_file(args):
             config_dict[f"{rule}_threads"] = int(threads)
         config_dict[f"{rule}_mem"] = int(mem)
 
+    return config_dict, profile, forceall
+
+
+def make_config_file(args, integerisation):
+    #make configfile
+    output_dir = Path(args["output_dir"])
+    output_dir.mkdir(parents=True, exist_ok=True)
+
+    tmp_dir = output_dir/"tmp_files"
+    tmp_dir.mkdir(parents=True, exist_ok=True)
+
+    configfile = f"{output_dir}/tmp_files/config.yaml"
+
+    config_dict = {"genomes_list": str(args["genomes_list"]), "output_dir": str(output_dir), "integerisation": integerisation, 
+                   "seq_containment_distance": float(args["containment_distance"]), "dcj_dist_threshold": int(args["dcj"]), 
+                   "prefix": "all_plasmids","communities": f"{output_dir}/containment/containment_communities", 
+                   "identity_threshold": float(args["identity"]), "bh_connectivity": int(args["bh_connectivity"]), 
+                   "bh_neighbours_edge_density": float(args["bh_neighbours_edge_density"]), "small_subcommunity_size_threshold": int(args["small_subcommunity_size_threshold"]), 
+                   "output_type": str(args["output_type"]), "ilp_solver": str(args["ilp_solver"]), "batch_size": int(args["batch_size"]), "visualisation":str(args["visualisation"])}
+
+    if integerisation=="align":
+        config_dict["length_threshold"] = int(args["min_indel_size"])
+        if args["topology"]==None:
+            config_dict["topology"] = "None"
+        else:
+            config_dict["topology"]= str(args["topology"])
+        if args["regions"]:
+            config_dict["regions"] = str(args["regions"])
+
+    if integerisation=="skip":
+        config_dict["unimog"] = str(args["unimog"])
+        config_dict["sourmash_only"] = str(args["sourmash_only"])
+
+    if args["sourmash"]:
+        config_dict["sourmash"] = str(args["sourmash"])
+        config_dict["sourmash_threshold"] = str(args["sourmash_threshold"])
+
+    if "previous_pling" in args.keys():
+        config_dict["reclustering_method"] = args["reclustering_method"]
+        config_dict["previous_pling"] = ",".join([str(path) for path in args["previous_pling"]])
+        if config_dict["reclustering_method"]=="nearest_neighbour" and len(args["previous_pling"])>1:
+            raise Exception("Nearest neighbour typing does not support merging graphs.")
+            
+    with open(f"{output_dir}/pling.log", "w") as log:
+        log.write(f"pling version {__version__}\n")
+        log.write("\n ARGUMENTS \n\n")
+        yaml.dump(config_dict,log)
+        log.write("\n\n LOG \n\n")
+    fileHandler = logging.FileHandler(f"{output_dir}/pling.log")
+    fileHandler.setFormatter(logFormatter)
+    logger.addHandler(fileHandler)
+
+    if args["timelimit"]==None:
+        config_dict["timelimit"] = "None"
+    else:
+        if args["ilp_solver"] == "gurobi":
+            config_dict["timelimit"]= args["timelimit"]
+        elif args["ilp_solver"] == "GLPK":
+            config_dict["timelimit"] = "None"
+            logger.warning("GLPK does not support a time limit; time limit parameter has been ignored.")
+
+    if args["plasmid_metadata"]==None:
+        config_dict["metadata"] = "None"
+    else:
+        config_dict["metadata"]= str(args["plasmid_metadata"])
+
+    config_dict, profile, forceall = make_snakemake_config(args, config_dict)
+
     with open(configfile, 'w') as config:
         yaml.dump(config_dict, config)
 
-    return configfile, tmp_dir, forceall, profile
+    snakemake_args = f"--configfile {configfile} --cores " + str(args["cores"]) + f" --rerun-incomplete --nolock {profile} {forceall} --quiet all"
 
-def pling(args):
+    return tmp_dir, snakemake_args
 
-    check_gurobi(args.ilp_solver)
-
-    configfile, tmp_dir, forceall, profile = make_config_file(args)
-
-    snakemake_args = f"--configfile {configfile} --cores {args.cores} --rerun-incomplete --nolock {profile} {forceall}"
-
-    #batching
+def run_command(command):
     try:
-        print("Batching...\n")
-        subprocess.run(f"snakemake --snakefile {get_pling_path()}/batching/Snakefile {snakemake_args}", shell=True, check=True, capture_output=True)
-        print("Completed batching.\n")
+        subprocess.run(command, shell=True, check=True, capture_output=True)
     except subprocess.CalledProcessError as e:
-        print(e.stderr.decode())
-        print(e)
+        logger.exception(e.stderr.decode())
         raise e
 
-    if args.integerisation == "align":
-        try:
-            print("Aligning, integerising, and building containment network...\n")
-            subprocess.run(f"snakemake --snakefile {get_pling_path()}/align_snakemake/Snakefile {snakemake_args}", shell=True, check=True, capture_output=True)
-            print("Completed integerisation and containment network.\n")
-        except subprocess.CalledProcessError as e:
-            print(e.stderr.decode())
-            print(e)
-            raise e
-    elif args.integerisation == "skip":
-        if args.unimog==None:
-            raise Exception("Skipping integerisation but there is no unimog file provided!")
-        try:
-            print("Building containment network...\n")
-            subprocess.run(f"snakemake --snakefile {get_pling_path()}/jac_network_snakemake/Snakefile {snakemake_args}", shell=True, check=True, capture_output=True)
-            print("Completed containment network.\n")
-        except subprocess.CalledProcessError as e:
-            print(e.stderr.decode())
-            print(e)
-            raise e
-    else:
-        raise Exception(f"\"{args.integerisation}\" is not a valid integerisation method!")
+def batching(snakemake_args):
+    logger.info("Batching...")
+    run_command(f"snakemake --snakefile {get_pling_path()}/batching/Snakefile {snakemake_args}")
+    logger.info("Completed batching.")
+    
+def alignment(snakemake_args):
+    logger.info("Aligning, integerising, and building containment network...")
+    run_command(f"snakemake --snakefile {get_pling_path()}/align_snakemake/Snakefile {snakemake_args}")
+    logger.info("Completed integerisation and containment network.")
+    
+def ding_and_cluster(snakemake_args):
+    logger.info("Calculating DCJ-Indel distance and clustering...")
+    run_command(f"snakemake --snakefile {get_pling_path()}/dcj_snakemake/Snakefile {snakemake_args}")
+    logger.info("Completed distance calculations and clustering.")
 
-    #ding and clustering
-    try:
-        print("Calculating DCJ-Indel distance and clustering...\n")
-        subprocess.run(f"snakemake --snakefile {get_pling_path()}/dcj_snakemake/Snakefile {snakemake_args}", shell=True, check=True, capture_output=True)
-        print("Completed distance calculations and clustering.\n")
-    except subprocess.CalledProcessError as e:
-        print(e.stderr.decode())
-        print(e)
-        raise e
 
+def thresholds(func):
+    options = [
+        click.option("--containment_distance", default=0.5, help="Threshold for initial containment network."),
+        click.option("--dcj", default=4, help="Threshold for final DCJ-Indel network."),
+        click.option("--identity", default=80, help="Threshold for percentage of shared sequence between blocks (for integerisation from alignment and for containment calculation)."),
+        click.option("--min_indel_size", default=200, help="Minimum size for an indel to be treated as a block (for integerisation from alignment)."),
+        click.option("--bh_connectivity", default=10, help="Minimum number of connections a plasmid need to be considered a hub plasmid."),
+        click.option("--bh_neighbours_edge_density", default=0.2, help="Maximum number of edge density between hub plasmid neighbours to label the plasmid as hub."),
+        click.option("--small_subcommunity_size_threshold", default=4, help="Communities with size up to this parameter will be joined to neighbouring larger subcommunities."),
+    ]
+    for option in reversed(options):
+        func = option(func)
+    return func
+
+def vis_paras(func):
+    options = [
+        click.option("--output_type", type=click.Choice(["html", "json", "both"]), default="html", help="Whether to output networks as html visualisations, cytoscape formatted json, or both."),
+        click.option("--plasmid_metadata", help="Metadata to add beside plasmid ID on the visualisation graph. Must be a tsv with a single column, with data in the same order as in genomes_list."),
+        click.option("--visualisation", type=click.Choice(["none", "all", "subcommunity"]), default="subcommunity", help="Which network visualisations to produce."),
+    ]
+    for option in reversed(options):
+        func = option(func)
+    return func
+
+def resource_paras(func):
+    options = [
+        click.option("--batch_size", default = 200, help="How many pairs of genomes to run together in one go (for integerisation from alignment and DCJ calculation steps)."),
+        click.option("--ilp_solver", type=click.Choice(["GLPK", "gurobi"]), default="GLPK",
+                            help="ILP solver to use. Default is GLPK, which is slower but is bundled with pling and is free. "
+                                    "If using gurobi, make sure you have a valid license and gurobi_cl is in your PATH."),
+        click.option("--timelimit", help="Time limit in seconds for ILP solver."),
+        click.option("--resources", help="tsv stating number of threads and memory to use for each rule."),
+        click.option("--cores", default=1, help="Total number of cores/threads. Put the maximum number of threads you request in the resources tsv here. (This argument is passed on to snakemake's --cores argument.)"),
+        click.option("--profile", help="To run on a cluster with corresponding snakemake profile."),
+        #@click.option("--storetmp", is_flag=True, help="Don't delete intermediate temporary files.")
+        click.option("--forceall", is_flag=True, help="Force snakemake to rerun everything."),
+    ]
+    for option in reversed(options):
+        func = option(func)
+    return func
+
+@click.group(context_settings={"show_default": True})
+@click.version_option(version=__version__)
+@click.help_option()
+def cli() -> None:
+    pass
+
+
+@click.group(
+        help="Clusters genomes using containment and DCJ-Indel distances."
+)
+@click.help_option()
+def cluster() -> None:
+    pass
+
+@click.command(
+    help="""
+\b
+Intergerises genomes using alignment, calculates containment and DCJ-Indel distances, and clusters.
+\b
+First input is a path to list of fasta file paths.
+\b
+Second input is a path to an output directory.
+
+""",  # noqa: E501
+)
+@click.argument("genomes_list", type=PathlibPath(exists=True))
+@click.argument("output_dir", type=PathlibPath(exists=False))
+@thresholds
+@click.option("--regions", is_flag=True, help="Cluster regions rather than complete genomes. Assumes regions are taken from circular plasmids.")
+@click.option("--topology", help="File stating whether plasmids are circular or linear. Must be a tsv with two columns, one with plasmid IDs under \"plasmid\" and one with \"linear\" or \"circular\" as entries under \"topology\". Without this file, pling will asume all plasmids are circular.")
+@click.option("--sourmash", is_flag=True, help="Run sourmash as first filter on which pairs to calculate DCJ on. Recommended for large and very diverse datasets.")
+@click.option("--sourmash_threshold", default=0.85, help="Threshold for filtering with sourmash.")
+@vis_paras
+@resource_paras
+@click.help_option()
+def align(
+    **args
+):
+    check_gurobi(args["ilp_solver"])
+
+    tmp_dir, snakemake_args = make_config_file(args, "align")
+
+    batching(snakemake_args)
+
+    alignment(snakemake_args)
+    
+    ding_and_cluster(snakemake_args)
 
     #delete intermediary files
     shutil.rmtree(tmp_dir)
 
 
+
+@click.command(
+    help="""
+\b    
+Given a precomputed integerisation, calculates containment and DCJ-Indel distances, and clusters.
+\b
+First input is a path to list of fasta file paths.
+\b
+Second input is a path to an output directory.
+\b
+Third input is a path to a unimog file. Required input when skipping integerisation.
+
+""",  # noqa: E501
+)
+@click.argument("genomes_list", type=PathlibPath(exists=True))
+@click.argument("output_dir", type=PathlibPath(exists=False))
+@click.argument("unimog", type=PathlibPath(exists=True))
+@thresholds
+@click.option("--sourmash", is_flag=True, help="Run sourmash as first filter on which pairs to calculate DCJ on. Recommended for large and very diverse datasets.")
+@click.option("--sourmash_threshold", default=0.85, help="Threshold for filtering with sourmash.")
+@click.option("--sourmash_only", is_flag=True, help="Run sourmash instead of aligning to get containment distances. Uses the threshold from \"containment_distance\" rather than \"sourmash_threshold\".")
+@vis_paras
+@resource_paras
+@click.help_option()
+def skip(
+    **args
+):
+    check_gurobi(args["ilp_solver"])
+
+    tmp_dir, snakemake_args = make_config_file(args, "skip")
+
+    batching(snakemake_args)
+
+    logger.info("Building containment network...")
+    run_command(f"snakemake --snakefile {get_pling_path()}/jac_network_snakemake/Snakefile {snakemake_args}")
+    logger.info("Completed containment network.")
+
+    ding_and_cluster(snakemake_args)
+
+    #delete intermediary files
+    shutil.rmtree(tmp_dir)
+
+cluster.add_command(align)
+cluster.add_command(skip)
+cli.add_command(cluster)
+
+@click.command(
+        help="""
+\b
+Add new genomes to an existing pling clustering, and/or merge multiple previous clusterings into a single clustering.
+\b
+First input is a path to list of fasta file paths. This list must contain ALL genomes to be clustered, i.e. both genomes to add to previous clustering and genomes from previous clustering.
+\b
+Second input is a path to an output directory.
+\b
+Third input is a path to previous pling output directory (multiple are permitted).
+
+""",  # noqa: E501
+)
+@click.argument("genomes_list", type=PathlibPath(exists=True))
+@click.argument("output_dir", type=PathlibPath(exists=False))
+@click.argument("previous_pling", required=True, nargs=-1)
+@click.option("--reclustering_method", type=click.Choice(["unbiased", "biased", "nearest_neighbour"]), default="unbiased")
+@thresholds
+@click.option("--regions", is_flag=True, help="Cluster regions rather than complete genomes. Assumes regions are taken from circular plasmids.")
+@click.option("--topology", help="File stating whether plasmids are circular or linear. Must be a tsv with two columns, one with plasmid IDs under \"plasmid\" and one with \"linear\" or \"circular\" as entries under \"topology\". Without this file, pling will asume all plasmids are circular.")
+@click.option("--sourmash", is_flag=True, help="Run sourmash as first filter on which pairs to calculate DCJ on. Recommended for large and very diverse datasets.")
+@click.option("--sourmash_threshold", default=0.85, help="Threshold for filtering with sourmash.")
+@vis_paras
+@resource_paras
+@click.help_option()
+def add(
+    **args
+):
+    check_gurobi(args["ilp_solver"])
+
+    tmp_dir, snakemake_args = make_config_file(args, "align")
+
+    batching(snakemake_args)
+
+    alignment(snakemake_args)
+    
+    ding_and_cluster(snakemake_args)
+
+    #delete intermediary files
+    shutil.rmtree(tmp_dir)
+
+cli.add_command(add)
+
+@click.command(
+        help = "Output DCJ-Indel distances as matrices for each subcommunity, and calculate neighbour-joining trees."
+)
+@click.argument("output_dir", type=PathlibPath(exists=True))
+@click.option("--submatrices_dir", type=PathlibPath(exists=False), help="Directory to store results in. Defaults to pling_dir/submatrices.")
+@click.option("--ignore_containment", is_flag=True, help="Calculate missing DCJ-Indel distances due to pairs not meeting the containment threshold previously. Interpret these with caution!")
+@click.option("--vis_trees", is_flag=True, help="Plot the DCJ-Indel NJ trees.")
+@resource_paras
+@click.help_option()
+def submatrix(args):
+
+    config_dict = {}
+    output_dir = args["output_dir"]
+    with open(f"{output_dir}/pling.log") as f:
+        lines = f.readlines
+        args_bool = True
+        i = 4
+        while args_bool:
+            if lines[i]=="\n":
+                args_bool = False
+            else:
+                arg, value = lines[i].replace(" ", "").strip().split(":")
+                config_dict[arg] = value
+                i = i + 1
+
+    if "submatrices_dir" in args.keys():
+        config_dict["submatrices_dir"] = args["submatrices_dir"]
+    else:
+        config_dict["submatrices_dir"] = f"{output_dir}/submatrices"
+
+    if args["timelimit"]==None:
+        config_dict["timelimit"] = "None"
+    else:
+        if args["ilp_solver"] == "gurobi":
+            config_dict["timelimit"]= args["timelimit"]
+        elif args["ilp_solver"] == "GLPK":
+            config_dict["timelimit"] = "None"
+            logger.warning("GLPK does not support a time limit; time limit parameter has been ignored.")
+
+    config_dict, profile, forceall = make_snakemake_config(args, config_dict)
+
+    configfile = config_dict["submatrices_dir"]+"/config.yaml"
+    with open(configfile, 'w') as config:
+        yaml.dump(config_dict, config)
+
+    command = "snakemake --cores " + args["cores"] + f" --Snakefile {get_pling_path()}/submatrices_snakemake/Snakefile --configfile {configfile} --rerun-incomplete --nolock {profile} {forceall} --quiet all"
+    run_command(command)
+
+cli.add_command(submatrix)
+
 def main():
-    args = parse_args()
-    pling(args)
+    cli()
 
 if __name__ == "__main__":
     main()

@@ -20,26 +20,27 @@ rule all:
     input:
         communities = f"{OUTPUTPATH}/containment/containment_communities"
 
-rule pairwise_seq_containment:
-    input:
-        batch_list=lambda wildcards: f"{OUTPUTPATH}/batches/batch_{wildcards.batch}.txt"
-    output:
-        containment=f"{OUTPUTPATH}/tmp_files/containment_batchwise/batch_{{batch}}_containment.tsv"
-    threads: config["pairwise_seq_containment_threads"]
-    resources:
-        mem_mb=lambda wildcards, attempt: config["pairwise_seq_containment_mem"]*attempt
-    params:
-        genomes_list = config["genomes_list"],
-        batch = lambda wildcards: wildcards.batch,
-        outputpath = OUTPUTPATH,
-        identity_threshold = config["identity_threshold"],
-        pling_root_dir = get_pling_root_dir()
-    shadow: "shallow"
-    shell: """
-        PYTHONPATH={params.pling_root_dir} python {params.pling_root_dir}/pling/jac_network_snakemake/seq_containment.py \
-            --genomes_list {params.genomes_list} \
-            --batch {params.batch} \
-            --identity_threshold {params.identity_threshold} \
-            --outputpath {params.outputpath} \
-            --containment_output {output.containment} \
-        """
+if not config.get("sourmash_only", False):
+    rule pairwise_seq_containment:
+        input:
+            batch_list=lambda wildcards: f"{OUTPUTPATH}/batches/batch_{wildcards.batch}.txt"
+        output:
+            containment=f"{OUTPUTPATH}/tmp_files/containment_batchwise/batch_{{batch}}_containment.tsv"
+        threads: config["pairwise_seq_containment_threads"]
+        resources:
+            mem_mb=lambda wildcards, attempt: config["pairwise_seq_containment_mem"]*attempt
+        params:
+            genomes_list = config["genomes_list"],
+            batch = lambda wildcards: wildcards.batch,
+            outputpath = OUTPUTPATH,
+            identity_threshold = config["identity_threshold"],
+            pling_root_dir = get_pling_root_dir()
+        shadow: "shallow"
+        shell: """
+            PYTHONPATH={params.pling_root_dir} python {params.pling_root_dir}/pling/jac_network_snakemake/seq_containment.py \
+                --genomes_list {params.genomes_list} \
+                --batch {params.batch} \
+                --identity_threshold {params.identity_threshold} \
+                --outputpath {params.outputpath} \
+                --containment_output {output.containment} \
+            """
