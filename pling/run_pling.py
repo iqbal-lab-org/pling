@@ -75,12 +75,12 @@ def make_config_file(args):
     if args.plasmid_metadata==None:
         metadata = "None"
     else:
-        metadata= args.plasmid_metadata
+        metadata= os.path.abspath(args.plasmid_metadata)
 
     if args.topology==None:
         topology = "None"
     else:
-        topology= args.topology
+        topology= os.path.abspath(args.topology)
 
     profile = ""
     if args.profile!=None:
@@ -90,7 +90,7 @@ def make_config_file(args):
     else:
         resources = pd.read_csv(f"{get_pling_path()}/resources.tsv", sep="\t")
 
-    output_dir = Path(args.output_dir)
+    output_dir = Path(os.path.abspath(args.output_dir))
     output_dir.mkdir(parents=True, exist_ok=True)
 
     tmp_dir = output_dir/"tmp_files"
@@ -98,7 +98,7 @@ def make_config_file(args):
 
     configfile = f"{args.output_dir}/tmp_files/config.yaml"
 
-    config_dict = {"genomes_list": str(args.genomes_list), "output_dir": str(args.output_dir), "integerisation": str(args.integerisation), "seq_containment_distance": float(args.containment_distance), "dcj_dist_threshold": int(args.dcj), "prefix": "all_plasmids","communities": f"{args.output_dir}/containment/containment_communities", "identity_threshold": float(args.identity), "length_threshold": int(args.min_indel_size), "bh_connectivity": int(args.bh_connectivity), "bh_neighbours_edge_density": float(args.bh_neighbours_edge_density), "small_subcommunity_size_threshold": int(args.small_subcommunity_size_threshold), "output_type": str(args.output_type), "metadata": metadata, "ilp_solver": str(args.ilp_solver), "timelimit": timelimit, "batch_size": int(args.batch_size), "topology": topology}
+    config_dict = {"genomes_list": str(os.path.abspath(args.genomes_list)), "output_dir": str(output_dir), "integerisation": str(args.integerisation), "seq_containment_distance": float(args.containment_distance), "dcj_dist_threshold": int(args.dcj), "prefix": "all_plasmids","communities": f"{output_dir}/containment/containment_communities", "identity_threshold": float(args.identity), "length_threshold": int(args.min_indel_size), "bh_connectivity": int(args.bh_connectivity), "bh_neighbours_edge_density": float(args.bh_neighbours_edge_density), "small_subcommunity_size_threshold": int(args.small_subcommunity_size_threshold), "output_type": str(args.output_type), "metadata": metadata, "ilp_solver": str(args.ilp_solver), "timelimit": timelimit, "batch_size": int(args.batch_size), "topology": topology}
 
     if args.sourmash:
         config_dict["sourmash"] = str(args.sourmash)
