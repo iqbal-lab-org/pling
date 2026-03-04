@@ -96,7 +96,7 @@ def make_config_file(args):
     tmp_dir = output_dir/"tmp_files"
     tmp_dir.mkdir(parents=True, exist_ok=True)
 
-    configfile = f"{args.output_dir}/tmp_files/config.yaml"
+    configfile = f"{output_dir}/tmp_files/config.yaml"
 
     config_dict = {"genomes_list": str(os.path.abspath(args.genomes_list)), "output_dir": str(output_dir), "integerisation": str(args.integerisation), "seq_containment_distance": float(args.containment_distance), "dcj_dist_threshold": int(args.dcj), "prefix": "all_plasmids","communities": f"{output_dir}/containment/containment_communities", "identity_threshold": float(args.identity), "length_threshold": int(args.min_indel_size), "bh_connectivity": int(args.bh_connectivity), "bh_neighbours_edge_density": float(args.bh_neighbours_edge_density), "small_subcommunity_size_threshold": int(args.small_subcommunity_size_threshold), "output_type": str(args.output_type), "metadata": metadata, "ilp_solver": str(args.ilp_solver), "timelimit": timelimit, "batch_size": int(args.batch_size), "topology": topology}
 
@@ -106,7 +106,7 @@ def make_config_file(args):
     if args.regions:
         config_dict["regions"] = str(args.regions)
     if args.unimog!=None and args.integerisation=="skip":
-        config_dict["unimog"] = args.unimog
+        config_dict["unimog"] = os.path.abspath(args.unimog)
     elif args.unimog==None and args.integerisation=="skip":
         raise Exception("Selected to skip integerisation, but missing unimog file as input!")
     for row in resources.index:
