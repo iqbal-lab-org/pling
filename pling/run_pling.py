@@ -25,7 +25,7 @@ def get_pling_path():
     plingpath = os.path.realpath(os.path.dirname(__file__))
     return plingpath
 
-def read_log_file(path, config_dict):
+def read_log_file(path, config_dict={}):
     with open(path) as f:
         lines = f.readlines()
         args_bool = True
@@ -125,6 +125,10 @@ def make_config_file(args, integerisation):
         config_dict["previous_pling"] = ",".join([str(os.path.abspath(path)) for path in args["previous_pling"]])
         if config_dict["reclustering_method"]=="nearest_neighbour" and len(args["previous_pling"])>1:
             raise Exception("Nearest neighbour typing does not support merging graphs.")
+        for path in args["previous_pling"]:
+            prev_thresholds = read_log_file(f"{path}/pling.log")
+            if prev_thresholds["dcj_dist_threshold"] != config_dict["dcj_dist_threshold"] or prev_thresholds["seq_containment_distance"] != config_dict["seq_containment_distance"]:
+                raise Exception(f"{path} was not constructed with the same containment or DCJ-Indel thresholds as given.")
             
     set_up_logging(f"{output_dir}/pling.log")
 
