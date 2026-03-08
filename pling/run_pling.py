@@ -25,12 +25,34 @@ def get_pling_path():
     plingpath = os.path.realpath(os.path.dirname(__file__))
     return plingpath
 
+def read_log_file(path, config_dict):
+    with open(path) as f:
+        lines = f.readlines()
+        args_bool = True
+        i = 4
+        while args_bool:
+            if lines[i]=="\n":
+                args_bool = False
+            else:
+                arg, value = lines[i].replace(" ", "").strip().split(":")
+                config_dict[arg] = value
+                i = i + 1
+    return config_dict
+
 def check_gurobi(ilp_solver):
     if ilp_solver == "gurobi":
         spec = importlib.util.find_spec("gurobi")
         if spec is None:
             logging.error("Missing optional dependency gurobi!")
             raise Exception("Missing optional dependency gurobi!")
+        
+def check_vis_trees(vis_trees):
+    if vis_trees:
+        spec = importlib.util.find_spec("ete3")
+        if spec is None:
+            logging.warning("Missing optional dependency ete3, will skip tree visualisation.")
+            return False
+    return True
         
 def make_snakemake_config(args, config_dict):
     forceall = ""
@@ -54,10 +76,19 @@ def make_snakemake_config(args, config_dict):
 
     return config_dict, profile, forceall
 
+def set_up_logging(log_file, config_dict):
+    with open(log_file, "w") as log:
+        log.write(f"pling version {__version__}\n")
+        log.write("\n ARGUMENTS \n\n")
+        yaml.dump(config_dict,log)
+        log.write("\n\n LOG \n\n")
+    fileHandler = logging.FileHandler(log_file)
+    fileHandler.setFormatter(logFormatter)
+    logger.addHandler(fileHandler)
 
 def make_config_file(args, integerisation):
     #make configfile
-    output_dir = Path(args["output_dir"])
+    output_dir = Path(os.path.abspath(args["output_dir"]))
     output_dir.mkdir(parents=True, exist_ok=True)
 
     tmp_dir = output_dir/"tmp_files"
@@ -77,7 +108,7 @@ def make_config_file(args, integerisation):
         if args["topology"]==None:
             config_dict["topology"] = "None"
         else:
-            config_dict["topology"]= str(args["topology"])
+            config_dict["topology"]= str(os.path.abspath(args["topology"]))
         if args["regions"]:
             config_dict["regions"] = str(args["regions"])
 
@@ -91,18 +122,11 @@ def make_config_file(args, integerisation):
 
     if "previous_pling" in args.keys():
         config_dict["reclustering_method"] = args["reclustering_method"]
-        config_dict["previous_pling"] = ",".join([str(path) for path in args["previous_pling"]])
+        config_dict["previous_pling"] = ",".join([str(os.path.abspath(path)) for path in args["previous_pling"]])
         if config_dict["reclustering_method"]=="nearest_neighbour" and len(args["previous_pling"])>1:
             raise Exception("Nearest neighbour typing does not support merging graphs.")
             
-    with open(f"{output_dir}/pling.log", "w") as log:
-        log.write(f"pling version {__version__}\n")
-        log.write("\n ARGUMENTS \n\n")
-        yaml.dump(config_dict,log)
-        log.write("\n\n LOG \n\n")
-    fileHandler = logging.FileHandler(f"{output_dir}/pling.log")
-    fileHandler.setFormatter(logFormatter)
-    logger.addHandler(fileHandler)
+    set_up_logging(f"{output_dir}/pling.log")
 
     if args["timelimit"]==None:
         config_dict["timelimit"] = "None"
@@ -341,26 +365,22 @@ cli.add_command(add)
 @click.option("--vis_trees", is_flag=True, help="Plot the DCJ-Indel NJ trees.")
 @resource_paras
 @click.help_option()
-def submatrix(args):
+def submatrix(**args):
+
+    output_dir = str(os.path.abspath(args["output_dir"]))
 
     config_dict = {}
-    output_dir = args["output_dir"]
-    with open(f"{output_dir}/pling.log") as f:
-        lines = f.readlines
-        args_bool = True
-        i = 4
-        while args_bool:
-            if lines[i]=="\n":
-                args_bool = False
-            else:
-                arg, value = lines[i].replace(" ", "").strip().split(":")
-                config_dict[arg] = value
-                i = i + 1
-
-    if "submatrices_dir" in args.keys():
-        config_dict["submatrices_dir"] = args["submatrices_dir"]
+    if args["submatrices_dir"]:
+        config_dict["submatrices_dir"] = str(os.path.abspath(args["submatrices_dir"]))
     else:
         config_dict["submatrices_dir"] = f"{output_dir}/submatrices"
+    submatrices_dir = config_dict["submatrices_dir"]
+    Path(submatrices_dir).mkdir(parents=True, exist_ok=True)
+
+    config_dict["vis_trees"] = check_vis_trees(args["vis_trees"])
+    config_dict["ignore_containment"] = args["ignore_containment"]
+
+    set_up_logging(f"{submatrices_dir}/submatrices.log", config_dict)
 
     if args["timelimit"]==None:
         config_dict["timelimit"] = "None"
@@ -371,14 +391,26 @@ def submatrix(args):
             config_dict["timelimit"] = "None"
             logger.warning("GLPK does not support a time limit; time limit parameter has been ignored.")
 
+    config_dict = read_log_file(f"{output_dir}/pling.log", config_dict)
+
     config_dict, profile, forceall = make_snakemake_config(args, config_dict)
 
+    Path(config_dict["submatrices_dir"]).mkdir(parents=True, exist_ok=True)
     configfile = config_dict["submatrices_dir"]+"/config.yaml"
     with open(configfile, 'w') as config:
         yaml.dump(config_dict, config)
 
-    command = "snakemake --cores " + args["cores"] + f" --Snakefile {get_pling_path()}/submatrices_snakemake/Snakefile --configfile {configfile} --rerun-incomplete --nolock {profile} {forceall} --quiet all"
+    command = "snakemake --cores " + str(args["cores"]) + f" --snakefile {get_pling_path()}/submatrix_snakemake/Snakefile --configfile {configfile} --rerun-incomplete --nolock {profile} {forceall} --quiet all"
+    logger.info("Creating distance matrices and trees...")
     run_command(command)
+    logger.info("Completed!")
+
+    #delete intermediary files
+    os.remove(f"{submatrices_dir}/config.yaml")
+    if os.path.exists(f"{submatrices_dir}/incomplete"):
+        shutil.rmtree(f"{submatrices_dir}/incomplete")
+    if os.path.exists(f"{submatrices_dir}/missing"):
+        shutil.rmtree(f"{submatrices_dir}/missing")
 
 cli.add_command(submatrix)
 

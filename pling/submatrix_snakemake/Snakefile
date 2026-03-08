@@ -3,17 +3,25 @@ import os
 import pandas as pd
 import subprocess
 import glob
+from pling.utils import get_pling_root_dir
 
 configfile: "config.yaml"
 
 INTEGERISATION="align"
-OUTPUTPATH = config["output_dir"]
+OUTPUTPATH = config["submatrices_dir"]
 dcj_threshold = config["dcj_dist_threshold"]
-SUBCOMMUNITIESPATH = f"{OUTPUTPATH}/dcj_thresh_{dcj_threshold}_graph"
-subcommunities_df = pd.read_csv(SUBCOMMUNITIESPATH, sep='\t')
-subcommunities_list = list(set(subcommunities_df["type"].to_list()))
-pling_dir = config["pling"]
+old_dir = config["output_dir"]
+SUBCOMMUNITIESPATH = f"{old_dir}/dcj_thresh_{dcj_threshold}_graph/objects/typing.tsv"
 
+def get_subcomms(wildcards):
+    if not config["ignore_containment"]:
+        checkpoints.incomplete_submatrices.get(**wildcards).output[0]
+        subcomms = [os.path.basename(file).replace(".dist","") for file in glob.glob(f"{OUTPUTPATH}/dists/*")]
+    else:
+        subcommunities_list = pd.read_csv(SUBCOMMUNITIESPATH, sep='\t')["type"].to_list()
+        count = {subcommunity:subcommunities_list.count(subcommunity) for subcommunity in set(subcommunities_list)}
+        subcomms = [subcomm for subcomm in subcommunities_list if count[subcomm]>2]
+    return subcomms
 
 def get_regions():
     if config.get("regions", False):
@@ -32,22 +40,31 @@ def read_in_dists(filepath):
     with open(filepath, "r") as f:
         for line in f:
             plasmid1, plasmid2, dist = line.strip("\n").split("\t")
-            dists[(plasmid1,plasmid2)] = dist
-            dists[(plasmid2,plasmid1)] = dist
+            dists[(plasmid1,plasmid2)] = int(dist)
+            dists[(plasmid2,plasmid1)] = int(dist)
     return dists
+
+def get_final_outputs(wildcards):
+    if config["vis_trees"]:
+        return expand(f"{OUTPUTPATH}/vis/{{subcommunity}}.pdf", subcommunity=get_subcomms(wildcards))
+    else:
+        return expand(f"{OUTPUTPATH}/trees/{{subcommunity}}.tree", subcommunity=get_subcomms(wildcards))
+
+def get_input(wildcards):
+    checkpoints.incomplete_submatrices.get(subcommunity=wildcards.subcommunity).output[0]
+    return f"{OUTPUTPATH}/dists/{wildcards.subcommunity}.dist"
 
 rule all:
     input:
-        files = expand(f"{OUTPUTPATH}/trees/{{subcommunity}}.tree", subcommunity=subcommunities_list)
+        get_final_outputs
 
-rule incomplete_submatrices:
+checkpoint incomplete_submatrices:
     input:
         subcom = SUBCOMMUNITIESPATH,
-        tsv = config["dcj"]
+        tsv = f"{old_dir}/all_plasmids_distances.tsv"
     output:
-        outdir = directory("{OUTPUTPATH}/incomplete")
-    params:
-        outdir = OUTPUTPATH
+        outdir_1 = directory(f"{OUTPUTPATH}/incomplete"),
+        outdir_2 = directory(f"{OUTPUTPATH}/dists")
     resources:
         mem_mb = lambda wildcards, attempt: attempt * 1000
     script:
@@ -87,11 +104,10 @@ rule make_unimogs:
         outputpath = OUTPUTPATH,
         identity_threshold = 80,
         containment_distance = 1,
-        pling_root_dir = pling_dir,
+        pling_root_dir = get_pling_root_dir(),
         regions = get_regions(),
         topology = get_topology(config["topology"])
     shadow: "shallow"
-    conda: "pling"
     shell:
         """
         PYTHONPATH={params.pling_root_dir} python {params.pling_root_dir}/pling/align_snakemake/unimog.py \
@@ -117,14 +133,12 @@ rule ding:
     params:
         containment_distance=1,
         outputpath=OUTPUTPATH,
-        snakefile_dir=f"{pling_dir}/pling/dcj_snakemake",
-        pling_root_dir = pling_dir,
+        pling_root_dir = get_pling_root_dir(),
         ilp_solver = config["ilp_solver"]
     threads: 1
     resources:
         mem_mb = lambda wildcards, attempt: attempt * 16000
     shadow: "shallow"
-    conda: "pling"
     shell:
             """
             PYTHONPATH={params.pling_root_dir} python {params.pling_root_dir}/pling/dcj_snakemake/dcj.py \
@@ -167,7 +181,7 @@ rule dcj_submatrix:
 
 rule trees:
     input:
-        f"{OUTPUTPATH}/dists/{{subcommunity}}.dist"
+        get_input
     output:
         f"{OUTPUTPATH}/trees/{{subcommunity}}.tree"
     resources:
@@ -176,3 +190,12 @@ rule trees:
         "quicktree -in m {input} > {output}"
 
 
+rule vis:
+    input:
+        f"{OUTPUTPATH}/trees/{{subcommunity}}.tree"
+    output:
+        f"{OUTPUTPATH}/vis/{{subcommunity}}.pdf"
+    params:
+        pling_root_dir = get_pling_root_dir()
+    shell:
+        "PYTHONPATH={params.pling_root_dir} python {params.pling_root_dir}/pling/submatrix_snakemake/draw_trees.py {input} {output}"

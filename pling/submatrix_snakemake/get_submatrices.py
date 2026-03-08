@@ -1,8 +1,12 @@
 import pandas as pd
 import logging
+from pathlib import Path
 
 SUBCOMMUNITIESPATH = snakemake.input.subcom
-outdir = snakemake.params.outdir
+outdir_1 = snakemake.output.outdir_1
+outdir_2 = snakemake.output.outdir_2
+Path(outdir_1).mkdir(parents=True, exist_ok=True)
+Path(outdir_2).mkdir(parents=True, exist_ok=True)
 subcommunities_df = pd.read_csv(SUBCOMMUNITIESPATH, sep='\t')
 subcommunities_list = list(subcommunities_df['type'])
 count = {subcommunity:subcommunities_list.count(subcommunity) for subcommunity in set(subcommunities_list)}
@@ -32,6 +36,6 @@ for subcommunity in count.keys():
                     logging.warning(f"Plasmid pair {plasmid1}, {plasmid2} does not meet containment threshold")
                     complete = False
         if complete:
-            distances.to_csv(f"{outdir}/dists/{subcommunity}.dist", sep="\t", header=False)
+            distances.to_csv(f"{outdir_2}/{subcommunity}.dist", sep="\t", header=False)
         else:
-            distances.to_csv(f"{outdir}/incomplete/{subcommunity}_incomplete.dist", sep="\t", header=False)
+            distances.to_csv(f"{outdir_1}/{subcommunity}_incomplete.dist", sep="\t", header=False)
