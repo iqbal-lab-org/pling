@@ -130,7 +130,7 @@ def make_config_file(args, integerisation):
             if prev_thresholds["dcj_dist_threshold"] != config_dict["dcj_dist_threshold"] or prev_thresholds["seq_containment_distance"] != config_dict["seq_containment_distance"]:
                 raise Exception(f"{path} was not constructed with the same containment or DCJ-Indel thresholds as given.")
             
-    set_up_logging(f"{output_dir}/pling.log")
+    set_up_logging(f"{output_dir}/pling.log", config_dict)
 
     if args["timelimit"]==None:
         config_dict["timelimit"] = "None"
