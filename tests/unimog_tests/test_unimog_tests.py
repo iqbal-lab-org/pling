@@ -76,6 +76,7 @@ class Test_Indels(TestCase):
         runner = CliRunner()
 
         for test in self.indel_tests:
+            print(test)
             result = runner.invoke(
                 run_pling.cli,
                 [
