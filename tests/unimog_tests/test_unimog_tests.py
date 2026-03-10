@@ -61,7 +61,7 @@ class Test_Pling(TestCase):
             assert_distances_identical(f"{dir}/{test}/out/skip/all_plasmids_distances.tsv",
                                         f"{dir}/{test}/truth/skip/all_plasmids_distances.tsv")
             #DCJ communities
-            assert_files_are_identical(f"{dir}/{test}/out/skip/dcj_thresh_4_graph/objects/typing.tsv",
+            assert_communities_identical(f"{dir}/{test}/out/skip/dcj_thresh_4_graph/objects/typing.tsv",
                                         f"{dir}/{test}/truth/skip/dcj_thresh_4_graph/objects/typing.tsv")
             assert_files_are_identical(f"{dir}/{test}/out/skip/dcj_thresh_4_graph/objects/hub_plasmids.csv",
                                         f"{dir}/{test}/truth/skip/dcj_thresh_4_graph/objects/hub_plasmids.csv")
