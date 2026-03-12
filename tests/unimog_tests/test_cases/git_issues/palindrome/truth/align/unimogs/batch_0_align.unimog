@@ -1,7 +1,7 @@
 >genome_1~genome_4:genome_1
 1 )
 >genome_1~genome_4:genome_4
--1 )
+1 )
 >genome_1~genome_8:genome_1
 1 2 )
 >genome_1~genome_8:genome_8
@@ -9,4 +9,4 @@
 >genome_4~genome_8:genome_4
 1 2 )
 >genome_4~genome_8:genome_8
--1 -2 )
+2 1 )

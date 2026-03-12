@@ -26,8 +26,9 @@ def get_containment_distances_for_batch(containment_tsv):
     with open(containment_tsv, "r") as f:
         for line in f:
             plasmid_1, plasmid_2, containment = line.strip().split("\t")
-            containment = float(containment)
-            containments[(plasmid_1,plasmid_2)] = containment
+            if containment!="distance":
+                containment = float(containment)
+                containments[(plasmid_1,plasmid_2)] = containment
     return containments
 
 def get_unimog(outputpath, integerisation, plasmid_to_community, batch, genome1, genome2, unimog_path=None):
@@ -65,7 +66,7 @@ def GLPK_flow(pairs, containment_distance, containments, integerisation, outputp
     if timelimit == None:
         timelimit=""
     else:
-        timelimit=f"--tmlim {args.timelimit}"
+        timelimit=f"--tmlim {timelimit}"
 
     dists = []
     for pair in pairs:

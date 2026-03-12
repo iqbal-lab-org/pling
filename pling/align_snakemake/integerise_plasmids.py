@@ -5,6 +5,7 @@ from typing import Tuple
 import pandas as pd
 from matches import *
 import warnings
+import sys
 
 def make_interval_tree_w_dups(block_coords, length_threshold):
     ref_to_block = IntervalTree()
@@ -28,21 +29,17 @@ def make_interval_tree_w_dups(block_coords, length_threshold):
     return ref_to_block, query_to_block, max_id
 
 def populate_interval_tree_with_unmatched_blocks(interval_tree, total_length, block_index, length_threshold):
-    pos = 1
-    while pos <= total_length:
-        no_matches = len(interval_tree[pos])==0
-        if no_matches:
-            start_pos = pos
-            while len(interval_tree[pos])==0 and pos<=total_length:
-                pos+=1
-            end_pos = pos
+    sorted_intervals = sorted(interval_tree)
+    prev_block_end = 1
+    for start, end, block in sorted_intervals:
+        if prev_block_end < start and start-prev_block_end > length_threshold:
+            interval_tree[prev_block_end:start] = block_index
+            block_index += 1 
+        prev_block_end = end
+       
+    if prev_block_end < total_length and total_length+1-prev_block_end > length_threshold:
+        interval_tree[prev_block_end:total_length+1] = block_index
 
-            too_short_unmatched_block = end_pos-start_pos <= length_threshold
-            if not too_short_unmatched_block:
-                interval_tree[start_pos:end_pos]=block_index
-                block_index+=1
-        else:
-            pos+=1
     return block_index
 
 def longest_block(interval_tree):
@@ -57,7 +54,7 @@ def check_rev_comp(ref_tree, query_tree, fake):
     elif ref_block == -query_block:
         return -fake
     else:
-        warning.warn("Longest block on reference does not equal longest block on query. Cannot decide orientation, so assume both regions are oriented the same way.")
+        warnings.warn("Longest block on reference does not equal longest block on query. Cannot decide orientation, so assume both regions are oriented the same way.")
         return fake
 
 def get_unimog(interval_tree, fake=None, topology="circular"):
@@ -134,7 +131,13 @@ def sort_and_update_indels(indels):
     return updated_indels
 
 def integerise_plasmids(plasmid_1: Path, plasmid_2: Path, prefix: str, plasmid_1_name, plasmid_2_name, containment_threshold, identity_threshold=80, topology_1="circular", topology_2="circular", length_threshold=200):
-    subprocess.check_call(f"nucmer --diagdiff 20 --breaklen 500  --maxmatch -p {prefix} {plasmid_1} {plasmid_2} && delta-filter -qr {prefix}.delta > {prefix}.1delta", shell=True)
+    try:
+        subprocess.run(f"nucmer --diagdiff 20 --breaklen 500  --maxmatch -p {prefix} {plasmid_1} {plasmid_2} && delta-filter -qr {prefix}.delta > {prefix}.1delta", shell=True, check=True, capture_output=True)
+    except subprocess.CalledProcessError as e:
+        print(f"ERROR IN RULE:\n NUCMER FAILING WITH PAIR {plasmid_1_name} AND {plasmid_2_name}", file=sys.stderr)
+        print(e.stderr.decode(), file=sys.stderr)
+        print("END ERROR MSG", file=sys.stderr)
+        sys.exit(e.returncode)
     show_coords_output = subprocess.check_output(f"show-coords -TrcldH -I {identity_threshold} {prefix}.1delta", shell=True).strip().split(b'\n')  # TODO: what about this threshold?
     show_snps_output = subprocess.check_output(f"show-snps -TrH {prefix}.1delta", shell=True).strip().split(b'\n')
 
@@ -222,7 +225,13 @@ def integerise_plasmids(plasmid_1: Path, plasmid_2: Path, prefix: str, plasmid_1
         blocks_query = pd.DataFrame({"Plasmid":[], "Block_ID":[], "Start":[], "End":[]})
     else:
         overlap_threshold = 0
-        matches.resolve_overlaps(overlap_threshold)
+        try:
+            matches.resolve_overlaps(overlap_threshold)
+        except Exception as e:
+            print(f"ERROR IN RULE:\n OVERLAP FIXING FAILED WITH PAIR {plasmid_1_name} AND {plasmid_2_name}", file=sys.stderr)
+            print(e.stderr.decode(), file=sys.stderr)
+            print("END ERROR MSG", file=sys.stderr)
+            sys.exit(e.returncode)
         ref_to_block, query_to_block, max_id = make_interval_tree_w_dups(matches.list, length_threshold)
         max_id = populate_interval_tree_with_unmatched_blocks(ref_to_block, len_ref, max_id+1, length_threshold)
         max_id = populate_interval_tree_with_unmatched_blocks(query_to_block, len_query, len(ref_to_block)+1, length_threshold)
@@ -241,15 +250,3 @@ def integerise_plasmids(plasmid_1: Path, plasmid_2: Path, prefix: str, plasmid_1
 
     return plasmid_1_unimogs, plasmid_2_unimogs, containment_distance, blocks_ref, blocks_query
 
-testing = False
-
-if testing == True:
-    #plasmid1 = "NZ_LT985234.1"
-    #plasmid2 = "NZ_CP062902.1"
-    #plasmid1 = "NZ_LR999867.1"
-    #plasmid2 = "NZ_CP032890.1"
-    plasmid1 = "cpe041_12"
-    plasmid2 = "cpe024_2"
-    #path = "/home/daria/Documents/projects/INC-plasmids/samples/fastas/incy"
-    path = "/home/daria/Documents/projects/addenbrookes/same_assembler"
-    print(integerise_plasmids(f"{path}/{plasmid1}.fna", f"{path}/{plasmid2}.fna", f"{plasmid1}~{plasmid2}", plasmid1, plasmid2))
