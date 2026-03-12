@@ -34,7 +34,7 @@ jobs:
             pandas
             numpy
             intervaltree
-            mummer=3.23
+            mummer4
             glpk=5.0
             snakemake=7.32.4
             plasnet=0.7.0
