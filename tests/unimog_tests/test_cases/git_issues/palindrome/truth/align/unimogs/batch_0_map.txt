@@ -1,11 +1,11 @@
 	Plasmid	Block_ID	Start	End
 genome_1~genome_4	genome_1	1	1	4117
-	genome_4	1	1	4117
+	genome_4	-1	1	4117
 genome_1~genome_8	genome_1	1	1	2701
 	genome_1	2	2701	4117
 	genome_8	2	1	1417
 	genome_8	1	1417	4117
-genome_4~genome_8	genome_4	1	1	2701
-	genome_4	2	2701	4117
-	genome_8	2	1	1417
-	genome_8	1	1417	4117
+genome_4~genome_8	genome_4	1	1	1417
+	genome_4	2	1417	4117
+	genome_8	-1	1	1417
+	genome_8	-2	1417	4117
