@@ -121,7 +121,10 @@ def make_config_file(args, integerisation):
         config_dict["sourmash_threshold"] = str(args["sourmash_threshold"])
 
     if "previous_pling" in args.keys():
-        config_dict["reclustering_method"] = args["reclustering_method"]
+        if args["reclustering_method"]=="asyn":
+            config_dict["reclustering_method"] = "unbiased"
+        else:
+            config_dict["reclustering_method"] = args["reclustering_method"]
         config_dict["previous_pling"] = ",".join([str(os.path.abspath(path)) for path in args["previous_pling"]])
         if config_dict["reclustering_method"]=="nearest_neighbour" and len(args["previous_pling"])>1:
             raise Exception("Nearest neighbour typing does not support merging graphs.")
@@ -333,7 +336,7 @@ Third input is a path to previous pling output directory (multiple are permitted
 @click.argument("genomes_list", type=PathlibPath(exists=True))
 @click.argument("output_dir", type=PathlibPath(exists=False))
 @click.argument("previous_pling", required=True, nargs=-1)
-@click.option("--reclustering_method", type=click.Choice(["unbiased", "biased", "nearest_neighbour"]), default="unbiased")
+@click.option("--reclustering_method", type=click.Choice(["asyn", "nearest_neighbour"]), default="asyn")
 @thresholds
 @click.option("--regions", is_flag=True, help="Cluster regions rather than complete genomes. Assumes regions are taken from circular plasmids.")
 @click.option("--topology", help="File stating whether plasmids are circular or linear. Must be a tsv with two columns, one with plasmid IDs under \"plasmid\" and one with \"linear\" or \"circular\" as entries under \"topology\". Without this file, pling will asume all plasmids are circular.")
