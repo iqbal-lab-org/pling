@@ -367,7 +367,7 @@ cli.add_command(add)
         help = "Output DCJ-Indel distances as matrices for each subcommunity, and calculate neighbour-joining trees."
 )
 @click.argument("output_dir", type=PathlibPath(exists=True))
-@click.option("--submatrices_dir", type=PathlibPath(exists=False), help="Directory to store results in. Defaults to pling_dir/submatrices.")
+@click.option("--submatrices_dir", type=PathlibPath(exists=False), help="Directory to store results in. Defaults to output_dir/submatrices.")
 @click.option("--ignore_containment", is_flag=True, help="Calculate missing DCJ-Indel distances due to pairs not meeting the containment threshold previously. Interpret these with caution!")
 @click.option("--vis_trees", is_flag=True, help="Plot the DCJ-Indel NJ trees.")
 @resource_paras
