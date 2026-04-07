@@ -276,8 +276,6 @@ def align(
             logging.error("Previous containment distance threshold is not higher than current containment distance threshold!")
             raise Exception("Previous containment distance threshold is not higher than current containment distance threshold!")
 
-    #batching(snakemake_args)
-
     alignment(snakemake_args)
     
     ding_and_cluster(snakemake_args)
@@ -307,6 +305,7 @@ Third input is a path to a unimog file, or previous pling output folder. Require
 @click.option("--sourmash", is_flag=True, help="Run sourmash as first filter on which pairs to calculate DCJ on. Recommended for large and very diverse datasets.")
 @click.option("--sourmash_threshold", default=0.85, help="Threshold for filtering with sourmash.")
 @click.option("--sourmash_only", is_flag=True, help="Run sourmash instead of aligning to get containment distances. Uses the threshold from \"containment_distance\" rather than \"sourmash_threshold\".")
+@click.option("--reuse_previous", type=PathlibPath(exists=True), help="Recompute communities and subcommunities from previous containment and DCJ-Indel distances. Provide a path to a previous pling output folder. The containment threshold of previous output MUST have been higher than the current one.")
 @vis_paras
 @resource_paras
 @click.help_option()
@@ -317,7 +316,16 @@ def skip(
 
     tmp_dir, snakemake_args = make_config_file(args, "skip")
 
-    batching(snakemake_args)
+    if not args["reuse_previous"]:
+        batching(snakemake_args)
+    else:
+        prev_thresholds = read_log_file(args["reuse_previous"]/ "pling.log")
+        if float(prev_thresholds["seq_containment_distance"]) >= args["containment_distance"]:
+            shutil.copy(args["reuse_previous"] / "containment/all_pairs_containment_distance.tsv", args["output_dir"] / "containment") #copy containment distances - should cause snakemake not to rerun everything, just communities
+            shutil.copy(args["reuse_previous"] / "all_plasmids_distances.tsv", args["output_dir"]) #copy DCJ-Indel distances - should cause snakemake not to rerun DCJ-Indel calculations
+        else:
+            logging.error("Previous containment distance threshold is not higher than current containment distance threshold!")
+            raise Exception("Previous containment distance threshold is not higher than current containment distance threshold!")
 
     logger.info("Building containment network...")
     run_command(f"snakemake --snakefile {get_pling_path()}/jac_network_snakemake/Snakefile {snakemake_args}")
