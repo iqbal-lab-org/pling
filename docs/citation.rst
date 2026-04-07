@@ -1,4 +1,4 @@
 Citation
 ========
 
-Preprint: https://doi.org/10.1101/2024.06.12.598623 
+Paper: https://doi.org/10.1099/mgen.0.001300

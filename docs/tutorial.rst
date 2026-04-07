@@ -21,10 +21,10 @@ To reduce runtime, in this example you are going to run pling with the sourmash 
 Decide on a name for your output directory; in this tutorial we will use ``pling_out``.
 Run pling with the following command::
 
-	pling input.txt pling_out align --cores 8 --sourmash
+	pling cluster align input.txt pling_out --cores 8 --sourmash --visualisation all
 	
 The first two arguments are the file with the list of fasta filepaths, and the output directory, both of which are required inputs. The third argument is the type of integerisation; unless you want to skip integerisation entirely, this argument will always be ``align`` (for more information on skipping integerisation, see Advanced Usage).
-The remaining two arguments are optional -- ``--cores`` sets the amount of threads/cores to be used, and ``--sourmash`` is a flag that indicates pling should be run with sourmash prefiltering.
+The remaining three arguments are optional -- ``--cores`` sets the amount of threads/cores to be used, ``--sourmash`` is a flag that indicates pling should be run with sourmash prefiltering, and ``--visualisation`` toggles which network visualisations are outputted.
 
 Pling will first calculate a containment network, the connected components of which define the *community* a plasmid is assigned to, after which the pling network is induced on the containment network from the DCJ-Indel distances. The *subcommunity* of a plasmid is its final type, and is found by clustering on the pling network.
 
@@ -52,6 +52,6 @@ It's similar to the community visualisations, except here plasmid pairs are join
 
 Now try running::
 
-	pling input.txt pling_out align --dcj 7
+	pling cluster align input.txt pling_out --dcj 7
 	
 this will recalculate the subcommunities with a DCJ-Indel threshold of 7. This should run quickly (if you *don't* change the output directory!) -- this is because pling reuses the already calculated DCJ-Indel distances and communities, and only recalculates the subcommunities. You should find a new folder in your output called ``dcj_thresh_7_graph``, which will contain the visualisations and typing for DCJ-Indel threshold of 7.

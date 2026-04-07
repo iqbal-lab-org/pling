@@ -11,6 +11,6 @@ Then usage is
 
 .. code-block:: console
 
-    pling input.txt output_dir align
+    pling cluster align input.txt output_dir
 
 
