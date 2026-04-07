@@ -113,7 +113,7 @@ def make_config_file(args, integerisation):
             config_dict["regions"] = str(args["regions"])
 
     if integerisation=="skip":
-        config_dict["unimog"] = str(args["unimog"])
+        config_dict["unimog"] = str(args["precomputed"])
         config_dict["sourmash_only"] = str(args["sourmash_only"])
 
     if args["sourmash"]:
@@ -254,6 +254,7 @@ Second input is a path to an output directory.
 @click.option("--topology", help="File stating whether plasmids are circular or linear. Must be a tsv with two columns, one with plasmid IDs under \"plasmid\" and one with \"linear\" or \"circular\" as entries under \"topology\". Without this file, pling will asume all plasmids are circular.")
 @click.option("--sourmash", is_flag=True, help="Run sourmash as first filter on which pairs to calculate DCJ on. Recommended for large and very diverse datasets.")
 @click.option("--sourmash_threshold", default=0.85, help="Threshold for filtering with sourmash.")
+@click.option("--reuse_previous", type=PathlibPath(exists=True), help="Recompute communities and subcommunities from previous containment and DCJ-Indel distances. Provide a path to a previous pling output folder. The containment threshold of previous output MUST have been higher than the current one.")
 @vis_paras
 @resource_paras
 @click.help_option()
@@ -264,7 +265,18 @@ def align(
 
     tmp_dir, snakemake_args = make_config_file(args, "align")
 
-    batching(snakemake_args)
+    if not args["reuse_previous"]:
+        batching(snakemake_args)
+    else:
+        prev_thresholds = read_log_file(args["reuse_previous"]/ "pling.log")
+        if float(prev_thresholds["seq_containment_distance"]) >= args["containment_distance"]:
+            shutil.copy(args["reuse_previous"] / "containment/all_pairs_containment_distance.tsv", args["output_dir"] / "containment") #copy containment distances - should cause snakemake not to rerun everything, just communities
+            shutil.copy(args["reuse_previous"] / "all_plasmids_distances.tsv", args["output_dir"]) #copy DCJ-Indel distances - should cause snakemake not to rerun DCJ-Indel calculations
+        else:
+            logging.error("Previous containment distance threshold is not higher than current containment distance threshold!")
+            raise Exception("Previous containment distance threshold is not higher than current containment distance threshold!")
+
+    #batching(snakemake_args)
 
     alignment(snakemake_args)
     
@@ -284,13 +296,13 @@ First input is a path to list of fasta file paths.
 \b
 Second input is a path to an output directory.
 \b
-Third input is a path to a unimog file. Required input when skipping integerisation.
+Third input is a path to a unimog file, or previous pling output folder. Required input when skipping integerisation. Unless run with \"reuse_previous\" flag, will assume is a unimog file.
 
 """,  # noqa: E501
 )
 @click.argument("genomes_list", type=PathlibPath(exists=True))
 @click.argument("output_dir", type=PathlibPath(exists=False))
-@click.argument("unimog", type=PathlibPath(exists=True))
+@click.argument("precomputed", type=PathlibPath(exists=True))
 @thresholds
 @click.option("--sourmash", is_flag=True, help="Run sourmash as first filter on which pairs to calculate DCJ on. Recommended for large and very diverse datasets.")
 @click.option("--sourmash_threshold", default=0.85, help="Threshold for filtering with sourmash.")
