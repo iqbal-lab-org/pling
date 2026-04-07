@@ -4,6 +4,7 @@ from typing import Tuple
 from intervaltree import IntervalTree
 import argparse
 from pling.utils import read_in_batch_pairs, get_fasta_file_info
+import sys
 
 def get_coverage(tree):
     tree.merge_overlaps()
@@ -21,7 +22,13 @@ def get_coordinates(split_line, index):
     return start, end
 
 def get_sequence_containment_distance(plasmid_1: Path, plasmid_2: Path, prefix: str, identity_threshold=80) -> Tuple[str, str]:
-    subprocess.check_call(f"nucmer --diagdiff 20 --breaklen 500  --maxmatch -p {prefix} {plasmid_1} {plasmid_2} && delta-filter -qr {prefix}.delta > {prefix}.1delta", shell=True)
+    try:    
+        subprocess.check_call(f"nucmer --diagdiff 20 --breaklen 500  --maxmatch -p {prefix} {plasmid_1} {plasmid_2} && delta-filter -qr {prefix}.delta > {prefix}.1delta", shell=True)
+    except subprocess.CalledProcessError as e:
+        print(f"ERROR IN RULE:\n NUCMER FAILING WITH PAIR {plasmid_1} AND {plasmid_2}", file=sys.stderr)
+        print(e.stderr.decode(), file=sys.stderr)
+        print("END ERROR MSG", file=sys.stderr)
+        sys.exit(e.returncode)
     show_coords_output = subprocess.check_output(f"show-coords -TrcldH -I {identity_threshold} {prefix}.1delta", shell=True).strip().split(b'\n') 
 
     assert(len(show_coords_output)>0)

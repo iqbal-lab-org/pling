@@ -63,3 +63,5 @@ Bacterial and other non-plasmid genomes
 ---------------------------------------
 
 Pling was created with plasmids in mind, but in principle it can be used with other types of genomes (as long as they are complete and single chromosome). The only issue you may run into is with computational resources. The run time bottleneck for pling is generally the integerisation step, which requires doing pairwise alignment. This is reasonably cheap for plasmids as they have small genomes, but may be more of an issue with larger genomes like bacteria. If you think doing pairwise alignment is viable for your dataset, then pling will likely run just fine.
+
+A viable alternative for bacterial genomes might be to run ``pling cluster skip`` with your own integerisation. You can generate your own by running e.g. panaroo, or (my personal favourite) pangraph. Note that you will need to convert the output to UniMoG-format (see Advanced Usage).

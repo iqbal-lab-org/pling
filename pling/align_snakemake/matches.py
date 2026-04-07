@@ -393,7 +393,7 @@ class Matches:
                 except MatchPointsError:
                     warnings.warn("An invalid match was created while fixing overlaps. Overlap fixing is broken off, and the last version prior to the error is used for integerisation.")
                     return
-                except MatchOrderError:
+                except MatchesOrderError:
                     warnings.warn("The ordering of matches was broken. Overlap fixing is broken off, and the last version prior to the error is used for integerisation.")
                     return
                 if containment:
@@ -436,7 +436,7 @@ class Matches:
                 except MatchPointsError:
                     warnings.warn("An invalid match was created while fixing overlaps. Overlap fixing is broken off, and the last version prior to the error is used for integerisation.")
                     return
-                except MatchOrderError:
+                except MatchesOrderError:
                     warnings.warn("The ordering of matches was broken. Overlap fixing is broken off, and the last version prior to the error is used for integerisation.")
                     return
                 if containment:
@@ -452,26 +452,3 @@ class Matches:
                 else:
                     old_version = self
 
-testing = False
-if testing == True:
-    #plasmid1 = "NZ_LT985234.1"
-    #plasmid2 = "NZ_CP062902.1"
-    #plasmid2 = "NZ_LR999867.1"
-    #plasmid1 = "NZ_CP032890.1"
-    #path = "/home/daria/Documents/projects/INC-plasmids/samples/fastas/incy"
-    #plasmid2 = "cpe105_contig_5_np1212"
-    #plasmid1 = "cpe061_contig_3_np1212"
-    plasmid1 = "2_dup_3_dup"
-    plasmid2 = "3_dup"
-    path = "/home/daria/Documents/projects/pling/tests/test1/fastas"
-    #path = "/home/daria/Documents/projects/mobmessing/plasmids_leah"
-    print(new_integerise_plasmids(f"{path}/{plasmid1}.fna", f"{path}/{plasmid2}.fna", f"{plasmid1}~{plasmid2}", plasmid1, plasmid2, length_threshold=200))
-    '''matches = Matches([Match(100578,102034,64267,65708,1),Match(101858,101881,57736,57759,1),Match(101881,102188,57759,58867,1)])
-    matches.resolve_overlaps(0)
-    length_threshold=15
-    ref_to_block, query_to_block, max_id = make_interval_tree_w_dups(matches.list, length_threshold)
-    populate_interval_tree_with_unmatched_blocks(ref_to_block, 102034, max_id+1, length_threshold)
-    populate_interval_tree_with_unmatched_blocks(query_to_block, 65708, len(ref_to_block)+1, length_threshold)
-    plasmid_1_unimogs = get_unimog(ref_to_block)
-    plasmid_2_unimogs = get_unimog(query_to_block)
-    print(plasmid_1_unimogs, plasmid_2_unimogs)'''

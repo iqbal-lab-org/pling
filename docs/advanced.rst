@@ -1,58 +1,19 @@
 Advanced Usage
 ==============
 
-Overview
+Summary
 --------
 
-.. code-block:: console
-    
-	usage: pling [-h] [--version] [--unimog UNIMOG] [--containment_distance CONTAINMENT_DISTANCE] [--dcj DCJ] [--regions] [--topology TOPOLOGY] [--batch_size BATCH_SIZE] [--sourmash] [--sourmash_threshold SOURMASH_THRESHOLD] [--identity IDENTITY]
-		     [--min_indel_size MIN_INDEL_SIZE] [--bh_connectivity BH_CONNECTIVITY] [--bh_neighbours_edge_density BH_NEIGHBOURS_EDGE_DENSITY] [--small_subcommunity_size_threshold SMALL_SUBCOMMUNITY_SIZE_THRESHOLD] [--output_type {html,json,both}]
-		     [--plasmid_metadata PLASMID_METADATA] [--ilp_solver {GLPK,gurobi}] [--timelimit TIMELIMIT] [--resources RESOURCES] [--cores CORES] [--profile PROFILE] [--forceall]
-		     genomes_list output_dir {align,skip}
+pling consists of three subcommands: ``cluster``, ``add``, and ``submatrix``.
 
-	positional arguments:
-	  genomes_list          Path to list of fasta file paths.
-	  output_dir            Path to output directory.
-	  {align,skip}          Integerisation method: "align" for alignment, "skip" to skip integerisation altogether. Make sure to input a unimog file if skipping integerisation.
+**cluster:** This command includes all the standard clustering functionalities in pling. If you want to de novo cluster some genomes, this is what you want. It is further subdivided into ``align`` and ``skip`` -- ``align`` will run pling with integerisation, while ``skip`` allows you to provide your own custom integersiation and skip pling's built-in integerisation.
 
-	options:
-	  -h, --help            show this help message and exit
-	  --version             show program's version number and exit
-	  --unimog UNIMOG       Path to unimog file. Required input if skipping integerisation. (default: None)
-	  --containment_distance CONTAINMENT_DISTANCE
-		                Threshold for initial containment network. (default: 0.5)
-	  --dcj DCJ             Threshold for final DCJ-Indel network. (default: 4)
-	  --regions             Cluster regions rather than complete genomes. Assumes regions are taken from circular plasmids. (default: False)
-	  --topology TOPOLOGY   File stating whether plasmids are circular or linear. Must be a tsv with two columns, one with plasmid IDs under "plasmid" and one with "linear" or "circular" as entries under "topology". Without this file, pling will asume all plasmids are circular. (default: None)
-	  --batch_size BATCH_SIZE
-		                How many pairs of genomes to run together in one go (for integerisation from alignment and DCJ calculation steps). (default: 200)
-	  --sourmash            Run sourmash as first filter on which pairs to calculate DCJ on. Recommended for large and very diverse datasets. (default: False)
-	  --sourmash_threshold SOURMASH_THRESHOLD
-		                Threshold for filtering with sourmash. (default: 0.85)
-	  --identity IDENTITY   Threshold for percentage of shared sequence between blocks (for integerisation from alignment and for containment calculation). (default: 80)
-	  --min_indel_size MIN_INDEL_SIZE
-		                Minimum size for an indel to be treated as a block (for integerisation from alignment). (default: 200)
-	  --bh_connectivity BH_CONNECTIVITY
-		                Minimum number of connections a plasmid need to be considered a hub plasmid. (default: 10)
-	  --bh_neighbours_edge_density BH_NEIGHBOURS_EDGE_DENSITY
-		                Maximum number of edge density between hub plasmid neighbours to label the plasmid as hub. (default: 0.2)
-	  --small_subcommunity_size_threshold SMALL_SUBCOMMUNITY_SIZE_THRESHOLD
-		                Communities with size up to this parameter will be joined to neighbouring larger subcommunities. (default: 4)
-	  --output_type {html,json,both}
-		                Whether to output networks as html visualisations, cytoscape formatted json, or both. (default: html)
-	  --plasmid_metadata PLASMID_METADATA
-		                Metadata to add beside plasmid ID on the visualisation graph. Must be a tsv with a single column, with data in the same order as in genomes_list. (default: None)
-	  --ilp_solver {GLPK,gurobi}
-		                ILP solver to use. Default is GLPK, which is slower but is bundled with pling and is free. If using gurobi, make sure you have a valid license and gurobi_cl is in your PATH. (default: GLPK)
-	  --timelimit TIMELIMIT
-		                Time limit in seconds for ILP solver. (default: None)
-	  --resources RESOURCES
-		                tsv stating number of threads and memory to use for each rule. (default: None)
-	  --cores CORES         Total number of cores/threads. Put the maximum number of threads you request in the resources tsv here. (This argument is passed on to snakemake's --cores argument.) (default: 1)
-	  --profile PROFILE     To run on a cluster with corresponding snakemake profile. (default: None)
-	  --forceall            Force snakemake to rerun everything. (default: False)
+**add:** This command is for adding novel plasmids to an existing pling clustering, or merging multiple prior clustering together. For more details, see below.
 
+**submatrix:** Provides some potentially useful outputs for downstream analysis, based on pling clustering results and DCJ-Indel distances.
+
+Options for pling cluster
+-------------------------
 
 **Network thresholds:** ``--containment-distance`` and ``--dcj`` control the thresholds at which edges are added to the continament and DCJ-Indel networks. If looking for recent transmissions, we recommend trying threshold 0.3 for the containment distance. If you want to try different DCJ-Indel thresholds with the same containment threshold, you can run pling at different DCJ-Indel thresholds with the same output directory -- this will mean that only the DCJ-Indel network will be calculated anew, which will significantly reduce runtime. Changing the containment threshold will prompt pling to rerun the whole workflow though, and so you should change the output directory if you don't want to lose previous results.
 
@@ -74,16 +35,18 @@ You can also run pling on regions of genomes with the ``--regions`` flag.
 
 **Clustering parameters:** ``--bh_connectivity`` and ``--bh_neighbour_density`` both determine how a hub plasmid is defined. ``--bh_connectivity`` determines to how many plasmids a hub should at least be connected to, while ``--bh_neighbour_density`` determines how interconnected a hub's neighbours should be.
 
-**Visualisation styles:** With ``--output_type`` you can opt to output cytoscpae compatible json files together with or instead of the default html visualisations. The json files can be loaded directly into cytoscape, and used in python together with networkx. There is also a cytoscape style file available, which provides a style similar to the default html visualisations. It can be downloaded from here: https://raw.githubusercontent.com/leoisl/plasnet/main/plasnet/ext/templates/plasnet_style.xml. You can also add additional metadata to node names with ``--plasmid_metadata``, e.g. Inc types.
+**Visualisation styles:** As of v3, by default only visualisations of results from ``dcj_thresh_4_graph`` are outputted, but you through ``--visualisation`` you can opt to output no visualisations, or all possible visualisation (this option will perform equivalently to pling v2). With ``--output_type`` you can opt to output cytoscpae compatible json files together with or instead of the default html visualisations. The json files can be loaded directly into cytoscape, and used in python together with networkx. There is also a cytoscape style file available, which provides a style similar to the default html visualisations. It can be downloaded from here: https://raw.githubusercontent.com/leoisl/plasnet/main/plasnet/ext/templates/plasnet_style.xml. You can also add additional metadata to node names with ``--plasmid_metadata``, e.g. Inc types.
 
 **ILP solver:** Calculating the DCJ-Indel distances involves solving and integer linear problem (ILP), and pling allows a choice between two ILP solvers for this: GLPK or gurobi. GLPK is free and bundled with pling, but a bit slower. Gurobi is a commercial software, with a free academic license, and you must have a valid license and installed gurobi beforehand to run pling with it. Both solvers output the same final result. Generally calculating DCJ-Indel is an NP-hard problem, which means in its worst case calculation will take a very long time. The ``--timelimit`` variable sets a time limit for how long the ILP solver takes with a pair, before giving up and outputting the most optimal result it has at that point. However our experience is that when running with integers from alignment, the DCJ-Indel calculation is very quick.
 
 **Snakemake arguments:** Arguments ``--cores``, ``--profile`` and ``--forceall`` are passed as are directly to snakemake. Please refer to snakemake documentation (https://snakemake.readthedocs.io/en/v7.0.0/) for further information. Through ``--resources`` you can pass a path to a ``resources.tsv`` file, which will define number of threads and memory allocated for each rule in pling's snakemake workflows. The format should be the same as the file found under ``pling/resources.tsv``. If you use more than one thread in any rule, remember to set ``--cores`` to the maximum number of threads you'd like to use.
 
+**Varying thresholds:** With ``--reuse_previous`` you can give a path to a previous clustering, and get a new clustering with different thresholds without recomputing all distances. This *only* works if the new containment threshold you choose is lower (i.e. stricter) than the previous threshold you ran pling with; therefore, if you are going to experiment with thresholds, make sure to start with the highest containment distance you will be considering (e.g. 0.5, the default).
+
 Regions (e.g. integrons)
 ------------------------
 
-To run pling on a region of a genome, rather than full genomes, use the ``--regions`` flag. Make sure that your fasta files only contain the sequence of your region of interest. This option is intended for comparing specific regions in genomes that undergo rearrangement, e.g. comparing integrons across different genomes. The DCJ-Indel model is not inherently designed for regions of genomes, so pling uses the following assumptions to integerise regions for DCJ-Indel calculation:
+To cluster a region of a genome, rather than full genomes, use the ``--regions`` flag. Make sure that your fasta files only contain the sequence of your region of interest. This option is intended for comparing specific regions in genomes that undergo rearrangement, e.g. comparing integrons across different genomes. The DCJ-Indel model is not inherently designed for regions of genomes, so pling uses the following assumptions to integerise regions for DCJ-Indel calculation:
 
 1. the sequence outside of the region of interest is identical across all genomes
 2. the region of interest is embedded in a circular genome
@@ -131,8 +94,9 @@ You cannot use both the ``--topology`` and ``--regions`` options at the same tim
 Skipping integerisation and unimog file format
 ----------------------------------------------
 
-There is the option to skip pling's integerisation and provide your own, by running pling with the ``skip`` option and providing a file path to a unimog formatted file with ``--unimog``. The unimog file will need to contain an integer sequence for each genome, where an integer always denotes the same block of sequence.
+There is the option to skip pling's integerisation and provide your own, by running pling with the ``cluster skip`` command and providing a file path to a unimog formatted file. The unimog file will need to contain an integer sequence for each genome, where an integer always denotes the same block of sequence.
 Pling performs essentially the same workflow with this option: construction of a containment network, induction of a DCJ-Indel subnetwork from DCJ-Indel distances, and clustering. The only change is that alignment is only used to calculate the containment distances and network, *not* integer sequences, and DCJ-Indel distances are calculated from the user given integerisation, i.e. the unimog file.
+As of v3, when providing your own integerisation you can now construct the containment network just using containment distances computed from sourmash results, skipping alignment entirely, using the flag ``--sourmash_only``. This threshold given by ``containment_distance`` is used for the containment network construction.
 
 The entries in a unimog file are formatted similar to fasta files - the first line begins with ">" and the entry name, and the second lines contains the integer sequence. In the sequence, integers are seperated by a space, and negative integers represent reverse complements. The end of a sequence is indicated by either ")" or "|", where ")" means the genome is circular, and "|" means the genome is linear. Here's an example of what it can look like:
 
@@ -179,6 +143,13 @@ for regions that are at the end.
 
 For more information on the unimog file format, please refer to https://bibiserv.cebitec.uni-bielefeld.de/dcj?id=dcj_manual.
 
+Adding new plasmids to existing clustering, or merging multiple clusterings
+---------------------------------------------------------------------------
+
+With ``pling add`` you can add new plasmids to a previous pling clustering, or merge previous pling clusterings.
+When adding novel plasmids, there are two options, selected via ``reclustering_method`` : asynchronous label propagation (``asyn``, default) and nearest neighbour typing (``nearest_neighbour``).
+For nearest neighbour typing, the novel plasmids are typed according to which subcommunity they are closest to in terms of DCJ-Indel distance. If a new plasmid is close to none, it is labelled a singleton, even if there are other novel plasmids neighbouring it. This method does not provide a new typing scheme, it just types according to the previous pling typing.
+The ``asyn`` option can be used for both adding novel plasmids and merging previous clusterings, and is the default option. It performs the same asynchronous label propagation algorithm for clustering as ``pling cluster``, and therefore generates a completely new typing scheme (unlike ``nearest_neighbour``). It reuses previously computed distances to speed up the clustering workflow, and outputs a mapping between the old typing and new typing, as well as the rand index, mutual information score and split-join distance between each of the previous typing and the new typing.
 
 Improving runtime
 -----------------
