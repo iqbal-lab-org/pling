@@ -61,7 +61,7 @@ def make_snakemake_config(args, config_dict):
 
     profile = ""
     if args["profile"]!=None:
-        profile = "--profile " + {args["profile"]}
+        profile = "--profile " + args["profile"]
     if args["resources"]!=None:
         resources = pd.read_csv(args["resources"], sep="\t")
     else:
