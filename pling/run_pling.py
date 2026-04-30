@@ -356,7 +356,7 @@ Third input is a path to previous pling output directory (multiple are permitted
 @click.argument("genomes_list", type=PathlibPath(exists=True))
 @click.argument("output_dir", type=PathlibPath(exists=False))
 @click.argument("previous_pling", required=True, nargs=-1)
-@click.option("--reclustering_method", type=click.Choice(["asyn", "nearest_neighbour"]), default="asyn")
+@click.option("--reclustering_method", type=click.Choice(["asyn", "biased", "nearest_neighbour"]), default="asyn")
 @thresholds
 @click.option("--regions", is_flag=True, help="Cluster regions rather than complete genomes. Assumes regions are taken from circular plasmids.")
 @click.option("--topology", help="File stating whether plasmids are circular or linear. Must be a tsv with two columns, one with plasmid IDs under \"plasmid\" and one with \"linear\" or \"circular\" as entries under \"topology\". Without this file, pling will asume all plasmids are circular.")
