@@ -131,8 +131,7 @@ def make_config_file(args, integerisation):
         for path in args["previous_pling"]:
             prev_thresholds = read_log_file(f"{path}/pling.log")
             if int(prev_thresholds["dcj_dist_threshold"]) != int(config_dict["dcj_dist_threshold"]) or float(prev_thresholds["seq_containment_distance"]) != float(config_dict["seq_containment_distance"]):
-                msg = f"{path} was not constructed with the same containment or DCJ-Indel thresholds as given."
-                raise Exception(msg)
+                raise Exception(f"{path} was not constructed with the same containment or DCJ-Indel thresholds as given.")
             
     set_up_logging(f"{output_dir}/pling.log", config_dict)
 
