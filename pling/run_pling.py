@@ -130,7 +130,7 @@ def make_config_file(args, integerisation):
             raise Exception("Nearest neighbour typing does not support merging graphs.")
         for path in args["previous_pling"]:
             prev_thresholds = read_log_file(f"{path}/pling.log")
-            if prev_thresholds["dcj_dist_threshold"] != config_dict["dcj_dist_threshold"] or prev_thresholds["seq_containment_distance"] != config_dict["seq_containment_distance"]:
+            if int(prev_thresholds["dcj_dist_threshold"]) != int(config_dict["dcj_dist_threshold"]) or float(prev_thresholds["seq_containment_distance"]) != float(config_dict["seq_containment_distance"]):
                 raise Exception(f"{path} was not constructed with the same containment or DCJ-Indel thresholds as given.")
             
     set_up_logging(f"{output_dir}/pling.log", config_dict)

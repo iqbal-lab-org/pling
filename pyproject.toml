@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "pling"
-version = "3.0.1"
+version = "3.0.2"
 description = "Pling computes the rearrangement distance between plasmids"
 authors = [{name = "Daria Frolova", email = "daria@ebi.ac.uk"}, {name = "Leandro Lima", email = "leandro@ebi.ac.uk"}]
 license = {text = "MIT"}
