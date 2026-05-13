@@ -54,6 +54,8 @@ def assert_communities_listed_identical(path_to_first_file, path_to_second_file)
 def assert_files_are_identical(path_to_first_file, path_to_second_file):
     first_file_content = read_file(path_to_first_file)
     second_file_content = read_file(path_to_second_file)
+    first_file_content = first_file_content.replace(b"\r\n", b"\n")
+    second_file_content = second_file_content.replace(b"\r\n", b"\n")
     tc.assertEqual(first_file_content, second_file_content)
 
 def get_num_communities(filepath):
