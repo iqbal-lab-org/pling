@@ -39,10 +39,10 @@ def get_prev_pling():
 
 def get_prev_dcj():
     if config.get("previous_pling",False):
-        blub = config["previous_pling"]
-        return f"{blub}/all_plasmids_distances.tsv"
+        blub = config["previous_pling"].strip().split(",")
+        return [f"{bl}/all_plasmids_distances.tsv" for bl in blub]
     else:
-        return None
+        return []
 
 def get_vis():
     if config["visualisation"]=="none":
@@ -116,8 +116,8 @@ rule dcj_tsv:
                 with open(file, "r") as f:
                     to_cat = f.read()
                 dcj_out.write(to_cat)
-            if params.prev_dcj:
-                with open(params.prev_dcj) as f:
+            for prev_dcj in params.prev_dcj:
+                with open(prev_dcj) as f:
                     next(f)
                     to_cat = f.read()
                 dcj_out.write(to_cat)
