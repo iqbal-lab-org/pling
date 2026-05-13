@@ -11,8 +11,16 @@ if sys.version_info >= (3, 8):
 else:
     import importlib_metadata as metadata
 
-__version__: str = metadata.version("pling")
+try:
+    __version__: str = metadata.version("pling")
+except metadata.PackageNotFoundError:
+    __version__ = "0+unknown"
 
-from .run_pling import main
+
+def main():
+    from .run_pling import main as run_main
+
+    return run_main()
+
 
 __all__ = ["main"]
