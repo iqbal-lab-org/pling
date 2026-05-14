@@ -21,8 +21,8 @@ project = "pling"
 copyright = "2026, Daria Frolova"
 author = "Daria Frolova"
 
-release = '3.0'
-version = '3.0.0'
+release = '3.0.2'
+version = '3.0.2'
 
 # -- General configuration ---------------------------------------------------
 # -- General configuration
@@ -61,4 +61,4 @@ html_theme = "sphinx_book_theme"
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,
 # so a file named "default.css" will overwrite the builtin "default.css".
-html_static_path = ["_static"]
+html_static_path = []
