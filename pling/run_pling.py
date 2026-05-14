@@ -12,11 +12,10 @@ from pathlib import Path
 import yaml
 import importlib
 from pling import __version__
+from pling.html_visualisations import repair_cytoscape_html_outputs
 import click
 import logging
 from plasnet.utils import PathlibPath
-import warnings
-import sys
 
 logFormatter = logging.Formatter("%(asctime)s [%(levelname)s]  %(message)s")
 logger = logging.getLogger(__name__)
@@ -25,7 +24,9 @@ def get_pling_path():
     plingpath = os.path.realpath(os.path.dirname(__file__))
     return plingpath
 
-def read_log_file(path, config_dict={}):
+def read_log_file(path, config_dict=None):
+    if config_dict is None:
+        config_dict = {}
     with open(path) as f:
         lines = f.readlines()
         args_bool = True
@@ -41,10 +42,10 @@ def read_log_file(path, config_dict={}):
 
 def check_gurobi(ilp_solver):
     if ilp_solver == "gurobi":
-        spec = importlib.util.find_spec("gurobi")
+        spec = importlib.util.find_spec("gurobipy")
         if spec is None:
-            logging.error("Missing optional dependency gurobi!")
-            raise Exception("Missing optional dependency gurobi!")
+            logging.error("Missing optional dependency gurobipy!")
+            raise Exception("Missing optional dependency gurobipy!")
         
 def check_vis_trees(vis_trees):
     if vis_trees:
@@ -180,6 +181,18 @@ def ding_and_cluster(snakemake_args):
     run_command(f"snakemake --snakefile {get_pling_path()}/dcj_snakemake/Snakefile {snakemake_args}")
     logger.info("Completed distance calculations and clustering.")
 
+def fix_html_visualisations(output_dir):
+    repaired = repair_cytoscape_html_outputs(output_dir)
+    if repaired:
+        logger.info("Fixed Cytoscape.js source tags in generated HTML visualisations.")
+
+def copy_previous_distances(args):
+    output_dir = Path(args["output_dir"])
+    containment_dir = output_dir / "containment"
+    containment_dir.mkdir(parents=True, exist_ok=True)
+    shutil.copy(args["reuse_previous"] / "containment/all_pairs_containment_distance.tsv", containment_dir)
+    shutil.copy(args["reuse_previous"] / "all_plasmids_distances.tsv", output_dir)
+
 
 def thresholds(func):
     options = [
@@ -239,7 +252,7 @@ def cluster() -> None:
 @click.command(
     help="""
 \b
-Intergerises genomes using alignment, calculates containment and DCJ-Indel distances, and clusters.
+Integerises genomes using alignment, calculates containment and DCJ-Indel distances, and clusters.
 \b
 First input is a path to list of fasta file paths.
 \b
@@ -270,8 +283,7 @@ def align(
     else:
         prev_thresholds = read_log_file(args["reuse_previous"]/ "pling.log")
         if float(prev_thresholds["seq_containment_distance"]) >= args["containment_distance"]:
-            shutil.copy(args["reuse_previous"] / "containment/all_pairs_containment_distance.tsv", args["output_dir"] / "containment") #copy containment distances - should cause snakemake not to rerun everything, just communities
-            shutil.copy(args["reuse_previous"] / "all_plasmids_distances.tsv", args["output_dir"]) #copy DCJ-Indel distances - should cause snakemake not to rerun DCJ-Indel calculations
+            copy_previous_distances(args)
         else:
             logging.error("Previous containment distance threshold is not higher than current containment distance threshold!")
             raise Exception("Previous containment distance threshold is not higher than current containment distance threshold!")
@@ -279,6 +291,7 @@ def align(
     alignment(snakemake_args)
     
     ding_and_cluster(snakemake_args)
+    fix_html_visualisations(args["output_dir"])
 
     #delete intermediary files
     shutil.rmtree(tmp_dir)
@@ -321,8 +334,7 @@ def skip(
     else:
         prev_thresholds = read_log_file(args["reuse_previous"]/ "pling.log")
         if float(prev_thresholds["seq_containment_distance"]) >= args["containment_distance"]:
-            shutil.copy(args["reuse_previous"] / "containment/all_pairs_containment_distance.tsv", args["output_dir"] / "containment") #copy containment distances - should cause snakemake not to rerun everything, just communities
-            shutil.copy(args["reuse_previous"] / "all_plasmids_distances.tsv", args["output_dir"]) #copy DCJ-Indel distances - should cause snakemake not to rerun DCJ-Indel calculations
+            copy_previous_distances(args)
         else:
             logging.error("Previous containment distance threshold is not higher than current containment distance threshold!")
             raise Exception("Previous containment distance threshold is not higher than current containment distance threshold!")
@@ -332,6 +344,7 @@ def skip(
     logger.info("Completed containment network.")
 
     ding_and_cluster(snakemake_args)
+    fix_html_visualisations(args["output_dir"])
 
     #delete intermediary files
     shutil.rmtree(tmp_dir)
@@ -377,6 +390,7 @@ def add(
     alignment(snakemake_args)
     
     ding_and_cluster(snakemake_args)
+    fix_html_visualisations(args["output_dir"])
 
     #delete intermediary files
     shutil.rmtree(tmp_dir)

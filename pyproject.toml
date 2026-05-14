@@ -11,6 +11,16 @@ license = {text = "MIT"}
 readme = "README.md"
 keywords = ["Plasmids", "Comparative genomics", "Genome rearrangement", "DCJ-indel distance"]
 requires-python = ">=3.9,<3.12"
+dependencies = [
+    "click>=8.1,<9",
+    "intervaltree>=3,<4",
+    "networkx>=3,<4",
+    "numpy>=1.23,<2",
+    "pandas>=1.5,<3",
+    "plasnet==0.7.0",
+    "PyYAML>=6,<7",
+    "snakemake>=7.32,<8",
+]
 
 [project.urls]
 Homepage = "https://github.com/iqbal-lab-org/pling"
