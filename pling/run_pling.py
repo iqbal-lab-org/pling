@@ -41,10 +41,10 @@ def read_log_file(path, config_dict={}):
 
 def check_gurobi(ilp_solver):
     if ilp_solver == "gurobi":
-        spec = importlib.util.find_spec("gurobi")
+        spec = importlib.util.find_spec("gurobipy")
         if spec is None:
-            logging.error("Missing optional dependency gurobi!")
-            raise Exception("Missing optional dependency gurobi!")
+            logging.error("Missing optional dependency gurobipy!")
+            raise Exception("Missing optional dependency gurobipy!")
         
 def check_vis_trees(vis_trees):
     if vis_trees:
