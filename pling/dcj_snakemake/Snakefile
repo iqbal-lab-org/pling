@@ -31,7 +31,7 @@ def get_unimog():
 def get_prev_pling():
     if config.get("previous_pling",False):
         blub = config["previous_pling"].strip().split(",")
-        blah = " ".join([f"{bl}/dcj_thresh_{dcj_threshold}_graph/objects/typing.tsv" for bl in blub])
+        blah = " --prev_typing ".join([f"{bl}/dcj_thresh_{dcj_threshold}_graph/objects/typing.tsv" for bl in blub])
         recluster = config["reclustering_method"]
         return f"--prev_typing {blah} --reclustering_method {recluster}"
     else:
@@ -39,8 +39,9 @@ def get_prev_pling():
 
 def get_prev_dcj():
     if config.get("previous_pling",False):
-        blub = config["previous_pling"]
-        return f"{blub}/all_plasmids_distances.tsv"
+        blub = config["previous_pling"].strip().split(",")
+        paths = ",".join([f"{path}/all_plasmids_distances.tsv" for path in blub])
+        return paths
     else:
         return None
 
@@ -117,10 +118,12 @@ rule dcj_tsv:
                     to_cat = f.read()
                 dcj_out.write(to_cat)
             if params.prev_dcj:
-                with open(params.prev_dcj) as f:
-                    next(f)
-                    to_cat = f.read()
-                dcj_out.write(to_cat)
+                paths = params.prev_dcj.split(",")
+                for path in paths:
+                    with open(path) as f:
+                        next(f)
+                        to_cat = f.read()
+                    dcj_out.write(to_cat)
 
 rule build_DCJ_graph:
     input:

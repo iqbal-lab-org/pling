@@ -8,8 +8,8 @@ from pling.utils import get_number_of_batches
 def get_prev_pling():
     if config.get("previous_pling",False):
         blub = config["previous_pling"].strip().split(",")
-        pickles = " ".join([f"{bl}/containment/containment_communities/objects/plasmid_graph.pkl" for bl in blub])
-        comms = " ".join([f"{bl}/containment/containment_communities/objects/communities.tsv" for bl in blub])
+        pickles = " --graph-pickle ".join([f"{bl}/containment/containment_communities/objects/plasmid_graph.pkl" for bl in blub])
+        comms = " --prev_typing ".join([f"{bl}/containment/containment_communities/objects/communities.tsv" for bl in blub])
         return f"--graph-pickle {pickles} --prev_typing {comms}"
     else:
         return ""
