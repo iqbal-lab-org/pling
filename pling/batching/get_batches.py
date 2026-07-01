@@ -23,7 +23,7 @@ def append_pair(smash, smash_threshold, smash_matrix, i, j):
         return (1-smash_matrix[i][j]<=smash_threshold)
     
 def write_content(list_a, list_b, index_map, output_dir, batch_size, smash, smash_only, smash_threshold, smash_matrix, contain_file, batch=-1, iter=0):
-    for genome_1, genome_2 in itertools.combinations(list_a, list_b):
+    for genome_1, genome_2 in itertools.product(list_a, list_b):
         i = index_map[genome_1]
         j = index_map[genome_2]
         append = append_pair(smash, smash_threshold, smash_matrix, i, j)
@@ -50,7 +50,9 @@ def get_pairs(genomes, batch_size, output_dir, containmentpath, smash, smash_onl
         dir.mkdir(parents=True, exist_ok=True)
         contain_file = open(containmentpath, "w")
         contain_file.write("plasmid_1\tplasmid_2\tdistance\n")
-    for list_a, list_b in itertools.combinations(prev_genomes):
+    else:
+        contain_file=None
+    for list_a, list_b in itertools.combinations(prev_genomes, 2):
         contain_file, batch_file, batch, iter = write_content(list_a, list_b, index_map, output_dir, batch_size, smash, smash_only, smash_threshold, smash_matrix, contain_file)
     if prev_genomes == []:
         new_genomes = genomes
@@ -117,7 +119,7 @@ def main():
         prev_genomes = [pd.read_csv(f"{path}/typing.tsv", sep="\t")["plasmid"].to_list() for path in args.prev_typing]
         prev_hubs = [pd.read_csv(f"{path}/hub_plasmids.csv", sep="\t")["hub_plasmids"].to_list() for path in args.prev_typing]
         prev_genomes = [prev_genomes[i]+prev_hubs[i] for i in range(len(args.prev_typing))]
-        new_genomes = list(set(genomes)-set(prev_genomes))
+        new_genomes = list(set(genomes)-set(itertools.chain(*prev_genomes)))
         if args.sourmash or args.sourmash_only:
                 prev_signatures = [f"{path}/sourmash/all_plasmids.sig" for path in args.prev_typing]
     else:
