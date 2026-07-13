@@ -62,6 +62,8 @@ def make_snakemake_config(args, config_dict):
     profile = ""
     if args["profile"]!=None:
         profile = "--profile " + args["profile"]
+    elif args["executor"]!=None:
+        profile = "--executor " + args["executor"] + " --jobs " + args["jobs"]
     if args["resources"]!=None:
         resources = pd.read_csv(args["resources"], sep="\t")
     else:
@@ -214,7 +216,9 @@ def resource_paras(func):
         click.option("--timelimit", help="Time limit in seconds for ILP solver."),
         click.option("--resources", help="tsv stating number of threads and memory to use for each rule."),
         click.option("--cores", default=1, help="Total number of cores/threads. Put the maximum number of threads you request in the resources tsv here. (This argument is passed on to snakemake's --cores argument.)"),
-        click.option("--profile", help="To run on a cluster with corresponding snakemake profile."),
+        click.option("--profile", help="To run on a cluster with corresponding snakemake profile. (snakemake<v8)"),
+        click.option("--executor", help="To run on a cluster with corresponding executor. (snakemake>=v8)"),
+        click.option("--jobs", default=199, help="Maximum number of jobs to run in parallel on a cluster with an executor. (snakemake>=v8)"),
         #@click.option("--storetmp", is_flag=True, help="Don't delete intermediate temporary files.")
         click.option("--forceall", is_flag=True, help="Force snakemake to rerun everything."),
     ]
