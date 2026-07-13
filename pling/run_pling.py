@@ -63,7 +63,7 @@ def make_snakemake_config(args, config_dict):
     if args["profile"]!=None:
         profile = "--profile " + args["profile"]
     elif args["executor"]!=None:
-        profile = "--executor " + args["executor"] + " --jobs " + args["jobs"]
+        profile = "--executor " + args["executor"] + " --jobs " + str(args["jobs"])
     if args["resources"]!=None:
         resources = pd.read_csv(args["resources"], sep="\t")
     else:
