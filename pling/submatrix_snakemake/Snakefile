@@ -98,7 +98,8 @@ rule make_unimogs:
         map = f"{OUTPUTPATH}/unimogs_missing/{{subcommunity}}_map.txt"
     threads: 1
     resources:
-        mem_mb=lambda wildcards, attempt: 10000*attempt
+        mem_mb=lambda wildcards, attempt: 10000*attempt,
+        runtime=1440
     params:
         genomes_list = config["genomes_list"],
         outputpath = OUTPUTPATH,
@@ -137,7 +138,8 @@ rule ding:
         ilp_solver = config["ilp_solver"]
     threads: 1
     resources:
-        mem_mb = lambda wildcards, attempt: attempt * 16000
+        mem_mb = lambda wildcards, attempt: attempt * 16000,
+        runtime=1440
     shadow: "shallow"
     shell:
             """

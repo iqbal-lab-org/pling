@@ -80,7 +80,8 @@ rule ding:
         ilp_solver = config["ilp_solver"]
     threads: config["ilp_threads"]
     resources:
-        mem_mb = lambda wildcards, attempt: attempt * config["ilp_mem"]
+        mem_mb = lambda wildcards, attempt: attempt * config["ilp_mem"],
+        runtime=config["ilp_time"]
     shadow: "shallow"
     shell:
             """

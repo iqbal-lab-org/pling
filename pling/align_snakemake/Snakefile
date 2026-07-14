@@ -40,7 +40,8 @@ rule make_unimogs:
         map = f"{OUTPUTPATH}/unimogs/batch_{{batch}}_map.txt"
     threads: config["make_unimogs_threads"]
     resources:
-        mem_mb=lambda wildcards, attempt: config["make_unimogs_mem"]*attempt
+        mem_mb=lambda wildcards, attempt: config["make_unimogs_mem"]*attempt,
+        runtime=config["make_unimogs_time"]
     params:
         genomes_list = config["genomes_list"],
         outputpath = OUTPUTPATH,

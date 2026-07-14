@@ -65,7 +65,8 @@ rule get_communities:
         communities = directory(f"{OUTPUTPATH}/containment/containment_communities"),
     threads: 1
     resources:
-        mem_mb=lambda wildcards, attempt: config["get_communities_mem"]*attempt
+        mem_mb=lambda wildcards, attempt: config["get_communities_mem"]*attempt,
+        runtime=config["get_communities_time"]
     params:
         containment_distance=config["seq_containment_distance"],
         bh_connectivity=config["bh_connectivity"],

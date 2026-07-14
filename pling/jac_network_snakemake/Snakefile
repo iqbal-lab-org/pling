@@ -28,7 +28,8 @@ if not config.get("sourmash_only", False):
             containment=f"{OUTPUTPATH}/tmp_files/containment_batchwise/batch_{{batch}}_containment.tsv"
         threads: config["pairwise_seq_containment_threads"]
         resources:
-            mem_mb=lambda wildcards, attempt: config["pairwise_seq_containment_mem"]*attempt
+            mem_mb=lambda wildcards, attempt: config["pairwise_seq_containment_mem"]*attempt,
+            runtime=["pairwise_seq_containment_time"]
         params:
             genomes_list = config["genomes_list"],
             batch = lambda wildcards: wildcards.batch,

@@ -72,9 +72,11 @@ def make_snakemake_config(args, config_dict):
         rule = resources.loc[row, "Rule"]
         threads = resources.loc[row, "Threads"]
         mem =  resources.loc[row, "Mem"]
+        time = resources.loc[row, "Time"]
         if not pd.isna(threads):
             config_dict[f"{rule}_threads"] = int(threads)
         config_dict[f"{rule}_mem"] = int(mem)
+        config_dict[f"{rule}_time"] = int(time)
 
     return config_dict, profile, forceall
 
