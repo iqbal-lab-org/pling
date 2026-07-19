@@ -135,6 +135,7 @@ rule build_DCJ_graph:
     threads: 1
     resources:
         mem_mb=lambda wildcards, attempt: config["build_DCJ_graph_mem"]*attempt
+        runtime=config["build_DCJ_graph_time"]
     params:
         dcj_dist_threshold=config["dcj_dist_threshold"],
         small_subcommunity_size_threshold = config["small_subcommunity_size_threshold"], #Communities with size up to this parameter will be joined to neighbouring larger subcommunities
