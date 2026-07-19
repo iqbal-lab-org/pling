@@ -134,7 +134,7 @@ rule build_DCJ_graph:
         dcj_graph_outdir = directory(f"{OUTPUTPATH}/dcj_thresh_{dcj_threshold}_graph")
     threads: 1
     resources:
-        mem_mb=lambda wildcards, attempt: config["build_DCJ_graph_mem"]*attempt
+        mem_mb=lambda wildcards, attempt: config["build_DCJ_graph_mem"]*attempt,
         runtime=config["build_DCJ_graph_time"]
     params:
         dcj_dist_threshold=config["dcj_dist_threshold"],
