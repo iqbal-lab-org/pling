@@ -46,7 +46,7 @@ def read_in_dists(filepath):
 
 def get_final_outputs(wildcards):
     if config["vis_trees"]:
-        return expand(f"{OUTPUTPATH}/vis/{{subcommunity}}.pdf", subcommunity=get_subcomms(wildcards))
+        return expand(f"{OUTPUTPATH}/vis/{{subcommunity}}.png", subcommunity=get_subcomms(wildcards))
     else:
         return expand(f"{OUTPUTPATH}/trees/{{subcommunity}}.tree", subcommunity=get_subcomms(wildcards))
 
@@ -196,7 +196,7 @@ rule vis:
     input:
         f"{OUTPUTPATH}/trees/{{subcommunity}}.tree"
     output:
-        f"{OUTPUTPATH}/vis/{{subcommunity}}.pdf"
+        f"{OUTPUTPATH}/vis/{{subcommunity}}.png"
     params:
         pling_root_dir = get_pling_root_dir()
     shell:

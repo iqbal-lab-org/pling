@@ -48,9 +48,9 @@ def check_gurobi(ilp_solver):
         
 def check_vis_trees(vis_trees):
     if vis_trees:
-        spec = importlib.util.find_spec("ete3")
+        spec = importlib.util.find_spec("ete4")
         if spec is None:
-            logging.warning("Missing optional dependency ete3, will skip tree visualisation.")
+            logging.warning("Missing optional dependency ete4, will skip tree visualisation.")
             return False
     return True
         
