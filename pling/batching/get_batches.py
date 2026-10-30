@@ -22,8 +22,8 @@ def append_pair(smash, smash_threshold, smash_matrix, i, j):
     else:
         return (1-smash_matrix[i][j]<=smash_threshold)
     
-def write_content(list_a, list_b, index_map, output_dir, batch_size, smash, smash_only, smash_threshold, smash_matrix, contain_file, batch=-1, iter=0):
-    for genome_1, genome_2 in itertools.product(list_a, list_b):
+def write_content(pairs, index_map, output_dir, batch_size, smash, smash_only, smash_threshold, smash_matrix, contain_file, batch_file, batch, iter):
+    for genome_1, genome_2 in pairs:
         i = index_map[genome_1]
         j = index_map[genome_2]
         append = append_pair(smash, smash_threshold, smash_matrix, i, j)
@@ -39,12 +39,15 @@ def write_content(list_a, list_b, index_map, output_dir, batch_size, smash, smas
                 contain_file.write(f"{genome_1}\t{genome_2}\t{1-smash_matrix[i][j]}\n")
         elif smash:
             contain_file.write(f"{genome_1}\t{genome_2}\t{1-smash_matrix[i][j]}\n")
-    return contain_file, batch_file, batch, iter
+    return batch_file, batch, iter
 
 def get_pairs(genomes, batch_size, output_dir, containmentpath, smash, smash_only, smash_matrix = None, smash_threshold = None, prev_genomes = [], new_genomes=[]):
     output_dir = Path(output_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
     index_map = {genome: i for i, genome in enumerate(genomes)}
+    iter = 0
+    batch = -1
+    batch_file = None
     if smash or smash_only:
         dir = Path(os.path.dirname(containmentpath))
         dir.mkdir(parents=True, exist_ok=True)
@@ -52,15 +55,17 @@ def get_pairs(genomes, batch_size, output_dir, containmentpath, smash, smash_onl
         contain_file.write("plasmid_1\tplasmid_2\tdistance\n")
     else:
         contain_file=None
-    for list_a, list_b in itertools.combinations(prev_genomes, 2):
-        contain_file, batch_file, batch, iter = write_content(list_a, list_b, index_map, output_dir, batch_size, smash, smash_only, smash_threshold, smash_matrix, contain_file)
     if prev_genomes == []:
         new_genomes = genomes
-    if new_genomes!=[]:
-        contain_file, batch_file, batch, iter = write_content(new_genomes, new_genomes, index_map, output_dir, batch_size, smash, smash_only, smash_threshold, smash_matrix, contain_file, batch=batch, iter=iter)
+    #pairs between different previous typings, between new genomes and previous typings, and among new genomes
+    pair_iters = [itertools.product(list_a, list_b) for list_a, list_b in itertools.combinations(prev_genomes, 2)]
+    pair_iters += [itertools.product(new_genomes, list_a) for list_a in prev_genomes]
+    pair_iters.append(itertools.combinations(new_genomes, 2))
+    batch_file, batch, iter = write_content(itertools.chain(*pair_iters), index_map, output_dir, batch_size, smash, smash_only, smash_threshold, smash_matrix, contain_file, batch_file, batch, iter)
     if smash or smash_only:
         contain_file.close()
-    batch_file.close()
+    if batch_file is not None:
+        batch_file.close()
     return iter
 
 def run_smash_w_prev(genomes, prev_signatures, fastafiles, sig_path, matrixpath):
@@ -124,6 +129,7 @@ def main():
                 prev_signatures = [f"{path}/sourmash/all_plasmids.sig" for path in args.prev_typing]
     else:
         prev_genomes=[]
+        new_genomes=[]
 
     if args.sourmash or args.sourmash_only:
         sig_dir = Path(f"{args.outputpath}/sourmash")
@@ -131,7 +137,7 @@ def main():
         sig_path = sig_dir/"all_plasmids.sig"
         matrixpath = sig_dir/"smash_containment_matrix"
         if args.prev_typing:
-            run_smash(new_genomes, prev_signatures, fastafiles, matrixpath, prev_signatures)
+            run_smash_w_prev(new_genomes, prev_signatures, fastafiles, sig_path, matrixpath)
         else:
             run_smash(args.genomes_list, sig_path, matrixpath)
         genomes = get_labels(f"{matrixpath}.labels.txt")
@@ -140,7 +146,7 @@ def main():
         genomes = get_labels(args.genomes_list)
         smash_matrix = None
 
-    len_pairs = get_pairs(genomes, args.batch_size, f"{args.outputpath}/batches", args.containmentpath, args.sourmash, args.sourmash_only, smash_matrix, args.smash_threshold,prev_genomes=prev_genomes)
+    len_pairs = get_pairs(genomes, args.batch_size, f"{args.outputpath}/batches", args.containmentpath, args.sourmash, args.sourmash_only, smash_matrix, args.smash_threshold, prev_genomes=prev_genomes, new_genomes=new_genomes)
     number_of_batches = math.ceil(len_pairs/args.batch_size)
 
     with open(f"{args.outputpath}/batches/batching_info.txt", "w") as f:
